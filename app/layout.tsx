@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
-import { Geist, Noto_Serif_SC } from 'next/font/google'
+import { Noto_Serif_SC } from 'next/font/google'
 import { createClient } from '@/lib/supabase/server'
 import { ElderModeWrapper } from '@/components/elder-mode-wrapper'
 import './globals.css'
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-sans' })
+// 1. 移除了不可用的 Geist 字体
+// 2. 修正 Noto_Serif_SC 的子集为 'latin'
 const notoSerif = Noto_Serif_SC({
-  subsets: ['chinese-simplified'],
+  subsets: ['latin'],
   weight: ['400', '700'],
   variable: '--font-serif',
 })
@@ -34,7 +35,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="zh-CN" suppressHydrationWarning className={`${geist.variable} ${notoSerif.variable}`}>
+    // 这里移除了 geist.variable，改用标准的系统字体兜底
+    <html lang="zh-CN" suppressHydrationWarning className={`${notoSerif.variable}`}>
       <body className="font-sans antialiased">
         <ElderModeWrapper elderMode={elderMode}>
           {children}
