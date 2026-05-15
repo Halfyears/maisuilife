@@ -1,0 +1,142 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * 麦穗喜乐 Brand Palette
+ * --background  #F4F1EA  燕麦色 oatmeal   oklch(0.962 0.011 84.0)
+ * --primary     #D4AF37  麦穗金 wheat-gold oklch(0.757 0.134 84.2)
+ */
+
+@layer base {
+  :root {
+    /* ── Surfaces ───────────────────────────── */
+    --background:        oklch(0.962 0.011 84.0);   /* #F4F1EA 燕麦色 */
+    --foreground:        oklch(0.220 0.010 55.0);   /* warm near-black */
+    --card:              oklch(0.974 0.008 82.0);   /* slightly lighter oatmeal */
+    --card-foreground:   oklch(0.220 0.010 55.0);
+    --popover:           oklch(0.974 0.008 82.0);
+    --popover-foreground: oklch(0.220 0.010 55.0);
+
+    /* ── Brand ──────────────────────────────── */
+    --primary:           oklch(0.757 0.134 84.2);   /* #D4AF37 麦穗金 */
+    --primary-foreground: oklch(0.180 0.008 84.0);  /* dark-on-gold */
+
+    /* ── Secondary (静默绿 sage) ────────────── */
+    --secondary:         oklch(0.920 0.030 145.0);  /* light sage tint */
+    --secondary-foreground: oklch(0.340 0.060 145.0);
+
+    /* ── Neutral tones ──────────────────────── */
+    --muted:             oklch(0.940 0.008 84.0);
+    --muted-foreground:  oklch(0.520 0.012 60.0);
+    --accent:            oklch(0.940 0.018 84.0);   /* warm oatmeal accent */
+    --accent-foreground: oklch(0.560 0.120 84.0);   /* mid wheat gold */
+
+    /* ── State / utility ────────────────────── */
+    --destructive:       oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border:            oklch(0.898 0.018 84.0);   /* warm oatmeal border */
+    --input:             oklch(0.898 0.018 84.0);
+    --ring:              oklch(0.757 0.134 84.2);   /* wheat-gold focus ring */
+    --radius:            0.625rem;
+
+    /* ── Charts (nature palette) ────────────── */
+    --chart-1:           oklch(0.757 0.134 84.2);   /* wheat gold */
+    --chart-2:           oklch(0.520 0.090 145.0);  /* sage green */
+    --chart-3:           oklch(0.650 0.100 55.0);   /* warm amber */
+    --chart-4:           oklch(0.440 0.070 210.0);  /* slate blue */
+    --chart-5:           oklch(0.370 0.050 320.0);  /* mauve */
+
+    /* ── Sidebar ────────────────────────────── */
+    --sidebar:           oklch(0.974 0.009 83.0);
+    --sidebar-foreground: oklch(0.220 0.010 55.0);
+    --sidebar-primary:   oklch(0.757 0.134 84.2);
+    --sidebar-primary-foreground: oklch(0.180 0.008 84.0);
+    --sidebar-accent:    oklch(0.940 0.018 84.0);
+    --sidebar-accent-foreground: oklch(0.560 0.120 84.0);
+    --sidebar-border:    oklch(0.898 0.018 84.0);
+    --sidebar-ring:      oklch(0.757 0.134 84.2);
+  }
+
+  .dark {
+    /* ── Surfaces ───────────────────────────── */
+    --background:        oklch(0.195 0.012 60.0);   /* warm dark brown */
+    --foreground:        oklch(0.960 0.008 82.0);
+    --card:              oklch(0.240 0.012 60.0);
+    --card-foreground:   oklch(0.960 0.008 82.0);
+    --popover:           oklch(0.240 0.012 60.0);
+    --popover-foreground: oklch(0.960 0.008 82.0);
+
+    /* ── Brand ──────────────────────────────── */
+    --primary:           oklch(0.780 0.140 84.2);   /* gold stays bright in dark */
+    --primary-foreground: oklch(0.160 0.010 60.0);
+
+    /* ── Secondary ──────────────────────────── */
+    --secondary:         oklch(0.295 0.040 145.0);
+    --secondary-foreground: oklch(0.870 0.040 145.0);
+
+    /* ── Neutral tones ──────────────────────── */
+    --muted:             oklch(0.280 0.012 60.0);
+    --muted-foreground:  oklch(0.660 0.012 75.0);
+    --accent:            oklch(0.295 0.018 75.0);
+    --accent-foreground: oklch(0.800 0.100 84.0);
+
+    /* ── State / utility ────────────────────── */
+    --destructive:       oklch(0.704 0.191 22.216);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border:            oklch(1 0 0 / 10%);
+    --input:             oklch(1 0 0 / 15%);
+    --ring:              oklch(0.780 0.140 84.2);
+
+    /* ── Charts ─────────────────────────────── */
+    --chart-1:           oklch(0.780 0.140 84.2);
+    --chart-2:           oklch(0.580 0.100 145.0);
+    --chart-3:           oklch(0.680 0.110 55.0);
+    --chart-4:           oklch(0.500 0.080 210.0);
+    --chart-5:           oklch(0.440 0.060 320.0);
+
+    /* ── Sidebar ────────────────────────────── */
+    --sidebar:           oklch(0.240 0.012 60.0);
+    --sidebar-foreground: oklch(0.960 0.008 82.0);
+    --sidebar-primary:   oklch(0.780 0.140 84.2);
+    --sidebar-primary-foreground: oklch(0.160 0.010 60.0);
+    --sidebar-accent:    oklch(0.295 0.018 75.0);
+    --sidebar-accent-foreground: oklch(0.800 0.100 84.0);
+    --sidebar-border:    oklch(1 0 0 / 10%);
+    --sidebar-ring:      oklch(0.780 0.140 84.2);
+  }
+
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* ── Elder Mode ─────────────────────────────────
+   Applied by ElderModeWrapper when elder_mode=true.
+   Uses CSS zoom (scales all children uniformly) plus
+   bumped line-height for readability on small screens.
+   ────────────────────────────────────────────── */
+.elder-mode {
+  font-size: 1.2rem;          /* base bump: 19.2px from 16px */
+  line-height: 1.8;
+}
+.elder-mode input,
+.elder-mode textarea,
+.elder-mode select,
+.elder-mode button {
+  font-size: 1.1em;           /* relative to .elder-mode base */
+  min-height: 2.8rem;
+}
