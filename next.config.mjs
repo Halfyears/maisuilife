@@ -1,6 +1,5 @@
-import type { NextConfig } from 'next'
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // Supabase Database types are hand-maintained stubs; run `supabase gen types`
   // to regenerate. Until then, type errors in query results are expected.
   typescript: { ignoreBuildErrors: true },
