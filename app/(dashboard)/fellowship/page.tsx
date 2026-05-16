@@ -28,7 +28,7 @@ export default async function FellowshipPage() {
   const { data: membership } = await supabase
     .from('fellowship_members')
     .select('fellowship_id, layer2_label')
-    .eq('user_id', user.id)
+    .eq('leader_id', user.id)
     .limit(1)
     .maybeSingle()
 
