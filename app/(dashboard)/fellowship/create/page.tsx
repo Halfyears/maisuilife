@@ -2,13 +2,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js'; // 1. 改用绝对通用的原生 JS 客户端，避开所有 Next.js 助手包陷阱
+
+// 从环境变量直接读取，这在 Vercel 生产环境是绝对标准的操作
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function CreateFellowshipPage() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const supabase = createClientComponentClient();
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,19 +22,19 @@ export default function CreateFellowshipPage() {
     setErrorMsg(null);
 
     try {
-      // 1. 获取当前登录用户的 Session 会话
+      // 2. 原生获取 Session
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         throw new Error('未检测到有效登录，请尝试重新登录');
       }
 
-      // 2. 直连架构：放弃一切中间路由，前端直接带着真实的 leader_id 物理砸进 Supabase
+      // 3. 直连架构：前端带着真实的 leader_id 物理砸进 Supabase
       const { error: insertError } = await supabase
         .from('fellowships')
         .insert([
           {
             name: name.trim(),
-            leader_id: session.user.id // 彻底锁定查出来的真实物理表字段名！
+            leader_id: session.user.id // 彻底锁定物理表字段名！
           }
         ]);
 
@@ -38,7 +42,7 @@ export default function CreateFellowshipPage() {
         throw insertError;
       }
 
-      // 3. 创建成功后，用原生浏览器全页重载，暴力粉碎 Next.js 边缘软缓存
+      // 4. 创建成功后，全页重载，强制刷新软缓存
       window.location.href = '/fellowship';
 
     } catch (err: any) {
