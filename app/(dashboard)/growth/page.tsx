@@ -54,8 +54,8 @@ export default async function GrowthPage() {
               { label: '常见心境', value: topTag ?? '—', emoji: '🌿' },
             ].map(({ label, value, emoji }) => (
               <div key={label}
-                className="flex flex-col items-center gap-1 rounded-2xl border border-stone-100/85
-                           bg-white/90 py-4 shadow-sm backdrop-blur-md">
+                className="flex flex-col items-center gap-1 rounded-2xl border border-stone-100
+                           bg-white/90 py-4 shadow-md shadow-amber-900/5 backdrop-blur-md">
                 <span className="text-xl">{emoji}</span>
                 <span className="text-base font-bold text-stone-900">{value}</span>
                 <span className="text-[10px] font-medium text-stone-400">{label}</span>
@@ -65,7 +65,7 @@ export default async function GrowthPage() {
         )}
 
         {/* Main placeholder card */}
-        <div className="rounded-2xl border border-stone-100/85 bg-white/90 p-6 shadow-sm backdrop-blur-md">
+        <div className="rounded-2xl border border-stone-100 bg-white/90 p-6 shadow-md shadow-amber-900/5 backdrop-blur-md">
           <div className="flex items-center gap-2.5 mb-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50">
               <Sprout className="h-4.5 w-4.5 text-amber-500" />

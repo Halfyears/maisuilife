@@ -62,7 +62,7 @@ export default async function SettingsPage() {
         </div>
 
         {/* ── User profile card ────────────────────── */}
-        <div className="rounded-2xl border border-stone-100/85 bg-white/90 shadow-sm backdrop-blur-md overflow-hidden">
+        <div className="rounded-2xl border border-stone-100 bg-white/90 shadow-md shadow-amber-900/5 backdrop-blur-md overflow-hidden">
           <div className="flex items-center gap-4 px-5 py-5 border-b border-stone-100">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full
                             bg-gradient-to-br from-amber-100 to-orange-100 text-xl">
@@ -92,8 +92,8 @@ export default async function SettingsPage() {
         {/* ── Admin shortcut ─────────────────────────── */}
         {profile?.role === 'super_admin' && (
           <a href="/admin/hub"
-            className="flex items-center justify-between rounded-2xl border border-stone-100/85
-                       bg-white/90 px-5 py-4 shadow-sm backdrop-blur-md
+            className="flex items-center justify-between rounded-2xl border border-stone-100
+                       bg-white/90 px-5 py-4 shadow-md shadow-amber-900/5 backdrop-blur-md
                        hover:border-amber-200 transition-colors">
             <div className="flex items-center gap-3">
               <ShieldCheck className="h-4 w-4 text-amber-500" />

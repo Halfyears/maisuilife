@@ -62,8 +62,8 @@ export default async function RootPage() {
           {/* Card 1: 内室记录 */}
           <Link href="/daily" className="group block">
             <div className="relative overflow-hidden rounded-2xl border border-stone-100/85 bg-white/90 p-6
-                            shadow-sm backdrop-blur-md transition-all duration-300
-                            hover:shadow-md hover:border-amber-200/60 active:scale-[0.98]">
+                            shadow-md shadow-amber-900/5 backdrop-blur-md transition-all duration-300
+                            hover:shadow-lg hover:border-amber-200/60 active:scale-[0.98]">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-3">
@@ -105,8 +105,8 @@ export default async function RootPage() {
           {/* Card 2: 麦穗团契 */}
           <Link href="/fellowship" className="group block">
             <div className="relative overflow-hidden rounded-2xl border border-stone-100/85 bg-white/90 p-6
-                            shadow-sm backdrop-blur-md transition-all duration-300
-                            hover:shadow-md hover:border-stone-200 active:scale-[0.98]">
+                            shadow-md shadow-amber-900/5 backdrop-blur-md transition-all duration-300
+                            hover:shadow-lg hover:border-stone-200 active:scale-[0.98]">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-3">

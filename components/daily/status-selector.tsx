@@ -13,7 +13,7 @@ interface StatusSelectorProps {
 export function StatusSelector({ value, onChange, disabled }: StatusSelectorProps) {
   return (
     <fieldset disabled={disabled} className="w-full">
-      <legend className="mb-3 text-sm font-medium text-muted-foreground">
+      <legend className="mb-3 text-sm font-semibold text-stone-500">
         今日心境
       </legend>
       <div className="grid grid-cols-5 gap-2">
@@ -28,10 +28,10 @@ export function StatusSelector({ value, onChange, disabled }: StatusSelectorProp
               className={cn(
                 'flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3',
                 'text-center transition-all duration-150',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400',
                 selected
-                  ? 'border-gold-400 bg-gold-400/10 shadow-sm shadow-gold-400/20'
-                  : 'border-border bg-card hover:border-gold-300 hover:bg-gold-400/5',
+                  ? 'border-amber-300 bg-amber-50/80 shadow-sm shadow-amber-400/20'
+                  : 'border-stone-200 bg-white hover:border-amber-200 hover:bg-amber-50/30',
                 disabled && 'cursor-not-allowed opacity-50',
               )}
             >
@@ -40,7 +40,7 @@ export function StatusSelector({ value, onChange, disabled }: StatusSelectorProp
               </span>
               <span className={cn(
                 'text-xs font-medium leading-none',
-                selected ? 'text-gold-700' : 'text-muted-foreground',
+                selected ? 'text-amber-700' : 'text-stone-500',
               )}>
                 {tag.label}
               </span>
@@ -49,7 +49,7 @@ export function StatusSelector({ value, onChange, disabled }: StatusSelectorProp
         })}
       </div>
       {value && (
-        <p className="mt-2 text-xs text-muted-foreground text-center">
+        <p className="mt-2.5 text-xs text-stone-400 text-center">
           {STATUS_TAGS.find(t => t.value === value)?.hint}
         </p>
       )}
