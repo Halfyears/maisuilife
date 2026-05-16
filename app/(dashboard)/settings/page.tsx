@@ -37,19 +37,39 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // 优先用 service_role 绕过 RLS；若失败或无数据，回退到 RLS 客户端
   const db = createServiceClient()
-  const { data: profile } = await db
+  let { data: profile } = await db
     .from('users')
     .select('display_name, role, created_at')
     .eq('id', user.id)
     .single()
 
-  const { data: membership } = await db
+  if (!profile) {
+    const { data } = await supabase
+      .from('users')
+      .select('display_name, role, created_at')
+      .eq('id', user.id)
+      .single()
+    profile = data
+  }
+
+  let { data: membership } = await db
     .from('fellowship_members')
     .select('fellowship_id, fellowships(name)')
     .eq('user_id', user.id)
     .limit(1)
     .maybeSingle()
+
+  if (membership === null) {
+    const { data } = await supabase
+      .from('fellowship_members')
+      .select('fellowship_id, fellowships(name)')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+    membership = data
+  }
 
   const role       = profile?.role ?? 'user'
   const badge      = ROLE_BADGE[role] ?? DEFAULT_BADGE

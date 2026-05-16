@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Loader2, BookOpen } from 'lucide-react'
 import { StatusSelector } from './status-selector'
 import { cn } from '@/lib/utils'
@@ -28,6 +29,7 @@ function getFallbackVerse(tags: StatusTagValue[]): { verse: string; verse_ref: s
 }
 
 export function DailyForm({ fellowshipId }: DailyFormProps) {
+  const router = useRouter()
   const [selectedTags, setSelectedTags] = useState<StatusTagValue[]>([])
   const [textInput,    setTextInput]    = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -62,6 +64,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       if (res.ok) {
         const data: AIResult = await res.json()
         setAiResult(data)
+        router.refresh()
       } else {
         throw new Error('api_error')
       }
@@ -149,7 +152,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
           className="w-full bg-stone-50/90 rounded-xl p-4 border border-stone-200/60
                      focus:border-amber-400 focus:ring-1 focus:ring-amber-400
                      text-stone-700 placeholder:text-stone-400
-                     min-h-[220px] resize-none focus:outline-none
+                     min-h-[260px] resize-none focus:outline-none
                      disabled:opacity-60 text-sm leading-relaxed"
         />
         {/* 静态语音占位符 */}

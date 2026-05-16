@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 
 export const metadata = { title: '灵命成长 — 麦穗喜乐' }
-export const revalidate = 60
+export const revalidate = 0
 
 const TAG_EMOJI: Record<string, string> = {
   '感恩': '🙏', '平安': '🕊️', '疲惫': '🌙', '干渴': '🌿', '混乱': '🌊',
@@ -27,14 +27,18 @@ function formatDateCN(dateStr: string): string {
   return `${month}月${day}日 · 星期${days[d.getDay()]}`
 }
 
+// 返回 UTC+8 的本地日期字符串 YYYY-MM-DD（服务器可能在 UTC 时区）
+function localDateCN(offsetDays = 0): string {
+  const ms = Date.now() + 8 * 3600_000 + offsetDays * 86_400_000
+  return new Date(ms).toISOString().slice(0, 10)
+}
+
 function computeStreak(dates: string[]): number {
   if (dates.length === 0) return 0
-  const sorted = [...new Set(dates)].sort((a, b) => b.localeCompare(a))
-  const today  = new Date().toISOString().slice(0, 10)
-  // 仅从今天或昨天开始计算连续天数
-  if (sorted[0] !== today && sorted[0] !== (() => {
-    const y = new Date(); y.setDate(y.getDate() - 1); return y.toISOString().slice(0, 10)
-  })()) return 0
+  const sorted   = [...new Set(dates)].sort((a, b) => b.localeCompare(a))
+  const today    = localDateCN(0)
+  const yesterday = localDateCN(-1)
+  if (sorted[0] !== today && sorted[0] !== yesterday) return 0
   let streak = 1
   for (let i = 0; i < sorted.length - 1; i++) {
     const diff = (new Date(sorted[i]).getTime() - new Date(sorted[i + 1]).getTime()) / 86400000
@@ -49,25 +53,18 @@ export default async function GrowthPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // 读取近 90 天的完整内室记录（含日期、心境、紧急标记）
-  const ninetyDaysAgo = new Date()
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-
   const { data: alignments } = await supabase
     .from('daily_alignments')
     .select('id, status_tag, date, is_urgent, created_at')
     .eq('user_id', user.id)
-    .gte('date', ninetyDaysAgo.toISOString().slice(0, 10))
+    .gte('date', localDateCN(-90))
     .order('date', { ascending: false })
 
   const records  = alignments ?? []
   const total    = records.length
   const streak   = computeStreak(records.map(r => r.date))
 
-  // 近 30 天统计
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-  const recent30 = records.filter(r => r.date >= thirtyDaysAgo.toISOString().slice(0, 10))
+  const recent30 = records.filter(r => r.date >= localDateCN(-30))
 
   // 心境计数（支持多选标签）
   const tagCounts: Record<string, number> = {}
