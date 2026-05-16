@@ -1,8 +1,4 @@
-@import "tw-animate-css";
-
-/* ── tw-animate-css 上面只留真实存在的 @import ──────────────────
-   shadcn/tailwind.css 在 Tailwind v3 项目中不存在，已删除，
-   其存在会导致 PostCSS 编译中止，全站样式归零。               */
+/* tw-animate-css 为 Tailwind v4 专用包，v3 下直接 @apply 会崩溃，已移除 */
 
 @tailwind base;
 @tailwind components;
@@ -105,7 +101,8 @@
   }
 
   * {
-    @apply border-border outline-ring/50;
+    /* border-border 需要 Tailwind v4，改用原生 CSS 变量 */
+    border-color: var(--border);
   }
 
   html {

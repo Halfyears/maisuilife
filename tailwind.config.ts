@@ -72,7 +72,7 @@ const config: Config = {
     // 时间轴渐变条
     'from-amber-400', 'to-orange-400',
   ],
-  plugins: [require('tailwindcss-animate')],
+  plugins: [],   // tailwindcss-animate 未安装；动画由 tw-animate-css CSS 包提供
 }
 
 export default config

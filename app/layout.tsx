@@ -36,6 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="zh-CN" suppressHydrationWarning className={notoSerif.variable}>
       <body
         className="font-sans antialiased"
+        style={{ backgroundColor: '#FBFBF9', color: '#1C1917' }}
       >
         <ElderModeWrapper elderMode={elderMode}>
           {children}
