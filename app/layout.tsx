@@ -19,8 +19,6 @@ export const metadata: Metadata = {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Read elder_mode from Supabase on the server so the initial HTML is correct.
-  // Falls back to false for unauthenticated routes (login, register).
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -35,9 +33,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    // 这里移除了 geist.variable，改用标准的系统字体兜底
-    <html lang="zh-CN" suppressHydrationWarning className={`${notoSerif.variable}`}>
-      <body className="font-sans antialiased">
+    <html lang="zh-CN" suppressHydrationWarning className={notoSerif.variable}>
+      <body
+        className="font-sans antialiased min-h-dvh
+                   bg-gradient-to-b from-amber-50/40 via-stone-50 to-orange-50/20"
+      >
         <ElderModeWrapper elderMode={elderMode}>
           {children}
         </ElderModeWrapper>
