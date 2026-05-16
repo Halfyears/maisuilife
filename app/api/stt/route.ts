@@ -36,7 +36,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
-  // ── 0b. Global AI Circuit Breaker check ─────────────────
+  // ── 0b. Runtime key guard (build-safe) ──────────────────
+  if (!process.env.GROQ_API_KEY) {
+    return NextResponse.json({ error: 'STT configuration missing' }, { status: 500 })
+  }
+
+  // ── 0d. Global AI Circuit Breaker check ─────────────────
   // Reads system_configs via anon key (RLS allows authenticated read).
   // If active=false, reject immediately without touching audio/STT.
   {

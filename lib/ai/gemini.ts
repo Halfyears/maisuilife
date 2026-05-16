@@ -7,7 +7,10 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai'
 import { SCRIPTURE_BANK, AI_COMFORT_MAX_CHARS, AI_SUMMARY_MAX_CHARS } from '@/lib/constants'
 import type { StatusTagValue } from '@/lib/constants'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+// genAI is intentionally NOT initialised at module scope.
+// Module-level SDK constructors run during the Next.js build phase where
+// GEMINI_API_KEY is undefined, causing fatal build errors.
+// The client is created inside generateAlignmentResponse instead.
 
 // JSON schema enforced by Gemini's structured-output mode
 const RESPONSE_SCHEMA = {
@@ -56,6 +59,11 @@ export async function generateAlignmentResponse({
   transcript: string
   statusTag: StatusTagValue
 }): Promise<AlignmentAIResponse> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not configured')
+  }
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+
   // Filter scriptures relevant to this mood + universal ones
   const candidateVerses = SCRIPTURE_BANK.filter(
     (s) => s.mood === statusTag || s.mood === '通用'

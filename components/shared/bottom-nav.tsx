@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 const TABS = [
   { href: '/daily',      Icon: Sprout,    label: '内室记录' },
   { href: '/fellowship', Icon: Users,     label: '麦穗团契' },
-  { href: '#growth',     Icon: BarChart2, label: '灵命成长' },
+  { href: '/growth',     Icon: BarChart2, label: '灵命成长' },
   { href: '/settings',   Icon: Settings,  label: '设置中心' },
 ] as const
 
@@ -23,7 +23,7 @@ export function BottomNav() {
     >
       <div className="mx-auto flex max-w-md items-center justify-between px-2 pt-2 pb-1">
         {TABS.map(({ href, Icon, label }) => {
-          const active = pathname === href || (href !== '#growth' && pathname.startsWith(href))
+          const active = pathname === href || pathname.startsWith(href + '/')
           return (
             <Link
               key={href}

@@ -8,13 +8,18 @@
  */
 import Groq from 'groq-sdk'
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-
 export interface STTResult {
   transcript: string
 }
 
 export async function transcribeAudio(audioBlob: Blob): Promise<STTResult> {
+  // Initialised inside the function — never at module scope — so the build
+  // phase never executes SDK constructors that require runtime env vars.
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error('GROQ_API_KEY is not configured')
+  }
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+
   // Derive extension from MIME type — Groq identifies codec by filename extension.
   // Hardcoding '.webm' breaks iOS Safari which records as audio/mp4.
   const ext  = audioBlob.type.includes('mp4') ? 'mp4'
