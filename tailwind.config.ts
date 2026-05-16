@@ -62,6 +62,16 @@ const config: Config = {
       },
     },
   },
+  safelist: [
+    // 品牌渐变字 — 防止动态拼接类名被 PurgeCSS 误删
+    'bg-gradient-to-r', 'from-amber-500', 'to-orange-600', 'via-orange-500', 'to-amber-600',
+    'bg-clip-text', 'text-transparent',
+    // 按钮与卡片核心色
+    'bg-gradient-to-br', 'from-amber-50', 'from-amber-50/80', 'to-orange-50/60',
+    'shadow-md', 'shadow-amber-900/5', 'shadow-orange-500/20', 'shadow-lg',
+    // 时间轴渐变条
+    'from-amber-400', 'to-orange-400',
+  ],
   plugins: [require('tailwindcss-animate')],
 }
 

@@ -149,7 +149,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
           className="w-full bg-stone-50/90 rounded-xl p-4 border border-stone-200/60
                      focus:border-amber-400 focus:ring-1 focus:ring-amber-400
                      text-stone-700 placeholder:text-stone-400
-                     min-h-[140px] resize-none focus:outline-none
+                     min-h-[220px] resize-none focus:outline-none
                      disabled:opacity-60 text-sm leading-relaxed"
         />
         {/* 静态语音占位符 */}
@@ -171,11 +171,11 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
         onClick={handleSubmit}
         disabled={!canSubmit}
         className={cn(
-          'w-full py-5 px-6 text-xl font-black tracking-widest text-center',
+          'w-full block py-6 px-6 text-2xl font-black tracking-widest text-center',
           'transition-all duration-300 active:scale-[0.99] focus:outline-none',
           canSubmit
-            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20 cursor-pointer'
-            : 'bg-stone-50 text-stone-300 cursor-not-allowed',
+            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20 cursor-pointer rounded-b-2xl'
+            : 'bg-stone-50 text-stone-300 cursor-not-allowed rounded-b-2xl',
         )}
       >
         {isSubmitting ? (
