@@ -115,45 +115,63 @@ export default async function FellowshipPage() {
 
 function NoFellowshipState() {
   return (
-    <div className="flex flex-col items-center gap-6 py-10 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full
-                      bg-gradient-to-br from-amber-100 to-orange-100 text-3xl shadow-sm">
-        🌾
-      </div>
-      <div>
-        <p className="text-base font-bold text-stone-900 tracking-wide">还未加入任何麦穗小组</p>
-        <p className="mt-1.5 max-w-[240px] text-sm font-medium text-stone-500 leading-snug">
-          在这里，你可以与弟兄姐妹彼此联结，同行成长。
-        </p>
+    <div className="flex flex-col gap-5 py-4">
+
+      {/* 欢迎语 */}
+      <div className="flex flex-col items-center gap-3 py-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full
+                        bg-gradient-to-br from-amber-100 to-orange-100 text-3xl shadow-sm">
+          🌾
+        </div>
+        <div>
+          <p className="text-base font-bold text-stone-900 tracking-wide">还未加入任何麦穗小组</p>
+          <p className="mt-1.5 text-sm font-medium text-stone-500 leading-snug">
+            在这里，与弟兄姐妹彼此联结，同行成长。
+          </p>
+        </div>
       </div>
 
-      <div className="flex w-full flex-col gap-3">
-        {/* Option 1: join via invite code */}
+      {/* ── 加入现有团契 ─────────────────────────────── */}
+      <div className="bg-white/90 backdrop-blur-md rounded-2xl p-6 shadow-md shadow-amber-900/5 border border-stone-100">
+        <div className="flex items-center gap-2.5 mb-4">
+          <span className="text-xl">👥</span>
+          <p className="text-sm font-bold text-stone-900">加入现有麦穗团契</p>
+        </div>
         <Link
           href="/fellowship/join"
-          className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50/80
-                     px-5 py-4 transition-all hover:border-amber-300 hover:bg-amber-50 active:scale-[0.98]"
+          className="flex items-center justify-center w-full rounded-xl
+                     border border-amber-200 bg-amber-50/80 px-5 py-3
+                     text-sm font-bold text-amber-700 hover:bg-amber-100
+                     transition-colors active:scale-[0.99]"
         >
-          <span className="text-2xl">👥</span>
-          <div className="text-left">
-            <p className="text-sm font-bold text-stone-900">输入邀请码加入现有团契</p>
-            <p className="text-xs font-medium text-stone-500 mt-0.5">向你的组长索取 6 位邀请码</p>
-          </div>
+          输入 6 位邀请码加入
         </Link>
+        <span className="text-stone-400 text-xs mt-2.5 px-1 block leading-relaxed">
+          💡 提示：麦穗团契为私密守望小组。若您已有受邀团队，请向您的真实团契组长索取 6 位邀请码输入即可。
+        </span>
+      </div>
 
-        {/* Option 2: create new group */}
+      {/* ── 创建新麦穗小组 ─────────────────────────── */}
+      <div className="bg-white/90 backdrop-blur-md rounded-2xl p-6 shadow-md shadow-amber-900/5 border border-stone-100">
+        <div className="flex items-center gap-2.5 mb-4">
+          <span className="text-xl">🌾</span>
+          <p className="text-sm font-bold text-stone-900">创建新麦穗小组</p>
+        </div>
         <Link
           href="/fellowship/create"
-          className="flex items-center gap-3 rounded-2xl border border-stone-100 bg-white/90
-                     px-5 py-4 shadow-sm transition-all hover:border-stone-200 active:scale-[0.98]"
+          className="flex items-center justify-center w-full rounded-xl
+                     bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600
+                     px-5 py-3 text-sm font-bold text-white
+                     shadow-md shadow-orange-500/20 hover:opacity-90
+                     transition-opacity active:scale-[0.99]"
         >
-          <span className="text-2xl">🌾</span>
-          <div className="text-left">
-            <p className="text-sm font-bold text-stone-900">创建新麦穗小组</p>
-            <p className="text-xs font-medium text-stone-500 mt-0.5">开启属于你们的属灵同行之旅</p>
-          </div>
+          ＋ 立即创建新麦穗小组
         </Link>
+        <span className="text-stone-500 text-sm mt-3 tracking-wide block italic text-center leading-relaxed">
+          ✨ 开启属于你们的属灵同行之旅，在生命的话语中建立风雨同舟的守望关系。
+        </span>
       </div>
+
     </div>
   )
 }

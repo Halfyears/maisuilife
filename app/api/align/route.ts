@@ -23,7 +23,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { generateAlignmentResponse } from '@/lib/ai/gemini'
 import { encrypt } from '@/lib/crypto'
-import type { StatusTagValue } from '@/lib/constants'
 
 export const runtime = 'nodejs'
 
@@ -57,18 +56,16 @@ export async function POST(req: NextRequest) {
     // ── 2. Parse JSON body ──────────────────────────────────
     const body = await req.json()
     const transcript  = (typeof body.transcript === 'string' ? body.transcript : '').trim()
-    const statusTag   = (typeof body.status_tag === 'string' ? body.status_tag : '') as StatusTagValue
+    const statusTag   = typeof body.status_tag === 'string' ? body.status_tag : ''
     const isUrgent    = body.is_urgent === true
     const fellowshipId = typeof body.fellowship_id === 'string' ? body.fellowship_id.trim() || null : null
 
-    if (!transcript) {
-      return NextResponse.json({ error: 'missing_transcript' }, { status: 400 })
+    // 至少需要心境或文字其中之一
+    if (!transcript && !statusTag) {
+      return NextResponse.json({ error: 'missing_content' }, { status: 400 })
     }
     if (transcript.length > 800) {
       return NextResponse.json({ error: 'transcript_too_long' }, { status: 400 })
-    }
-    if (!statusTag) {
-      return NextResponse.json({ error: 'missing_status_tag' }, { status: 400 })
     }
 
     rawTranscript = transcript

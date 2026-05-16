@@ -5,25 +5,26 @@ import { STATUS_TAGS } from '@/lib/constants'
 import type { StatusTagValue } from '@/lib/constants'
 
 interface StatusSelectorProps {
-  value: StatusTagValue | null
-  onChange: (value: StatusTagValue) => void
+  values:    StatusTagValue[]
+  onToggle:  (value: StatusTagValue) => void
   disabled?: boolean
 }
 
-export function StatusSelector({ value, onChange, disabled }: StatusSelectorProps) {
+export function StatusSelector({ values, onToggle, disabled }: StatusSelectorProps) {
   return (
     <fieldset disabled={disabled} className="w-full">
       <legend className="mb-3 text-sm font-semibold text-stone-500">
-        今日心境
+        今日心境{' '}
+        <span className="text-stone-300 font-normal text-xs">（可多选）</span>
       </legend>
       <div className="grid grid-cols-5 gap-2">
         {STATUS_TAGS.map((tag) => {
-          const selected = value === tag.value
+          const selected = values.includes(tag.value)
           return (
             <button
               key={tag.value}
               type="button"
-              onClick={() => onChange(tag.value)}
+              onClick={() => onToggle(tag.value)}
               aria-pressed={selected}
               className={cn(
                 'flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3',
@@ -48,9 +49,12 @@ export function StatusSelector({ value, onChange, disabled }: StatusSelectorProp
           )
         })}
       </div>
-      {value && (
+      {values.length > 0 && (
         <p className="mt-2.5 text-xs text-stone-400 text-center">
-          {STATUS_TAGS.find(t => t.value === value)?.hint}
+          {values
+            .map(v => STATUS_TAGS.find(t => t.value === v)?.hint)
+            .filter(Boolean)
+            .join(' · ')}
         </p>
       )}
     </fieldset>

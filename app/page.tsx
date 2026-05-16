@@ -35,7 +35,9 @@ export default async function RootPage() {
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center gap-2 px-5 py-3.5">
           <Wheat className="h-5 w-5 text-amber-500 shrink-0" />
-          <span className="font-serif text-base font-bold text-stone-800 tracking-wide">麦穗喜乐</span>
+          <span className="font-serif text-base font-black tracking-wide bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
+            麦穗喜乐
+          </span>
           <span className="ml-auto text-xs text-stone-400">{formatDate(new Date())}</span>
         </div>
       </header>

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { Loader2, BookOpen } from 'lucide-react'
 import { StatusSelector } from './status-selector'
 import { cn } from '@/lib/utils'
@@ -19,24 +18,34 @@ interface AIResult {
   verse_ref:   string
 }
 
-function getFallbackVerse(mood: StatusTagValue): { verse: string; verse_ref: string } {
-  const pool = SCRIPTURE_BANK.filter(s => s.mood === mood || s.mood === '通用')
-  const pick  = pool[Math.floor(Math.random() * pool.length)]
+function getFallbackVerse(tags: StatusTagValue[]): { verse: string; verse_ref: string } {
+  const pool = tags.length > 0
+    ? SCRIPTURE_BANK.filter(s => tags.some(t => (s.mood as string) === t) || s.mood === '通用')
+    : SCRIPTURE_BANK.filter(s => s.mood === '通用')
+  const effective = pool.length > 0 ? pool : [...SCRIPTURE_BANK]
+  const pick = effective[Math.floor(Math.random() * effective.length)]
   return { verse: pick.text, verse_ref: pick.ref }
 }
 
 export function DailyForm({ fellowshipId }: DailyFormProps) {
-  const router = useRouter()
-
-  const [statusTag,    setStatusTag]    = useState<StatusTagValue | null>(null)
+  const [selectedTags, setSelectedTags] = useState<StatusTagValue[]>([])
   const [textInput,    setTextInput]    = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [aiResult,     setAiResult]     = useState<AIResult | null>(null)
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  const toggleTag = useCallback((tag: StatusTagValue) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    )
+  }, [])
+
+  // ── 零硬性拦截：只要有标签或有文字，即可提交 ──────────────
+  const canSubmit = !isSubmitting && (selectedTags.length > 0 || textInput.trim().length > 0)
+
   const handleSubmit = useCallback(async () => {
-    if (!statusTag || isSubmitting) return
+    if (!canSubmit) return
     setIsSubmitting(true)
 
     try {
@@ -45,7 +54,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           transcript:    textInput.trim() || '（静默交托）',
-          status_tag:    statusTag,
+          status_tag:    selectedTags.join('、'),
           is_urgent:     false,
           fellowship_id: fellowshipId ?? null,
         }),
@@ -58,61 +67,76 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       }
     } catch {
       // 无条件通关：API 失败时展示本地经文，绝不拦截
-      const { verse, verse_ref } = getFallbackVerse(statusTag)
+      const { verse, verse_ref } = getFallbackVerse(selectedTags)
       setAiResult({
         alignmentId: '',
-        comfort:     '你的心声已悄悄落在祂面前，祂必看顾每一个细节。',
+        comfort:     '孩子，你今日的心声已悄悄落在祂面前。祂的话语有时来得很慢，但每一字都精准地落在你心上。无论你今日带来了怎样的重担，祂都看见了，也都接住了。愿这段经文成为你今日的光。',
         verse,
         verse_ref,
       })
     } finally {
       setIsSubmitting(false)
     }
+    // ── 无自动跳转：原地停留，让用户充分默想消化 ──────────────
+  }, [canSubmit, textInput, selectedTags, fellowshipId])
 
-    setTimeout(() => router.push('/fellowship'), 4000)
-  }, [statusTag, textInput, fellowshipId, router, isSubmitting])
-
-  // ── 结果视图：展示 AI 安慰话与经文 ──────────────────────────────────
+  // ── AI 结果视图（留在内室页，不跳转）────────────────────────
   if (aiResult) {
     return (
-      <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-3 duration-500">
+      <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-3 duration-500">
+
+        {/* 属灵回应 */}
         <div className="rounded-2xl border border-amber-100/80 bg-gradient-to-br
-                        from-amber-50/80 to-orange-50/60 px-6 py-5
+                        from-amber-50/80 to-orange-50/60 px-6 py-6
                         shadow-md shadow-amber-900/5">
-          <p className="text-sm leading-relaxed text-stone-700">{aiResult.comfort}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-amber-500 mb-3">
+            属灵回应
+          </p>
+          <p className="text-sm leading-relaxed text-stone-700 whitespace-pre-wrap">
+            {aiResult.comfort}
+          </p>
         </div>
 
+        {/* 今日经文 */}
         <div className="rounded-2xl border border-stone-100 bg-white/90 px-6 py-5
                         shadow-md shadow-amber-900/5 backdrop-blur-md">
           <div className="flex items-start gap-3">
             <BookOpen className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm leading-relaxed text-stone-600 italic">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400 mb-2">
+                今日经文
+              </p>
+              <p className="text-base leading-relaxed text-stone-700 italic font-medium">
                 "{aiResult.verse}"
               </p>
-              <p className="mt-2 text-xs text-stone-400">—— {aiResult.verse_ref}</p>
+              <p className="mt-3 text-xs text-stone-400">—— {aiResult.verse_ref}</p>
             </div>
           </div>
         </div>
 
-        <p className="text-center text-xs text-stone-400 animate-pulse">
-          已记录，正在前往团契…
+        {/* 静默提示 */}
+        <p className="text-center text-xs text-stone-300 pb-4 leading-relaxed">
+          愿你在此默想，让圣言在心中慢慢生根。
         </p>
       </div>
     )
   }
 
-  // ── 主表单：一体象牙白卡片 ────────────────────────────────────────────
+  // ── 主表单：一体象牙白卡片 ────────────────────────────────────
   return (
     <div className="rounded-2xl border border-stone-100 bg-white/90
                     shadow-md shadow-amber-900/5 backdrop-blur-md overflow-hidden">
 
-      {/* ── 今日心境选择区 ─────────────────────────────────── */}
+      {/* ── 今日心境（多选）─────────────────────────── */}
       <div className="px-5 pt-5 pb-4 border-b border-stone-50">
-        <StatusSelector value={statusTag} onChange={setStatusTag} disabled={isSubmitting} />
+        <StatusSelector
+          values={selectedTags}
+          onToggle={toggleTag}
+          disabled={isSubmitting}
+        />
       </div>
 
-      {/* ── 文字输入区 ─────────────────────────────────────── */}
+      {/* ── 文字输入区 ─────────────────────────────── */}
       <div className="px-5 pt-4 pb-1">
         <textarea
           ref={textareaRef}
@@ -134,23 +158,23 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
         </p>
       </div>
 
-      {/* ── 字数计数 ───────────────────────────────────────── */}
+      {/* ── 字数计数 ─────────────────────────────────── */}
       <div className="flex justify-end px-5 pb-3">
         <span className="text-[11px] text-stone-300 tabular-nums">
           {textInput.length} / 800
         </span>
       </div>
 
-      {/* ── 巨型推进按钮（焊死在卡片底部）─────────────────── */}
+      {/* ── 巨型推进按钮 ─────────────────────────────── */}
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={!statusTag || isSubmitting}
+        disabled={!canSubmit}
         className={cn(
           'w-full py-5 px-6 text-xl font-black tracking-widest text-center',
           'transition-all duration-300 active:scale-[0.99] focus:outline-none',
-          statusTag && !isSubmitting
-            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20'
+          canSubmit
+            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20 cursor-pointer'
             : 'bg-stone-50 text-stone-300 cursor-not-allowed',
         )}
       >
@@ -159,10 +183,10 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
             <Loader2 className="h-5 w-5 animate-spin" />
             正在聆听…
           </span>
-        ) : statusTag ? (
+        ) : canSubmit ? (
           '📖 聆听圣经话语'
         ) : (
-          '↑ 请先选择今日心境'
+          '请在上方倾诉或选择心境'
         )}
       </button>
     </div>
