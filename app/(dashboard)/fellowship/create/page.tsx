@@ -2,12 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createClient } from '@supabase/supabase-js'; // 1. 改用绝对通用的原生 JS 客户端，避开所有 Next.js 助手包陷阱
-
-// 从环境变量直接读取，这在 Vercel 生产环境是绝对标准的操作
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { createClient } from '@supabase/supabase-js';
 
 export default function CreateFellowshipPage() {
   const [name, setName] = useState('');
@@ -22,19 +17,67 @@ export default function CreateFellowshipPage() {
     setErrorMsg(null);
 
     try {
-      // 2. 原生获取 Session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        throw new Error('未检测到有效登录，请尝试重新登录');
+      // 1. 从当前浏览器的 localStorage / Cookie 中直接暴力抓取全局 Supabase Auth 凭证
+      let token = '';
+      if (typeof window !== 'undefined') {
+        // 尝试从本地存储中提取可能存在的 Supabase Session 缓存
+        const storageKeys = Object.keys(localStorage);
+        const authKey = storageKeys.find(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
+        if (authKey) {
+          const rawData = localStorage.getItem(authKey);
+          if (rawData) {
+            const parsed = JSON.parse(rawData);
+            token = parsed?.access_token || '';
+          }
+        }
       }
 
-      // 3. 直连架构：前端带着真实的 leader_id 物理砸进 Supabase
+      // 2. 初始化带有绝对访问权限的原生客户端
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+      
+      // 如果找到了 token，直接作为全局 Header 强行物理注入，绕过所有 auth-helpers 的载体干扰
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        },
+        global: {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        }
+      });
+
+      // 3. 再次向 Supabase 确认当前会话（如果 Header 注入成功，这里会完美回显）
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // 容错机制：如果 RLS 允许或底层有依赖，直接提取 UID
+      let userId = session?.user?.id;
+      
+      // 极端防御：如果客户端依然被沙盒隔离，直接解析刚才抓出来的 JWT Token 获取用户物理 ID
+      if (!userId && token) {
+        try {
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+          userId = JSON.parse(jsonPayload)?.sub;
+        } catch (e) {
+          console.error('解析本地 Token 失败:', e);
+        }
+      }
+
+      if (!userId) {
+        throw new Error('未检测到本地有效登录令牌，请先在设置页刷新登录状态');
+      }
+
+      // 4. 直连砸入：严格对齐 leader_id 字段
       const { error: insertError } = await supabase
         .from('fellowships')
         .insert([
           {
             name: name.trim(),
-            leader_id: session.user.id // 彻底锁定物理表字段名！
+            leader_id: userId // 锁定物理字段
           }
         ]);
 
@@ -42,12 +85,12 @@ export default function CreateFellowshipPage() {
         throw insertError;
       }
 
-      // 4. 创建成功后，全页重载，强制刷新软缓存
+      // 5. 成功后暴力重载，冲刷一切软路由缓存
       window.location.href = '/fellowship';
 
     } catch (err: any) {
       console.error('创建团契物理失败:', err);
-      setErrorMsg(err.message || '数据库架构拦截，请检查字段约束或 RLS 权限');
+      setErrorMsg(err.message || '数据库架构拦截或 RLS 鉴权未通过');
     } finally {
       setLoading(false);
     }
@@ -63,7 +106,7 @@ export default function CreateFellowshipPage() {
 
         {errorMsg && (
           <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-medium leading-relaxed">
-            💥 架构拦截错误：{errorMsg}
+            💥 运行状态反馈：{errorMsg}
           </div>
         )}
 
