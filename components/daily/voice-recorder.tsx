@@ -12,25 +12,22 @@ interface VoiceRecorderProps {
   onError?:       (msg: string) => void
   onStateChange?: (state: VoiceState) => void
   disabled?:      boolean
+  hideHint?:      boolean   // suppress the ambient hint text (e.g. when textarea has content)
   className?:     string
 }
 
 /**
  * 录音组件 — 物理红线执行点。
  *
- * 音销字留：
- *  1. chunks 拼合为 Blob 后立即传给父组件 onAudioReady，本组件立即清空引用。
- *  2. 组件卸载时释放 MediaStream 所有轨道。
- *
- * iOS 兼容性：
- *  - audio constraints 不含 sampleRate（触发 OverconstrainedError）
- *  - mimeType 顺序：webm/opus → webm → mp4 → ogg/opus → 浏览器默认
+ * 音销字留：chunks 拼合为 Blob 后立即传给父组件，本组件立即清空引用。
+ * iOS 兼容：constraints 不含 sampleRate；mimeType 自动协商 mp4/webm/ogg。
  */
 export function VoiceRecorder({
   onAudioReady,
   onError,
   onStateChange,
   disabled,
+  hideHint,
   className,
 }: VoiceRecorderProps) {
   const [state, setState]     = useState<VoiceState>('idle')
@@ -42,23 +39,18 @@ export function VoiceRecorder({
   const timerRef         = useRef<ReturnType<typeof setInterval> | null>(null)
   const stopRef          = useRef<() => void>(() => {})
 
-  const setStateAndNotify = useCallback((s: VoiceState) => {
+  const notify = useCallback((s: VoiceState) => {
     setState(s)
     onStateChange?.(s)
   }, [onStateChange])
 
-  useEffect(() => {
-    return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop())
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    if (timerRef.current) clearInterval(timerRef.current)
   }, [])
 
   const stopRecording = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     mediaRecorderRef.current?.stop()
   }, [])
 
@@ -66,39 +58,35 @@ export function VoiceRecorder({
 
   const startRecording = useCallback(async () => {
     try {
-      // sampleRate intentionally omitted — causes OverconstrainedError on iOS Safari
+      // sampleRate omitted intentionally — causes OverconstrainedError on iOS Safari
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
       })
       streamRef.current = stream
 
-      // Try mimeTypes in priority order; audio/mp4 is the iOS-compatible fallback
       const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']
-      const mimeType   = candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? ''
+      const mimeType   = candidates.find(t => MediaRecorder.isTypeSupported(t)) ?? ''
 
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
       mediaRecorderRef.current = recorder
       chunksRef.current = []
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data)
-      }
-
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       recorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' })
-        chunksRef.current = []                                   // ■ 音销
-        streamRef.current?.getTracks().forEach((t) => t.stop())
+        const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' })
+        chunksRef.current = []                              // ■ 音销
+        streamRef.current?.getTracks().forEach(t => t.stop())
         streamRef.current = null
-        onAudioReady(audioBlob)
-        setStateAndNotify('processing')
+        onAudioReady(blob)
+        notify('processing')
       }
 
       recorder.start(250)
-      setStateAndNotify('recording')
+      notify('recording')
       setElapsed(0)
 
       timerRef.current = setInterval(() => {
-        setElapsed((prev) => {
+        setElapsed(prev => {
           const next = prev + 1
           if (next >= MAX_RECORDING_SECONDS) { stopRef.current(); return prev }
           return next
@@ -107,109 +95,92 @@ export function VoiceRecorder({
 
     } catch (err) {
       const msg = err instanceof Error && err.name === 'NotAllowedError'
-        ? '请允许麦克风权限后重试'
+        ? '请在浏览器设置中允许麦克风权限后重试'
         : '无法启动录音，请检查设备'
       onError?.(msg)
-      setStateAndNotify('idle')
+      notify('idle')
     }
-  }, [onAudioReady, onError, setStateAndNotify])
+  }, [onAudioReady, onError, notify])
 
   const isRecording  = state === 'recording'
   const isProcessing = state === 'processing'
 
-  // Wave bar config: [height%, animationDelay] — 5 bars, staggered bounce
-  const WAVE_BARS = [
-    { h: 40,  delay: '0ms'   },
-    { h: 85,  delay: '140ms' },
-    { h: 100, delay: '70ms'  },
-    { h: 75,  delay: '210ms' },
-    { h: 50,  delay: '35ms'  },
+  // 5 wave bars — varied heights + staggered delays → convincing audio visualiser
+  const BARS = [
+    { h: 35,  d: '0ms'   },
+    { h: 80,  d: '130ms' },
+    { h: 100, d: '65ms'  },
+    { h: 70,  d: '200ms' },
+    { h: 45,  d: '30ms'  },
   ]
 
   return (
     <div className={cn('flex flex-col items-center gap-3', className)}>
 
-      {/* ── Warm hint — visible when idle and enabled ──── */}
-      {!isRecording && !isProcessing && !disabled && (
-        <p className="text-center text-xs text-muted-foreground/80 leading-snug px-4 max-w-[240px]">
-          💡 如果不方便打字，请点击麦克风对我说说您的心里话
+      {/* Ambient hint — hidden when parent suppresses or during active states */}
+      {!hideHint && !isRecording && !isProcessing && !disabled && (
+        <p className="text-center text-xs text-muted-foreground/70 leading-snug max-w-[220px]">
+          💡 不方便打字？点击麦克风说出来
         </p>
       )}
 
-      {/* ── Ripple + Button ───────────────────────────── */}
+      {/* Ripple + Button */}
       <div className="relative flex items-center justify-center">
         {isRecording && (
-          <span aria-hidden className="absolute h-20 w-20 rounded-full bg-red-400/20 animate-ping"
-            style={{ animationDuration: '1.6s' }} />
-        )}
-        {isRecording && (
-          <span aria-hidden className="absolute h-16 w-16 rounded-full bg-red-400/15 animate-ping"
-            style={{ animationDuration: '2.2s', animationDelay: '0.4s' }} />
+          <>
+            <span aria-hidden className="absolute h-20 w-20 rounded-full bg-red-400/20 animate-ping"
+              style={{ animationDuration: '1.6s' }} />
+            <span aria-hidden className="absolute h-14 w-14 rounded-full bg-red-400/15 animate-ping"
+              style={{ animationDuration: '2.2s', animationDelay: '0.5s' }} />
+          </>
         )}
 
         <button
           type="button"
           onClick={isRecording ? stopRecording : startRecording}
           disabled={disabled || isProcessing}
-          aria-label={isRecording ? '停止录音' : '开始录音'}
+          aria-label={isRecording ? '点击结束录音' : '开始录音'}
           className={cn(
             'relative z-10 flex h-16 w-16 items-center justify-center rounded-full',
-            'transition-all duration-200 focus-visible:outline-none focus-visible:ring-2',
-            'focus-visible:ring-ring focus-visible:ring-offset-2',
-            isRecording
-              ? 'bg-red-500 text-white shadow-lg shadow-red-400/40 animate-pulse'
-              : 'bg-oat-300 text-oat-700 hover:bg-oat-400',
+            'transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            isRecording  && 'bg-red-500 text-white shadow-lg shadow-red-400/40 animate-pulse',
             isProcessing && 'bg-oat-200 text-oat-500 cursor-not-allowed',
-            disabled && !isProcessing && 'opacity-40 cursor-not-allowed',
+            !isRecording && !isProcessing && !disabled && 'bg-oat-300 text-oat-700 hover:bg-oat-400',
+            !isRecording && !isProcessing && disabled  && 'bg-muted text-muted-foreground/40 cursor-not-allowed',
           )}
         >
-          {isProcessing ? (
-            <Loader2 className="h-6 w-6 animate-spin" />
-          ) : isRecording ? (
-            <Square className="h-6 w-6 fill-current" />
-          ) : (
-            <Mic className="h-7 w-7" />
-          )}
+          {isProcessing ? <Loader2 className="h-6 w-6 animate-spin" />
+           : isRecording ? <Square className="h-6 w-6 fill-current" />
+           : <Mic className="h-7 w-7" />}
         </button>
       </div>
 
-      {/* ── Sound wave visualizer — only during recording ─ */}
+      {/* Wave visualiser — only while recording */}
       {isRecording && (
-        <div
-          aria-hidden
-          className="flex items-end justify-center gap-[3px]"
-          style={{ height: 28 }}
-        >
-          {WAVE_BARS.map(({ h, delay }, i) => (
+        <div aria-hidden className="flex items-end justify-center gap-[4px]" style={{ height: 28 }}>
+          {BARS.map(({ h, d }, i) => (
             <div
               key={i}
               className="w-[5px] rounded-full bg-red-400 animate-bounce"
-              style={{
-                height:            `${h}%`,
-                animationDelay:    delay,
-                animationDuration: '600ms',
-              }}
+              style={{ height: `${h}%`, animationDelay: d, animationDuration: '620ms' }}
             />
           ))}
         </div>
       )}
 
-      {/* ── Status label ─────────────────────────────── */}
+      {/* Status label */}
       <p className={cn(
-        'text-sm tracking-wide text-center',
+        'text-sm text-center leading-snug',
         isRecording  ? 'text-red-500 font-semibold' : 'text-muted-foreground',
-        isProcessing && 'italic animate-pulse',
+        isProcessing && 'animate-pulse italic',
       )}>
         {isProcessing  && '正在对齐…'}
         {isRecording   && '说完了，点击完成'}
-        {!isRecording  && !isProcessing && !disabled && '点击麦克风，开始诉说'}
-        {!isRecording  && !isProcessing && disabled  && '暂时无法使用语音'}
+        {!isRecording && !isProcessing && !disabled && '点击麦克风，开始诉说'}
       </p>
 
       {isRecording && elapsed > 90 && (
-        <p className="text-xs text-muted-foreground">
-          剩余 {MAX_RECORDING_SECONDS - elapsed} 秒
-        </p>
+        <p className="text-xs text-muted-foreground">剩余 {MAX_RECORDING_SECONDS - elapsed} 秒</p>
       )}
     </div>
   )

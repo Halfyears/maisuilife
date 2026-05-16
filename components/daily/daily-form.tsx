@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { StatusSelector } from './status-selector'
 import { VoiceRecorder, type VoiceState } from './voice-recorder'
-import { STATUS_TAGS } from '@/lib/constants'
 import type { StatusTagValue } from '@/lib/constants'
 
 interface DailyFormProps {
@@ -19,102 +18,65 @@ interface AIResult {
   verse_ref:   string
 }
 
-type FormStep = 'mood' | 'input' | 'submitting' | 'done' | 'error'
-
 export function DailyForm({ fellowshipId }: DailyFormProps) {
   const router = useRouter()
 
-  const [step, setStep]                   = useState<FormStep>('mood')
-  const [statusTag, setStatusTag]         = useState<StatusTagValue | null>(null)
-  const [isUrgent, setIsUrgent]           = useState(false)
-  const [textInput, setTextInput]         = useState('')
-  const [voiceState, setVoiceState]       = useState<VoiceState>('idle')
-  const [aiResult, setAiResult]           = useState<AIResult | null>(null)
-  const [errorMsg, setErrorMsg]           = useState<string | null>(null)
-  // voiceFailed: true when the STT pipeline fails → full graceful degradation to text
-  const [voiceFailed, setVoiceFailed]     = useState(false)
-  // voiceMicWarn: soft warning for mic permission / device errors (recoverable)
-  const [voiceMicWarn, setVoiceMicWarn]   = useState<string | null>(null)
+  const [statusTag, setStatusTag]     = useState<StatusTagValue | null>(null)
+  const [textInput, setTextInput]     = useState('')
+  const [isUrgent, setIsUrgent]       = useState(false)
+  const [voiceState, setVoiceState]   = useState<VoiceState>('idle')
+  // voiceFailed: STT pipeline error → silently disable voice, no message shown
+  const [voiceFailed, setVoiceFailed] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError]   = useState<string | null>(null)
+  const [aiResult, setAiResult]         = useState<AIResult | null>(null)
 
   const textareaRef  = useRef<HTMLTextAreaElement>(null)
   const audioBlobRef = useRef<Blob | null>(null)
 
-  // Auto-focus textarea when entering input step
-  useEffect(() => {
-    if (step === 'input') {
-      setTimeout(() => textareaRef.current?.focus(), 120)
-    }
-  }, [step])
-
-  // ── Step 1: mood confirmed ──────────────────────────────
-  const confirmMood = useCallback(() => {
-    if (statusTag) setStep('input')
-  }, [statusTag])
-
-  // ── Step back from input → mood ─────────────────────────
-  const goBackToMood = useCallback(() => {
-    setStep('mood')
-    setTextInput('')
-    setIsUrgent(false)
-    setVoiceFailed(false)
-    setVoiceMicWarn(null)
-    setErrorMsg(null)
-  }, [])
-
-  // ── Text submission path → /api/align ───────────────────
+  // ── Text path → /api/align ─────────────────────────────
   const submitText = useCallback(async () => {
-    if (!statusTag || !textInput.trim()) return
-
-    setStep('submitting')
-    setErrorMsg(null)
-
+    if (!statusTag) return
+    setIsSubmitting(true)
+    setSubmitError(null)
     try {
       const res = await fetch('/api/align', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transcript:    textInput.trim(),
+          transcript:    textInput.trim() || '（静默交托）',
           status_tag:    statusTag,
           is_urgent:     isUrgent,
           fellowship_id: fellowshipId ?? null,
         }),
       })
-
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({ error: 'network_error' }))
         throw new Error(error ?? 'unknown')
       }
-
       const data: AIResult = await res.json()
       setAiResult(data)
-      setStep('done')
-      setTimeout(() => router.push('/fellowship'), 2000)
-
+      setTimeout(() => router.push('/fellowship'), 3000)
     } catch (err) {
       const label = err instanceof Error ? err.message : 'unknown'
-      setErrorMsg(
+      setSubmitError(
         label === 'ai_circuit_breaker'
           ? 'AI 服务暂时停止，请稍后再试'
           : '网络异常，请检查连接后重试'
       )
-      setStep('error')
+    } finally {
+      setIsSubmitting(false)
     }
   }, [statusTag, textInput, isUrgent, fellowshipId, router])
 
-  // ── Voice submission path → /api/stt ────────────────────
+  // ── Voice path → /api/stt ──────────────────────────────
   const handleAudioReady = useCallback(async (blob: Blob) => {
     if (!statusTag) return
-
     audioBlobRef.current = blob
-    setStep('submitting')
-    setErrorMsg(null)
+    setIsSubmitting(true)
 
-    // Derive extension from actual MIME type — Groq uses filename to identify codec.
-    // blob.type is set by VoiceRecorder from the negotiated MediaRecorder mimeType.
-    const ext = blob.type.includes('mp4') ? 'mp4'
-              : blob.type.includes('ogg') ? 'ogg'
-              : 'webm'
-
+    // Derive filename extension from actual MIME — Groq uses it to identify codec
+    const ext  = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'
     const form = new FormData()
     form.append('audio',        blob, `audio.${ext}`)
     form.append('status_tag',   statusTag)
@@ -123,211 +85,154 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
 
     try {
       const res = await fetch('/api/stt', { method: 'POST', body: form })
+      audioBlobRef.current = null                          // ■ 音销
 
-      // ■ 音销
-      audioBlobRef.current = null
-
-      if (!res.ok) {
-        const { error } = await res.json().catch(() => ({ error: 'network_error' }))
-        throw new Error(error ?? 'unknown')
-      }
+      if (!res.ok) throw new Error('stt_failed')
 
       const data: AIResult = await res.json()
       setAiResult(data)
-      setStep('done')
-      setTimeout(() => router.push('/fellowship'), 2000)
-
+      setTimeout(() => router.push('/fellowship'), 3000)
     } catch {
-      // ── Graceful degradation: switch to text mode silently ──
+      // Silent degradation: no error message, just switch to text mode
       audioBlobRef.current = null
       setVoiceFailed(true)
-      setStep('input')
-      // Focus textarea after state settles
-      setTimeout(() => textareaRef.current?.focus(), 150)
+      setIsSubmitting(false)
+      setTimeout(() => textareaRef.current?.focus(), 100)
     }
   }, [statusTag, isUrgent, fellowshipId, router])
 
-  // Mic / device errors (recoverable — user can grant permission and retry)
-  const handleVoiceError = useCallback((msg: string) => {
-    setVoiceMicWarn(msg)
-  }, [])
+  // Mic permission errors: shown inline near recorder (not a blocking error)
+  const [micWarn, setMicWarn] = useState<string | null>(null)
+  const handleVoiceError = useCallback((msg: string) => setMicWarn(msg), [])
 
-  const handleRetry = useCallback(() => {
-    setStep('input')
-    setErrorMsg(null)
-  }, [])
-
-  // ── Done ───────────────────────────────────────────────
-  if (step === 'done' && aiResult) {
-    return <AlignmentResult result={aiResult} />
-  }
-
-  // ── Step 1: Mood selection ──────────────────────────────
-  if (step === 'mood') {
+  // ── Result view ────────────────────────────────────────
+  if (aiResult) {
     return (
-      <div className="flex flex-col gap-6">
-        <StatusSelector
-          value={statusTag}
-          onChange={setStatusTag}
-          disabled={false}
-        />
-        <button
-          type="button"
-          onClick={confirmMood}
-          disabled={!statusTag}
-          className="w-full rounded-2xl bg-gold-400 py-3.5 text-sm font-semibold text-gold-900
-                     hover:bg-gold-500 transition-colors
-                     disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          确定，进入下一步
-        </button>
+      <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-500 py-4">
+        <div className="rounded-2xl border border-gold-200 bg-gold-400/8 px-5 py-5">
+          <p className="text-sm leading-relaxed text-foreground">{aiResult.comfort}</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-card px-5 py-4">
+          <p className="text-sm leading-relaxed text-foreground/80 italic">{aiResult.verse}</p>
+          <p className="mt-2 text-xs text-muted-foreground">—— {aiResult.verse_ref}</p>
+        </div>
+        <p className="text-center text-xs text-muted-foreground animate-pulse">
+          已记录，正在前往团契…
+        </p>
       </div>
     )
   }
 
-  // ── Step 2: Input (text + voice) ────────────────────────
-  const moodMeta     = STATUS_TAGS.find((t) => t.value === statusTag)
-  const isSubmitting = step === 'submitting'
-  // "用文字对齐" appears when textarea has content and voice is not mid-recording
-  const canSubmitText = textInput.trim().length > 0 && voiceState === 'idle' && !isSubmitting
+  const hasText       = textInput.trim().length > 0
+  const voiceActive   = voiceState === 'recording' || voiceState === 'processing'
+  // Voice disabled when: textarea has content, STT failed, or a submission is in flight
+  const voiceDisabled = hasText || voiceFailed || isSubmitting
+  // Submit button: always rendered, active only when a status is chosen
+  const canSubmit     = statusTag !== null && !isSubmitting && !voiceActive
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
 
-      {/* ── Mood badge — tap to go back ── */}
-      <button
-        type="button"
-        onClick={goBackToMood}
+      {/* ── 1. Status selector ─────────────────────────── */}
+      <StatusSelector
+        value={statusTag}
+        onChange={setStatusTag}
         disabled={isSubmitting}
-        className="flex w-fit max-w-full items-center gap-1.5 rounded-full border border-border
-                   bg-card px-3 py-1.5 text-sm text-muted-foreground
-                   hover:bg-muted transition-colors disabled:opacity-40"
-      >
-        <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
-        <span className="whitespace-nowrap overflow-hidden text-ellipsis">
-          {moodMeta?.emoji}&nbsp;{moodMeta?.label}
-        </span>
-      </button>
+      />
 
-      {/* ── Text area ── */}
-      <div className="flex flex-col gap-2">
+      {/* ── 2. Text input — always editable ────────────── */}
+      <div className="flex flex-col gap-1.5">
         <textarea
           ref={textareaRef}
           value={textInput}
-          onChange={(e) => setTextInput(e.target.value)}
-          placeholder={voiceFailed
-            ? '语音暂时无法使用，请在此写下今日的心声…'
-            : '在这里写下今日的心声…'
-          }
-          rows={5}
+          onChange={e => setTextInput(e.target.value)}
+          placeholder="💡 聆听内室的微声，在这里写下你想说的话..."
+          rows={6}
           maxLength={800}
           disabled={isSubmitting}
           className="w-full resize-none rounded-2xl border border-border bg-card
-                     px-4 py-3 text-sm leading-relaxed text-foreground
-                     placeholder:text-muted-foreground/60
+                     px-4 py-3.5 text-sm leading-relaxed text-foreground
+                     placeholder:text-muted-foreground/50
                      focus:outline-none focus:ring-2 focus:ring-ring
-                     disabled:opacity-50 transition-colors"
+                     disabled:opacity-60 transition-colors"
         />
-        <p className="self-end text-[11px] text-muted-foreground tabular-nums">
+        <p className="self-end text-[11px] text-muted-foreground/60 tabular-nums">
           {textInput.length} / 800
         </p>
       </div>
 
-      {/* ── Urgent prayer flag ── */}
+      {/* ── 3. Urgent prayer flag ──────────────────────── */}
       <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border
-                        bg-card px-4 py-3 has-[:checked]:border-gold-300 has-[:checked]:bg-gold-400/5
+                        bg-card px-4 py-3
+                        has-[:checked]:border-gold-300 has-[:checked]:bg-gold-400/5
                         transition-colors">
         <input
           type="checkbox"
           checked={isUrgent}
-          onChange={(e) => setIsUrgent(e.target.checked)}
+          onChange={e => setIsUrgent(e.target.checked)}
           disabled={isSubmitting}
-          className="mt-0.5 h-4 w-4 rounded border-border accent-gold-400"
+          className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-gold-400"
         />
         <span className="text-sm text-muted-foreground leading-snug">
-          标记代祷需求 — 组长会看到匿名信号，向你发出关怀邀请后再由你决定是否授权
+          标记代祷需求 — 组长收到匿名信号后，由你决定是否授权关怀
         </span>
       </label>
 
-      {/* ── Text path error banner ── */}
-      {step === 'error' && errorMsg && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <p>{errorMsg}</p>
-          <button
-            type="button"
-            onClick={handleRetry}
-            className="mt-2 text-xs underline underline-offset-2 hover:text-destructive/80"
-          >
-            重新尝试
-          </button>
-        </div>
-      )}
-
-      {/* ── Text submit button ── */}
-      {canSubmitText && (
-        <button
-          type="button"
-          onClick={submitText}
-          className="w-full rounded-2xl bg-gold-400 py-3 text-sm font-semibold text-gold-900
-                     hover:bg-gold-500 transition-colors"
-        >
-          用文字对齐
-        </button>
-      )}
-
-      {/* ── Divider ── */}
-      <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-xs text-muted-foreground shrink-0">或用声音</span>
-        <div className="h-px flex-1 bg-border" />
-      </div>
-
-      {/* ── Graceful degradation banner (STT pipeline failed) ── */}
-      {voiceFailed && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-sm text-amber-800 leading-snug">
-            语音系统暂时无法使用，请使用上方文字框输入 🙏
-          </p>
-        </div>
-      )}
-
-      {/* ── Voice recorder ── */}
-      <div className="flex flex-col items-center gap-2 py-2">
+      {/* ── 4. Voice input section ────────────────────── */}
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-5">
+        <p className="text-xs text-muted-foreground">—— 或用声音录入 ——</p>
         <VoiceRecorder
           onAudioReady={handleAudioReady}
           onError={handleVoiceError}
           onStateChange={setVoiceState}
-          disabled={isSubmitting || voiceFailed || canSubmitText}
+          disabled={voiceDisabled}
+          hideHint={hasText || voiceFailed}
         />
-
-        {/* Mic permission / device warning (recoverable) */}
-        {voiceMicWarn && !voiceFailed && (
-          <p className="text-xs text-amber-600 text-center px-4">{voiceMicWarn}</p>
+        {/* Mic permission warning — recoverable, shown only when relevant */}
+        {micWarn && !voiceFailed && (
+          <p className="text-xs text-amber-600 text-center px-6">{micWarn}</p>
         )}
+        {isSubmitting && voiceActive && (
+          <p className="text-sm text-muted-foreground animate-pulse">正在对齐…</p>
+        )}
+      </div>
 
-        {isSubmitting && (
-          <p className="text-sm text-muted-foreground animate-pulse text-center">
+      {/* ── 5. Submit error ───────────────────────────── */}
+      {submitError && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+          <p className="text-sm text-destructive">{submitError}</p>
+          <button
+            type="button"
+            onClick={() => setSubmitError(null)}
+            className="mt-1.5 text-xs text-destructive/70 underline underline-offset-2"
+          >
+            知道了，重新尝试
+          </button>
+        </div>
+      )}
+
+      {/* ── 6. Submit button — always visible ─────────── */}
+      <button
+        type="button"
+        onClick={submitText}
+        disabled={!canSubmit}
+        className="w-full rounded-2xl py-4 text-sm font-semibold transition-all duration-200
+                   disabled:cursor-not-allowed
+                   enabled:bg-amber-500 enabled:text-white enabled:hover:bg-amber-600 enabled:shadow-md enabled:shadow-amber-500/25
+                   disabled:bg-muted disabled:text-muted-foreground"
+      >
+        {isSubmitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
             正在对齐…
-          </p>
+          </span>
+        ) : !statusTag ? (
+          '请先选择今日心境 ↑'
+        ) : (
+          '选好了，进入下一阶段：聆听圣经话语'
         )}
-      </div>
+      </button>
 
-    </div>
-  )
-}
-
-// ── Post-alignment result card ────────────────────────────
-function AlignmentResult({ result }: { result: AIResult }) {
-  return (
-    <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="rounded-2xl border border-gold-200 bg-gold-400/8 px-5 py-4">
-        <p className="text-sm leading-relaxed text-foreground">{result.comfort}</p>
-      </div>
-      <div className="rounded-2xl border border-border bg-card px-5 py-4">
-        <p className="text-sm leading-relaxed text-foreground/80 italic">{result.verse}</p>
-        <p className="mt-2 text-xs text-muted-foreground">—— {result.verse_ref}</p>
-      </div>
-      <p className="text-center text-xs text-muted-foreground">已记录，正在前往团契…</p>
     </div>
   )
 }
