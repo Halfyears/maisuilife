@@ -151,9 +151,10 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (err) {
-    // Log only error type — never log audioBuffer or rawTranscript
-    const label = err instanceof Error ? err.name : 'UnknownError'
-    console.error(`[stt] pipeline error: ${label}`)
+    // Log error type + message — never log audioBuffer or rawTranscript
+    const name = err instanceof Error ? err.name    : 'UnknownError'
+    const msg  = err instanceof Error ? err.message : String(err)
+    console.error(`[stt] pipeline error: ${name} — ${msg}`)
     return NextResponse.json({ error: 'pipeline_error' }, { status: 500 })
 
   } finally {

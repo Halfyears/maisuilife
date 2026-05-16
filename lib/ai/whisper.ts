@@ -15,8 +15,12 @@ export interface STTResult {
 }
 
 export async function transcribeAudio(audioBlob: Blob): Promise<STTResult> {
-  // Convert Blob → File (required by Groq SDK)
-  const file = new File([audioBlob], 'voice.webm', { type: audioBlob.type })
+  // Derive extension from MIME type — Groq identifies codec by filename extension.
+  // Hardcoding '.webm' breaks iOS Safari which records as audio/mp4.
+  const ext  = audioBlob.type.includes('mp4') ? 'mp4'
+             : audioBlob.type.includes('ogg') ? 'ogg'
+             : 'webm'
+  const file = new File([audioBlob], `audio.${ext}`, { type: audioBlob.type })
 
   const transcription = await groq.audio.transcriptions.create({
     file,

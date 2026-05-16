@@ -24,13 +24,17 @@ type FormStep = 'mood' | 'input' | 'submitting' | 'done' | 'error'
 export function DailyForm({ fellowshipId }: DailyFormProps) {
   const router = useRouter()
 
-  const [step, setStep]             = useState<FormStep>('mood')
-  const [statusTag, setStatusTag]   = useState<StatusTagValue | null>(null)
-  const [isUrgent, setIsUrgent]     = useState(false)
-  const [textInput, setTextInput]   = useState('')
-  const [voiceState, setVoiceState] = useState<VoiceState>('idle')
-  const [aiResult, setAiResult]     = useState<AIResult | null>(null)
-  const [errorMsg, setErrorMsg]     = useState<string | null>(null)
+  const [step, setStep]                   = useState<FormStep>('mood')
+  const [statusTag, setStatusTag]         = useState<StatusTagValue | null>(null)
+  const [isUrgent, setIsUrgent]           = useState(false)
+  const [textInput, setTextInput]         = useState('')
+  const [voiceState, setVoiceState]       = useState<VoiceState>('idle')
+  const [aiResult, setAiResult]           = useState<AIResult | null>(null)
+  const [errorMsg, setErrorMsg]           = useState<string | null>(null)
+  // voiceFailed: true when the STT pipeline fails → full graceful degradation to text
+  const [voiceFailed, setVoiceFailed]     = useState(false)
+  // voiceMicWarn: soft warning for mic permission / device errors (recoverable)
+  const [voiceMicWarn, setVoiceMicWarn]   = useState<string | null>(null)
 
   const textareaRef  = useRef<HTMLTextAreaElement>(null)
   const audioBlobRef = useRef<Blob | null>(null)
@@ -38,7 +42,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
   // Auto-focus textarea when entering input step
   useEffect(() => {
     if (step === 'input') {
-      setTimeout(() => textareaRef.current?.focus(), 100)
+      setTimeout(() => textareaRef.current?.focus(), 120)
     }
   }, [step])
 
@@ -52,6 +56,9 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
     setStep('mood')
     setTextInput('')
     setIsUrgent(false)
+    setVoiceFailed(false)
+    setVoiceMicWarn(null)
+    setErrorMsg(null)
   }, [])
 
   // ── Text submission path → /api/align ───────────────────
@@ -88,8 +95,6 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       setErrorMsg(
         label === 'ai_circuit_breaker'
           ? 'AI 服务暂时停止，请稍后再试'
-          : label === 'pipeline_error'
-          ? '对齐遇到问题，请稍后再试'
           : '网络异常，请检查连接后重试'
       )
       setStep('error')
@@ -104,8 +109,14 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
     setStep('submitting')
     setErrorMsg(null)
 
+    // Derive extension from actual MIME type — Groq uses filename to identify codec.
+    // blob.type is set by VoiceRecorder from the negotiated MediaRecorder mimeType.
+    const ext = blob.type.includes('mp4') ? 'mp4'
+              : blob.type.includes('ogg') ? 'ogg'
+              : 'webm'
+
     const form = new FormData()
-    form.append('audio',        blob, 'voice.webm')
+    form.append('audio',        blob, `audio.${ext}`)
     form.append('status_tag',   statusTag)
     form.append('is_urgent',    String(isUrgent))
     if (fellowshipId) form.append('fellowship_id', fellowshipId)
@@ -126,29 +137,25 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       setStep('done')
       setTimeout(() => router.push('/fellowship'), 2000)
 
-    } catch (err) {
+    } catch {
+      // ── Graceful degradation: switch to text mode silently ──
       audioBlobRef.current = null
-      const label = err instanceof Error ? err.message : 'unknown'
-      setErrorMsg(
-        label === 'ai_circuit_breaker'
-          ? 'AI 服务暂时停止，请稍后再试'
-          : label === 'pipeline_error'
-          ? '对齐遇到问题，请稍后再试'
-          : '网络异常，请检查连接后重试'
-      )
-      setStep('error')
+      setVoiceFailed(true)
+      setStep('input')
+      // Focus textarea after state settles
+      setTimeout(() => textareaRef.current?.focus(), 150)
     }
   }, [statusTag, isUrgent, fellowshipId, router])
 
+  // Mic / device errors (recoverable — user can grant permission and retry)
   const handleVoiceError = useCallback((msg: string) => {
-    setErrorMsg(msg)
-    setStep('error')
+    setVoiceMicWarn(msg)
   }, [])
 
   const handleRetry = useCallback(() => {
-    setStep(statusTag ? 'input' : 'mood')
+    setStep('input')
     setErrorMsg(null)
-  }, [statusTag])
+  }, [])
 
   // ── Done ───────────────────────────────────────────────
   if (step === 'done' && aiResult) {
@@ -179,33 +186,39 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
   }
 
   // ── Step 2: Input (text + voice) ────────────────────────
-  const moodMeta = STATUS_TAGS.find((t) => t.value === statusTag)
+  const moodMeta     = STATUS_TAGS.find((t) => t.value === statusTag)
   const isSubmitting = step === 'submitting'
+  // "用文字对齐" appears when textarea has content and voice is not mid-recording
   const canSubmitText = textInput.trim().length > 0 && voiceState === 'idle' && !isSubmitting
 
   return (
     <div className="flex flex-col gap-5">
 
-      {/* Mood badge — tap to go back */}
+      {/* ── Mood badge — tap to go back ── */}
       <button
         type="button"
         onClick={goBackToMood}
         disabled={isSubmitting}
-        className="flex w-fit items-center gap-1.5 rounded-full border border-border
+        className="flex w-fit max-w-full items-center gap-1.5 rounded-full border border-border
                    bg-card px-3 py-1.5 text-sm text-muted-foreground
                    hover:bg-muted transition-colors disabled:opacity-40"
       >
-        <ChevronLeft className="h-3.5 w-3.5" />
-        <span>{moodMeta?.emoji} {moodMeta?.label}</span>
+        <ChevronLeft className="h-3.5 w-3.5 shrink-0" />
+        <span className="whitespace-nowrap overflow-hidden text-ellipsis">
+          {moodMeta?.emoji}&nbsp;{moodMeta?.label}
+        </span>
       </button>
 
-      {/* Text area */}
+      {/* ── Text area ── */}
       <div className="flex flex-col gap-2">
         <textarea
           ref={textareaRef}
           value={textInput}
           onChange={(e) => setTextInput(e.target.value)}
-          placeholder="在这里写下今日的心声…"
+          placeholder={voiceFailed
+            ? '语音暂时无法使用，请在此写下今日的心声…'
+            : '在这里写下今日的心声…'
+          }
           rows={5}
           maxLength={800}
           disabled={isSubmitting}
@@ -213,14 +226,14 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
                      px-4 py-3 text-sm leading-relaxed text-foreground
                      placeholder:text-muted-foreground/60
                      focus:outline-none focus:ring-2 focus:ring-ring
-                     disabled:opacity-50"
+                     disabled:opacity-50 transition-colors"
         />
         <p className="self-end text-[11px] text-muted-foreground tabular-nums">
           {textInput.length} / 800
         </p>
       </div>
 
-      {/* Urgent prayer flag */}
+      {/* ── Urgent prayer flag ── */}
       <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border
                         bg-card px-4 py-3 has-[:checked]:border-gold-300 has-[:checked]:bg-gold-400/5
                         transition-colors">
@@ -236,7 +249,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
         </span>
       </label>
 
-      {/* Error state */}
+      {/* ── Text path error banner ── */}
       {step === 'error' && errorMsg && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           <p>{errorMsg}</p>
@@ -250,7 +263,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
         </div>
       )}
 
-      {/* Text submit button — only shown when textarea has content and voice is idle */}
+      {/* ── Text submit button ── */}
       {canSubmitText && (
         <button
           type="button"
@@ -262,21 +275,36 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
         </button>
       )}
 
-      {/* Divider */}
+      {/* ── Divider ── */}
       <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-border" />
-        <span className="text-xs text-muted-foreground">或用声音</span>
+        <span className="text-xs text-muted-foreground shrink-0">或用声音</span>
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      {/* Voice recorder */}
+      {/* ── Graceful degradation banner (STT pipeline failed) ── */}
+      {voiceFailed && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm text-amber-800 leading-snug">
+            语音系统暂时无法使用，请使用上方文字框输入 🙏
+          </p>
+        </div>
+      )}
+
+      {/* ── Voice recorder ── */}
       <div className="flex flex-col items-center gap-2 py-2">
         <VoiceRecorder
           onAudioReady={handleAudioReady}
           onError={handleVoiceError}
           onStateChange={setVoiceState}
-          disabled={isSubmitting || canSubmitText}
+          disabled={isSubmitting || voiceFailed || canSubmitText}
         />
+
+        {/* Mic permission / device warning (recoverable) */}
+        {voiceMicWarn && !voiceFailed && (
+          <p className="text-xs text-amber-600 text-center px-4">{voiceMicWarn}</p>
+        )}
+
         {isSubmitting && (
           <p className="text-sm text-muted-foreground animate-pulse text-center">
             正在对齐…
