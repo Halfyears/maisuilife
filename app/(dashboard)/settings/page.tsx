@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { Settings, Wheat, ShieldCheck, Users, BookOpen, Key, LogIn } from 'lucide-react'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { SignOutButton } from '@/components/shared/sign-out-button'
 
@@ -37,40 +37,23 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // 优先用 service_role 绕过 RLS；若失败或无数据，回退到 RLS 客户端
-  const db = createServiceClient()
-  let { data: profile } = await db
-    .from('users')
-    .select('display_name, role, created_at')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile) {
-    const { data } = await supabase
+  // 读取自身数据：RLS 策略允许 auth.uid() = id，无需 service role
+  const [profileRes, membershipRes] = await Promise.all([
+    supabase
       .from('users')
       .select('display_name, role, created_at')
       .eq('id', user.id)
-      .single()
-    profile = data
-  }
-
-  let { data: membership } = await db
-    .from('fellowship_members')
-    .select('fellowship_id, fellowships(name)')
-    .eq('user_id', user.id)
-    .limit(1)
-    .maybeSingle()
-
-  if (membership === null) {
-    const { data } = await supabase
+      .single(),
+    supabase
       .from('fellowship_members')
       .select('fellowship_id, fellowships(name)')
       .eq('user_id', user.id)
       .limit(1)
-      .maybeSingle()
-    membership = data
-  }
+      .maybeSingle(),
+  ])
 
+  const profile    = profileRes.data
+  const membership = membershipRes.data
   const role       = profile?.role ?? 'user'
   const badge      = ROLE_BADGE[role] ?? DEFAULT_BADGE
   const joinedYear = profile?.created_at ? new Date(profile.created_at).getFullYear() : null

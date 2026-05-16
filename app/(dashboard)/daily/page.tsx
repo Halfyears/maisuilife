@@ -9,12 +9,17 @@ import { BottomNav } from '@/components/shared/bottom-nav'
 export const metadata = { title: '今日内室 — 麦穗喜乐' }
 export const revalidate = 0
 
+// UTC+8 当地日期
+function todayCN(): string {
+  return new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+}
+
 export default async function DailyPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayCN()
   const db    = createServiceClient()
 
   const [alignmentRes, membershipRes, pastoralRes] = await Promise.all([

@@ -78,17 +78,17 @@ export async function generateAlignmentResponse({
   }
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
-  // 解析多选心境标签，用于经文候选筛选
+  // 传入全部经文库，让 Gemini 自行选取最契合的经文，避免池子太小导致重复
+  // 同时在文本中标注心境关联，辅助 AI 做精准匹配
   const tagList = statusTag
     ? statusTag.split(/[、,，\s]+/).map(s => s.trim()).filter(Boolean)
     : []
 
-  const candidateVerses = tagList.length > 0
-    ? SCRIPTURE_BANK.filter(s => tagList.some(t => s.mood === t) || s.mood === '通用')
-    : SCRIPTURE_BANK.filter(s => s.mood === '通用')
-  const pool = candidateVerses.length > 0 ? candidateVerses : [...SCRIPTURE_BANK]
-
-  const versesText = pool.map(s => `【${s.mood}】${s.text} ——《${s.ref}》`).join('\n')
+  const versesText = SCRIPTURE_BANK.map(s => {
+    const matched = tagList.length === 0 || tagList.some(t => s.mood === t) || s.mood === '通用'
+    const marker = matched ? '★' : '○'
+    return `${marker}【${s.mood}】${s.text} ——《${s.ref}》`
+  }).join('\n')
 
   const model = genAI.getGenerativeModel({
     model: 'gemini-1.5-flash',
@@ -106,13 +106,14 @@ export async function generateAlignmentResponse({
   const timeHint = new Date().toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit', weekday: 'short' })
   const moodDisplay = statusTag || '静默交托（未标记心境）'
 
-  const userPrompt = `[随机扰动种子: ${seed} | 时间: ${timeHint}]
+  const userPrompt = `[随机扰动种子: ${seed} | 时间: ${timeHint} | 本次必须选择与上次不同的经文]
 
 当前心境：${moodDisplay}
 用户今日倾诉（已转文字）：
 ${transcript.slice(0, 800)}
 
-【可用经文库 — 只能从下列原文中选取，严禁自行创作】：
+【完整经文库 — 只能从下列原文中选取，严禁自行创作】
+说明：★ 标记为与当前心境高度匹配的优先候选；○ 标记为次选。优先选★，但若★已在近期使用过，必须从○中选取新鲜的经文。
 ${versesText}`
 
   const result = await model.generateContent(userPrompt)

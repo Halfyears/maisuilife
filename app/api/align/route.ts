@@ -84,6 +84,9 @@ export async function POST(req: NextRequest) {
     const ai_summary_enc = '\\x' + encryptedBuf.toString('hex')
 
     // ── 5. Persist to daily_alignments (upsert by user+date) ────────────
+    // 使用 UTC+8 当地日期，与前端读取逻辑保持一致
+    const dateCN = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+
     const { data: alignment, error: dbError } = await supabase
       .from('daily_alignments')
       .upsert(
@@ -93,7 +96,7 @@ export async function POST(req: NextRequest) {
           theme_tags:     [],
           ai_summary_enc,
           is_urgent:      isUrgent,
-          date:           new Date().toISOString().slice(0, 10),
+          date:           dateCN,
           is_visible:     true,
         },
         { onConflict: 'user_id,date', ignoreDuplicates: false }
@@ -102,12 +105,12 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (dbError) {
-      console.error('[align] db upsert error:', dbError.code)
-      return NextResponse.json({ error: 'db_error' }, { status: 500 })
+      // DB 写入失败记录日志，但不阻断 AI 响应返回给用户
+      console.error('[align] db upsert error:', dbError.code, dbError.message)
     }
 
     // ── 6. If urgent, create anonymous urgent_flag via RPC ────────────────
-    if (isUrgent && fellowshipId) {
+    if (isUrgent && fellowshipId && alignment) {
       const db = createServiceClient()
       const { error: flagErr } = await db.rpc('flag_urgent', {
         p_alignment_id:  alignment.id,
@@ -115,13 +118,12 @@ export async function POST(req: NextRequest) {
       })
       if (flagErr) {
         console.error('[align] urgent flag error:', flagErr.code)
-        // Non-fatal: alignment is already saved
       }
     }
 
     // ── 7. Return only what the UI needs ─────────────────────────────────
     return NextResponse.json({
-      alignmentId: alignment.id,
+      alignmentId: alignment?.id ?? '',
       comfort:     aiResponse.comfort,
       verse:       aiResponse.verse,
       verse_ref:   aiResponse.verse_ref,

@@ -5,20 +5,26 @@ import { BottomNav } from '@/components/shared/bottom-nav'
 import { Wheat, BookOpen, Users, ChevronRight } from 'lucide-react'
 
 export const metadata = { title: '麦穗喜乐' }
+export const revalidate = 0
+
+// UTC+8 当地日期，避免服务器在 UTC 时区时日期错位
+function todayCN(): string {
+  return new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+}
 
 export default async function RootPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const db = createServiceClient()
-  const { data: profile } = await db
+  // 用户自身数据用 RLS 客户端读取，无需 service role
+  const { data: profile } = await supabase
     .from('users')
     .select('display_name')
     .eq('id', user.id)
     .single()
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayCN()
   const { data: todayAlignment } = await supabase
     .from('daily_alignments')
     .select('status_tag')
