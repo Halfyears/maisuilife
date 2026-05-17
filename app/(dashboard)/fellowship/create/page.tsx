@@ -1,142 +1,159 @@
-// app/(dashboard)/fellowship/create/page.tsx
-'use client';
+'use client'
 
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ChevronLeft, Loader2, Users } from 'lucide-react'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 export default function CreateFellowshipPage() {
-  const [name, setName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [currentUid, setCurrentUid] = useState<string | null>(null);
+  const router = useRouter()
+  const [name,    setName]    = useState('')
+  const [busy,    setBusy]    = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
 
-  // 1. 在组件挂载时，直接从 DOM 或系统全局全局变量中，以及发起一个静默请求来捕捉当前系统的真实登录 UID
-  useEffect(() => {
-    async function debugAuth() {
-      try {
-        // 扫描全局 localStorage 中所有的 key，只要包含 auth-token 或者是 supabase 凭证的，人肉全部挖出来
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.includes('auth') || key.includes('supabase') || key.startsWith('sb-'))) {
-            const val = localStorage.getItem(key);
-            if (val) {
-              const parsed = JSON.parse(val);
-              const uid = parsed?.user?.id || parsed?.access_token ? JSON.parse(window.atob(parsed.access_token.split('.')[1])).sub : null;
-              if (uid) {
-                setCurrentUid(uid);
-                return;
-              }
-            }
-          }
-        }
+  const canCreate = name.trim().length >= 2 && !busy
 
-        // 备份防线：如果 localStorage 被隐藏，直接通过项目自带的内部 settings 或 api 节点获取当前用户的身份
-        const res = await fetch('/api/settings');
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.user?.id || data?.id) {
-            setCurrentUid(data?.user?.id || data?.id);
-          }
-        }
-      } catch (e) {
-        console.error('会话静默感知失败:', e);
-      }
-    }
-    debugAuth();
-  }, []);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-
-    setLoading(true);
-    setErrorMsg(null);
+  async function handleCreate() {
+    if (!canCreate) return
+    setBusy(true)
+    setError(null)
 
     try {
-      // 2. 既然我们已经确知 Vercel 绑定的是 maisuilife，且后端没有任何 create 接口
-      // 我们直接在前端发起一个“直连 Supabase 原生 RESTful API” 的物理推流，带上获取到的 UID
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+      const supabase = createClient()
 
-      if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error('项目环境变量未就位，请检查 Vercel Dashboard 的 Environment Variables');
+      // 浏览器客户端持有用户 session cookie，auth.uid() 能正确解析
+      const { data: { user }, error: authErr } = await supabase.auth.getUser()
+      if (authErr || !user) {
+        router.push('/login')
+        return
       }
 
-      // 如果静默感知没有抓到 UID，为了防止卡死，我们直接尝试通过全局 fetch 的隐式 Cookie 权限向 Supabase 发起物理写入
-      // 严格对齐你查出来的物理表字段：name 和 leader_id
-      const payload = {
-        name: name.trim(),
-        ...(currentUid ? { leader_id: currentUid } : {}) 
-      };
+      // 1. 创建团契 — INSERT 策略 `leader_id = auth.uid()` 现可通过
+      const { data: fellowship, error: fErr } = await supabase
+        .from('fellowships')
+        .insert({ name: name.trim(), leader_id: user.id })
+        .select('id')
+        .single()
 
-      // 3. 终极一击：直接用原生 fetch 伪装成标准的 Supabase 写入请求，彻底绕过所有第三方库的限制！
-      const response = await fetch(`${supabaseUrl}/rest/v1/fellowships`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseAnonKey,
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        // 如果报错提示缺少 leader_id，说明匿名写入被 RLS 拦截，此时必须使用抓取到的 UID
-        if (errData?.message?.includes('leader_id') || !currentUid) {
-          throw new Error(errData?.message || '请先返回首页或设置页刷新一下登录状态，系统需要同步您的安全令牌。');
-        }
-        throw new Error(errData?.message || '架构写入拦截');
+      if (fErr || !fellowship) {
+        throw new Error(fErr?.message ?? '创建团契失败，请重试')
       }
 
-      // 4. 创建成功，暴力清空路由缓存跳转大盘
-      window.location.href = '/fellowship';
+      // 2. 将创建者加为成员（leader 身份）
+      const { error: mErr } = await supabase
+        .from('fellowship_members')
+        .insert({
+          fellowship_id: fellowship.id,
+          user_id:       user.id,
+          layer2_label:  '守望者',
+        })
+      if (mErr) throw new Error(mErr.message)
 
-    } catch (err: any) {
-      console.error('创建团契物理失败:', err);
-      setErrorMsg(err.message || '数据库架构拦截，请检查字段约束');
-    } finally {
-      setLoading(false);
+      // 3. 若当前角色为普通成员，升级为 leader
+      await supabase
+        .from('users')
+        .update({ role: 'leader' })
+        .eq('id', user.id)
+        .eq('role', 'user')
+
+      router.push('/fellowship')
+      router.refresh()
+
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '创建失败，请重试')
+      setBusy(false)
     }
-  };
+  }
 
   return (
-    <div className="p-6 max-w-xl mx-auto mt-10">
-      <div className="bg-white rounded-2xl p-8 shadow-xl border border-stone-100 space-y-6">
-        <div>
-          <h2 className="text-2xl font-black text-stone-800 tracking-wide">✨ 创建新麦穗小组</h2>
-          <p className="text-stone-400 text-xs mt-1">开启属于你们的全新属灵守望同行之旅</p>
+    <div className="flex min-h-dvh flex-col">
+
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-md items-center gap-3 px-5 py-3.5">
+          <Link href="/fellowship"
+            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-stone-500
+                       hover:bg-stone-100 transition-colors">
+            <ChevronLeft className="h-4 w-4" />
+            <span className="text-sm font-medium">返回</span>
+          </Link>
+          <div className="flex flex-1 items-center justify-center gap-2">
+            <Users className="h-4 w-4 text-amber-500" />
+            <h1 className="text-sm font-bold text-stone-900">创建新麦穗小组</h1>
+          </div>
+          <span className="w-14" />
+        </div>
+      </header>
+
+      <main className="flex-1 mx-auto w-full max-w-md px-4 pt-8 pb-32">
+
+        {/* 说明卡 */}
+        <div className="mb-6 rounded-2xl border border-amber-100/60 bg-gradient-to-br
+                        from-amber-50/70 to-orange-50/50 px-5 py-5">
+          <p className="text-sm text-stone-700 leading-relaxed">
+            🌾 你即将成为这个麦穗小组的守望组长。系统会自动为你生成
+            <strong> 6 位专属邀请码</strong>，分享给弟兄姐妹加入你的属灵同行圈。
+          </p>
         </div>
 
-        {errorMsg && (
-          <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-medium leading-relaxed">
-            💥 运行状态反馈：{errorMsg}
-          </div>
-        )}
+        {/* 创建卡 */}
+        <div className="rounded-2xl border border-stone-100 bg-white/90
+                        shadow-md shadow-amber-900/5 backdrop-blur-md overflow-hidden">
 
-        <form onSubmit={handleCreate} className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-sm font-bold text-stone-700">团契小组名称</label>
+          <div className="px-5 pt-5 pb-4 border-b border-stone-50">
+            <label className="text-sm font-semibold text-stone-700 block mb-2">
+              小组名称
+            </label>
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="例如：恩典甘霖小组、Fontana 守望团契"
-              className="w-full px-4 py-3.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 placeholder-stone-400 focus:outline-none focus:border-amber-500 transition-all text-sm"
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              placeholder="例如：恩典团契、周五查经小组…"
               maxLength={30}
-              disabled={loading}
+              disabled={busy}
+              className="w-full rounded-xl border border-stone-200/60 bg-stone-50/90
+                         px-4 py-3 text-stone-700 placeholder:text-stone-400
+                         focus:border-amber-400 focus:ring-1 focus:ring-amber-400
+                         focus:outline-none disabled:opacity-60 text-sm"
             />
+            <p className="mt-1.5 text-xs text-stone-400 text-right">{name.length} / 30</p>
           </div>
 
+          {error && (
+            <div className="px-5 py-3 border-b border-red-50 bg-red-50/80">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
           <button
-            type="submit"
-            disabled={loading || !name.trim()}
-            className="w-full block py-4 text-center font-black text-white rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 shadow-md shadow-orange-500/10 active:scale-[0.99] transition-all tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            onClick={handleCreate}
+            disabled={!canCreate}
+            className={[
+              'w-full block py-5 px-6 text-xl font-black tracking-widest text-center',
+              'transition-all duration-300 active:scale-[0.99] focus:outline-none',
+              canCreate
+                ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/20 cursor-pointer'
+                : 'bg-stone-50 text-stone-300 cursor-not-allowed',
+            ].join(' ')}
           >
-            {loading ? '⚡ 正在激活属灵疆界...' : '＋ 立即创建麦穗小组'}
+            {busy ? (
+              <span className="flex items-center justify-center gap-2 text-base font-bold">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                正在创建…
+              </span>
+            ) : (
+              '🌾 立即创建'
+            )}
           </button>
-        </form>
-      </div>
+        </div>
+
+        <p className="mt-4 text-center text-xs text-stone-400 leading-relaxed">
+          ✨ 开启属于你们的属灵同行之旅，在生命的话语中建立风雨同舟的守望关系。
+        </p>
+      </main>
     </div>
-  );
+  )
 }
