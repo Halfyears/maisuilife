@@ -44,14 +44,24 @@ export async function POST(req: NextRequest) {
     if (leader_id !== undefined && leader_id !== existing.leader_id) {
       const oldLeaderId = existing.leader_id
 
-      await db.from('users').update({ role: 'member' }).eq('id', oldLeaderId).eq('role', 'group_leader')
+      // 降级旧组长：只降级普通 group_leader，不影响特权角色
+      await db.from('users').update({ role: 'member' })
+        .eq('id', oldLeaderId)
+        .eq('role', 'group_leader')
+        .neq('role', 'super_admin')
+        .neq('role', 'church_admin')
 
       await db.from('fellowship_members').upsert(
         { fellowship_id, user_id: leader_id, layer2_label: '守望者' },
         { onConflict: 'fellowship_id,user_id' }
       )
 
-      await db.from('users').update({ role: 'group_leader' }).eq('id', leader_id).eq('role', 'member')
+      // 升级新组长：只升级普通成员，不覆盖特权角色
+      await db.from('users').update({ role: 'group_leader' })
+        .eq('id', leader_id)
+        .eq('role', 'member')
+        .neq('role', 'super_admin')
+        .neq('role', 'church_admin')
     }
 
     return NextResponse.json({ ok: true })
