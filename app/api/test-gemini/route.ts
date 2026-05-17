@@ -21,7 +21,7 @@ export async function GET() {
 
   try {
     const genAI = new GoogleGenerativeAI(key)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
     const result = await model.generateContent('用中文写一句话')
     out.gemini_ok = true
     out.sample    = result.response.text().slice(0, 100)
