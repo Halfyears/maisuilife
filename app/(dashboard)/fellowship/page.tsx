@@ -23,16 +23,18 @@ export default async function FellowshipPage() {
     .eq('id', user.id)
     .single()
 
-  // ── 2. Find the user's approved fellowship ───────────
-  const { data: membership } = await supabase
+  // ── 2. Find the user's fellowship membership ─────────
+  // Avoid the fellowships(status) PostgREST join — it's fragile if the status
+  // column migration hasn't been applied. Users are only inserted into
+  // fellowship_members for approved fellowships, so no status filter needed.
+  const { data: membershipRow } = await supabase
     .from('fellowship_members')
-    .select('fellowship_id, layer2_label, fellowships(status)')
+    .select('fellowship_id, layer2_label')
     .eq('user_id', user.id)
-    .limit(10)
-    .then(r => ({
-      ...r,
-      data: r.data?.find(m => (m.fellowships as { status: string } | null)?.status === 'approved') ?? null,
-    }))
+    .limit(1)
+    .maybeSingle()
+
+  const membership = membershipRow ?? null
 
   // ── 3. Fetch posts via internal API ──────────────────
   // We call the internal route directly on the server to reuse

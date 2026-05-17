@@ -1,4 +1,4 @@
-export type UserRole = 'member' | 'leader' | 'super_admin'
+export type UserRole = 'member' | 'leader' | 'group_leader' | 'church_admin' | 'super_admin'
 
 export interface SystemConfig {
   id:         string
@@ -22,13 +22,29 @@ export interface User {
 }
 
 export interface Fellowship {
-  id:           string
-  name:         string
-  invite_code:  string
-  leader_id:    string
-  meeting_mode: string | null
-  yt_link:      string | null
-  created_at:   string
+  id:              string
+  name:            string
+  invite_code:     string
+  leader_id:       string
+  status:          string
+  meeting_address: string | null
+  leader_contact:  string | null
+  church_id:       string | null
+  approved_at:     string | null
+  meeting_mode:    string | null
+  yt_link:         string | null
+  created_at:      string
+}
+
+export interface SpiritualLog {
+  id:          string
+  user_id:     string
+  mood:        string | null
+  ai_comfort:  string | null
+  bible_verse: string | null
+  bible_ref:   string | null
+  client_date: string
+  created_at:  string
 }
 
 export interface FellowshipMember {
@@ -177,6 +193,12 @@ export type Database = {
         Row:           SystemConfig
         Insert:        Omit<SystemConfig, 'id'>
         Update:        Partial<SystemConfig>
+        Relationships: []
+      }
+      spiritual_logs: {
+        Row:    SpiritualLog
+        Insert: Omit<SpiritualLog, 'id' | 'created_at'>
+        Update: Partial<SpiritualLog>
         Relationships: []
       }
     }
