@@ -79,6 +79,8 @@ export default async function ChurchHubPage() {
         .eq('id', user.id)
         .single(),
 
+
+
       // Pending fellowships — leader name fetched via separate users lookup below
       db
         .from('fellowships')
@@ -103,7 +105,12 @@ export default async function ChurchHubPage() {
         .order('display_name'),
     ])
 
-    adminName = profileRes.data?.display_name ?? '教会管理员'
+    const profile = profileRes.data
+    if (!profile || !['church_admin', 'super_admin'].includes(profile.role)) {
+      redirect('/')
+    }
+
+    adminName = profile.display_name ?? '教会管理员'
 
     // Build members lookup for leader name resolution
     const allUsers: SelectableMember[] = (membersRes.data ?? []) as SelectableMember[]
