@@ -46,14 +46,14 @@ $$;
 -- ── 4. fellowships RLS overhaul ───────────────────────────────
 
 -- Church/super admins see everything
+DROP POLICY IF EXISTS "fellowships: church_admin full read" ON public.fellowships;
 CREATE POLICY "fellowships: church_admin full read"
   ON public.fellowships FOR SELECT
   USING (public.current_user_role() IN ('church_admin', 'super_admin'));
 
 -- Regular users see only approved fellowships they belong to
--- (replaces the "fellowships: member read" policy added in 007)
 DROP POLICY IF EXISTS "fellowships: member read" ON public.fellowships;
-
+DROP POLICY IF EXISTS "fellowships: member read approved" ON public.fellowships;
 CREATE POLICY "fellowships: member read approved"
   ON public.fellowships FOR SELECT
   USING (
@@ -63,7 +63,7 @@ CREATE POLICY "fellowships: member read approved"
 
 -- Members may submit a pending proposal (leader_id = self, status must be 'pending')
 DROP POLICY IF EXISTS "fellowships: leader insert" ON public.fellowships;
-
+DROP POLICY IF EXISTS "fellowships: member submit pending" ON public.fellowships;
 CREATE POLICY "fellowships: member submit pending"
   ON public.fellowships FOR INSERT
   WITH CHECK (
@@ -73,6 +73,7 @@ CREATE POLICY "fellowships: member submit pending"
   );
 
 -- Church / super admins may insert with any status and any leader
+DROP POLICY IF EXISTS "fellowships: church_admin insert" ON public.fellowships;
 CREATE POLICY "fellowships: church_admin insert"
   ON public.fellowships FOR INSERT
   WITH CHECK (
@@ -80,17 +81,20 @@ CREATE POLICY "fellowships: church_admin insert"
   );
 
 -- Church / super admins may update any fellowship
+DROP POLICY IF EXISTS "fellowships: church_admin update all" ON public.fellowships;
 CREATE POLICY "fellowships: church_admin update all"
   ON public.fellowships FOR UPDATE
   USING (public.current_user_role() IN ('church_admin', 'super_admin'));
 
 -- ── 5. users: church_admin can read all profiles ──────────────
 --    (needed for leader-selector dropdown in hub)
+DROP POLICY IF EXISTS "users: church_admin read all" ON public.users;
 CREATE POLICY "users: church_admin read all"
   ON public.users FOR SELECT
   USING (public.current_user_role() IN ('church_admin', 'super_admin'));
 
 -- ── 6. fellowship_members: church_admin can read all rows ─────
+DROP POLICY IF EXISTS "fellowship_members: church_admin read" ON public.fellowship_members;
 CREATE POLICY "fellowship_members: church_admin read"
   ON public.fellowship_members FOR SELECT
   USING (public.current_user_role() IN ('church_admin', 'super_admin'));
