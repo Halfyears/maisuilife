@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { Building2 } from 'lucide-react'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { ChurchHubClient } from './_components/church-hub-client'
 import type { PendingFellowship, ActiveFellowship, SelectableMember } from './_types'
@@ -9,70 +9,51 @@ export const dynamic = 'force-dynamic'
 export const metadata = { title: '教会管理中枢 — 麦穗喜乐' }
 
 export default async function ChurchHubPage() {
-  // ── Auth + role check ─────────────────────────────────────────
-  let db: ReturnType<typeof createServiceClient>
-  try {
-    db = createServiceClient()
-  } catch {
-    // SUPABASE_SERVICE_ROLE_KEY not set in this environment
-    return (
-      <div className="flex min-h-dvh items-center justify-center px-6">
-        <div className="rounded-2xl border border-red-100 bg-red-50 p-8 text-center max-w-sm">
-          <p className="text-sm font-bold text-red-700 mb-2">服务配置缺失</p>
-          <p className="text-xs text-red-500">请在 Vercel 环境变量中设置 SUPABASE_SERVICE_ROLE_KEY</p>
-        </div>
-      </div>
-    )
-  }
+  // ── Auth (anon client, same pattern as admin layouts) ─────────
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-  // Get current user
-  const { data: { user }, error: authErr } = await db.auth.getUser()
-  if (authErr || !user) redirect('/login')
-
-  // Check church_admin role
+  // ── Role check (service client, same pattern as admin layouts) ─
+  const db = createServiceClient()
   const { data: profile } = await db
     .from('users')
     .select('role, display_name')
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'church_admin') {
+  const adminRoles = ['church_admin', 'super_admin']
+  if (!profile || !adminRoles.includes(profile.role)) {
     redirect('/daily')
   }
 
-  const adminName = profile?.display_name ?? '管理员'
+  const adminName = profile.display_name ?? '管理员'
 
-  // ── Fetch pending fellowships ─────────────────────────────────
-  let pending: PendingFellowship[] = []
-  try {
-    const { data } = await db
-      .from('fellowships')
-      .select('id, name, meeting_address, leader_contact, created_at, users!fellowships_leader_id_fkey(display_name)')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: true })
-    pending = (data ?? []) as unknown as PendingFellowship[]
-  } catch { /* ignore — show empty */ }
+  // ── Pending fellowships ───────────────────────────────────────
+  const { data: pendingRaw } = await db
+    .from('fellowships')
+    .select('id, name, meeting_address, leader_contact, created_at, users!fellowships_leader_id_fkey(display_name)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
 
-  // ── Fetch active fellowships with members ─────────────────────
-  let active: ActiveFellowship[] = []
-  try {
-    const { data } = await db
-      .from('fellowships')
-      .select('id, name, invite_code, meeting_address, leader_contact, users!fellowships_leader_id_fkey(id, display_name), fellowship_members(user_id)')
-      .eq('status', 'approved')
-      .order('created_at', { ascending: true })
-    active = (data ?? []) as unknown as ActiveFellowship[]
-  } catch { /* ignore — show empty */ }
+  const pending = (pendingRaw ?? []) as unknown as PendingFellowship[]
 
-  // ── Fetch all members (for leader picker + name resolution) ───
-  let members: SelectableMember[] = []
-  try {
-    const { data } = await db
-      .from('users')
-      .select('id, display_name, role')
-      .order('display_name', { ascending: true })
-    members = (data ?? []) as SelectableMember[]
-  } catch { /* ignore */ }
+  // ── Active fellowships with members ──────────────────────────
+  const { data: activeRaw } = await db
+    .from('fellowships')
+    .select('id, name, invite_code, meeting_address, leader_contact, users!fellowships_leader_id_fkey(id, display_name), fellowship_members(user_id)')
+    .eq('status', 'approved')
+    .order('created_at', { ascending: true })
+
+  const active = (activeRaw ?? []) as unknown as ActiveFellowship[]
+
+  // ── All members (for leader picker) ──────────────────────────
+  const { data: membersRaw } = await db
+    .from('users')
+    .select('id, display_name, role')
+    .order('display_name', { ascending: true })
+
+  const members = (membersRaw ?? []) as SelectableMember[]
 
   return (
     <div className="flex min-h-dvh flex-col">
