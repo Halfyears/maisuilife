@@ -292,7 +292,7 @@ function NewPrayerForm({ fellowshipId, onCreated, onCancel }: NewPrayerFormProps
           value={title}
           onChange={e => setTitle(e.target.value)}
           maxLength={100}
-          placeholder="简短描述你的代祷需求，如"为父亲的病情代祷""
+          placeholder="简短描述你的代祷需求，如：为父亲的病情代祷"
           className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5
                      text-sm text-stone-800 placeholder:text-stone-400
                      focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:outline-none"
