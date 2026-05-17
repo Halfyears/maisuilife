@@ -59,6 +59,8 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
           status_tag:    selectedTags.join('、'),
           is_urgent:     false,
           fellowship_id: fellowshipId ?? null,
+          // Pass client's actual local clock so the server uses the correct date
+          client_ts:     new Date().toISOString(),
         }),
       })
       if (res.ok) {

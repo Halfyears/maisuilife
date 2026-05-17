@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
-import { Settings, Wheat, ShieldCheck, Users, BookOpen, Key, LogIn, Church } from 'lucide-react'
+import Link from 'next/link'
+import { Settings, Wheat, ShieldCheck, Users, BookOpen, Key, LogIn, Church, Home } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { SignOutButton } from '@/components/shared/sign-out-button'
@@ -62,6 +63,15 @@ export default async function SettingsPage() {
         <div className="mx-auto flex max-w-md items-center gap-2.5 px-5 py-3.5">
           <Settings className="h-4 w-4 text-stone-500" />
           <h1 className="text-sm font-bold text-stone-900">设置中心</h1>
+          <Link
+            href="/"
+            className="ml-auto flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white
+                       px-3 py-1.5 text-xs font-medium text-stone-500
+                       hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+          >
+            <Home className="h-3.5 w-3.5" />
+            返回主大盘
+          </Link>
         </div>
       </header>
 

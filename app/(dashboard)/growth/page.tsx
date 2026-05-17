@@ -10,7 +10,6 @@ const TAG_EMOJI: Record<string, string> = {
   '感恩': '🙏', '平安': '🕊️', '疲惫': '🌙', '干渴': '🌿', '混乱': '🌊',
 }
 
-// 将多选心境字符串解析为 emoji 列表
 function renderTagEmojis(statusTag: string): string {
   if (!statusTag) return '🌾'
   return statusTag.split(/[、,，]+/)
@@ -27,7 +26,6 @@ function formatDateCN(dateStr: string): string {
   return `${month}月${day}日 · 星期${days[d.getDay()]}`
 }
 
-// 返回 UTC+8 的本地日期字符串 YYYY-MM-DD（服务器可能在 UTC 时区）
 function localDateCN(offsetDays = 0): string {
   const ms = Date.now() + 8 * 3600_000 + offsetDays * 86_400_000
   return new Date(ms).toISOString().slice(0, 10)
@@ -35,8 +33,8 @@ function localDateCN(offsetDays = 0): string {
 
 function computeStreak(dates: string[]): number {
   if (dates.length === 0) return 0
-  const sorted   = [...new Set(dates)].sort((a, b) => b.localeCompare(a))
-  const today    = localDateCN(0)
+  const sorted    = [...new Set(dates)].sort((a, b) => b.localeCompare(a))
+  const today     = localDateCN(0)
   const yesterday = localDateCN(-1)
   if (sorted[0] !== today && sorted[0] !== yesterday) return 0
   let streak = 1
@@ -53,16 +51,29 @@ export default async function GrowthPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  // ── Stats: from daily_alignments (all history, includes pre-spiritual_logs records) ──
   const { data: alignments } = await supabase
     .from('daily_alignments')
-    .select('id, status_tag, date, is_urgent, created_at')
+    .select('date, status_tag, is_urgent')
     .eq('user_id', user.id)
     .gte('date', localDateCN(-90))
     .order('date', { ascending: false })
 
-  const records  = alignments ?? []
-  const total    = records.length
-  const streak   = computeStreak(records.map(r => r.date))
+  // ── Rich timeline: from spiritual_logs (has AI comfort + verse) ────────────
+  const { data: logs } = await supabase
+    .from('spiritual_logs')
+    .select('id, mood, ai_comfort, bible_verse, bible_ref, client_date, created_at')
+    .eq('user_id', user.id)
+    .gte('client_date', localDateCN(-90))
+    .order('client_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(30)
+
+  const records     = alignments ?? []
+  const logEntries  = logs ?? []
+
+  const total  = records.length
+  const streak = computeStreak(records.map(r => r.date))
 
   const recent30 = records.filter(r => r.date >= localDateCN(-30))
 
@@ -75,6 +86,14 @@ export default async function GrowthPage() {
     })
   }
   const topTag = Object.entries(tagCounts).sort((a, b) => b[1] - a[1])[0]?.[0]
+
+  // Deduplicate logs by client_date (keep first/latest per date for display)
+  const seenDates = new Set<string>()
+  const dedupedLogs = logEntries.filter(l => {
+    if (seenDates.has(l.client_date)) return false
+    seenDates.add(l.client_date)
+    return true
+  })
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -93,7 +112,7 @@ export default async function GrowthPage() {
         {/* ── 三格统计卡 ─────────────────────────── */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: '内室记录', value: `${total} 天`, emoji: '📖' },
+            { label: '内室记录', value: `${total} 次`, emoji: '📖' },
             { label: '连续同行', value: `${streak} 天`, emoji: '🔥' },
             { label: '常见心境', value: topTag ?? (total === 0 ? '—' : '多样'), emoji: '🌿' },
           ].map(({ label, value, emoji }) => (
@@ -143,7 +162,7 @@ export default async function GrowthPage() {
 
         {/* ── 属灵回溯时间轴 ──────────────────── */}
         <div className="rounded-2xl border border-stone-100 bg-white/90 p-5 shadow-md shadow-amber-900/5 backdrop-blur-md">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-5">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50">
               <CalendarDays className="h-4 w-4 text-amber-500" />
             </div>
@@ -151,7 +170,7 @@ export default async function GrowthPage() {
             <span className="ml-auto text-[11px] text-stone-400">近 90 天</span>
           </div>
 
-          {records.length === 0 ? (
+          {dedupedLogs.length === 0 ? (
             <div className="rounded-xl bg-amber-50/70 border border-amber-100 px-4 py-5 text-center">
               <p className="text-sm font-medium text-amber-700">
                 开始第一次内室记录，你的属灵轨迹就从今天开始扎根。
@@ -159,47 +178,64 @@ export default async function GrowthPage() {
             </div>
           ) : (
             <div className="space-y-0">
-              {records.slice(0, 20).map((record, idx) => (
-                <div key={record.id} className="flex gap-3">
-                  {/* 时间轴竖线 */}
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full
-                                    bg-gradient-to-br from-amber-100 to-orange-100 text-sm">
-                      {record.status_tag
-                        ? (TAG_EMOJI[record.status_tag.split(/[、,，]+/)[0]?.trim()] ?? '🌾')
-                        : '🌾'
-                      }
-                    </div>
-                    {idx < records.slice(0, 20).length - 1 && (
-                      <div className="w-px flex-1 bg-stone-100 my-1" />
-                    )}
-                  </div>
+              {dedupedLogs.map((log, idx) => {
+                const moodEmoji = log.mood
+                  ? (TAG_EMOJI[log.mood.split(/[、,，]+/)[0]?.trim()] ?? '🌾')
+                  : '🌾'
+                const isLast = idx === dedupedLogs.length - 1
 
-                  {/* 内容卡 */}
-                  <div className="flex-1 pb-4">
-                    <div className="flex items-start justify-between gap-2 mb-0.5">
-                      <p className="text-xs font-semibold text-stone-700">
-                        {formatDateCN(record.date)}
-                      </p>
-                      {record.is_urgent && (
-                        <span className="shrink-0 rounded-full bg-red-50 border border-red-100
-                                         px-2 py-0.5 text-[10px] font-semibold text-red-500">
-                          代祷
-                        </span>
+                return (
+                  <div key={log.id} className="flex gap-3">
+                    {/* 时间轴竖线 */}
+                    <div className="flex flex-col items-center">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full
+                                      bg-gradient-to-br from-amber-100 to-orange-100 text-base shadow-sm">
+                        {moodEmoji}
+                      </div>
+                      {!isLast && (
+                        <div className="w-px flex-1 bg-gradient-to-b from-amber-100 to-stone-100 my-1" style={{ minHeight: 24 }} />
                       )}
                     </div>
-                    <p className="text-xs text-stone-500 leading-relaxed">
-                      {record.status_tag
-                        ? renderTagEmojis(record.status_tag)
-                        : '静默交托'}
-                    </p>
-                  </div>
-                </div>
-              ))}
 
-              {records.length > 20 && (
+                    {/* 内容卡 */}
+                    <div className="flex-1 pb-5">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <p className="text-xs font-bold text-stone-700">
+                          {formatDateCN(log.client_date)}
+                        </p>
+                        {log.mood && (
+                          <span className="shrink-0 text-[10px] font-medium text-stone-400">
+                            {renderTagEmojis(log.mood)}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* AI 属灵回应摘要（前120字） */}
+                      {log.ai_comfort && (
+                        <p className="text-xs text-stone-600 leading-relaxed mb-2 line-clamp-3">
+                          {log.ai_comfort.slice(0, 120)}{log.ai_comfort.length > 120 ? '…' : ''}
+                        </p>
+                      )}
+
+                      {/* 经文 */}
+                      {log.bible_verse && (
+                        <div className="rounded-xl border border-amber-100/80 bg-amber-50/60 px-3 py-2.5">
+                          <p className="text-[11px] text-stone-600 italic leading-relaxed">
+                            "{log.bible_verse}"
+                          </p>
+                          {log.bible_ref && (
+                            <p className="mt-1 text-[10px] text-stone-400">—— {log.bible_ref}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {total > dedupedLogs.length && (
                 <p className="pt-2 text-center text-[11px] text-stone-300">
-                  还有 {records.length - 20} 条历史记录
+                  还有更早的内室记录，共 {total} 次
                 </p>
               )}
             </div>

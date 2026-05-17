@@ -59,6 +59,8 @@ export async function POST(req: NextRequest) {
     const statusTag   = typeof body.status_tag === 'string' ? body.status_tag : ''
     const isUrgent    = body.is_urgent === true
     const fellowshipId = typeof body.fellowship_id === 'string' ? body.fellowship_id.trim() || null : null
+    // client_ts: ISO string from the browser's clock (localized to user's timezone)
+    const clientTs    = typeof body.client_ts === 'string' ? body.client_ts : null
 
     // 至少需要心境或文字其中之一
     if (!transcript && !statusTag) {
@@ -83,10 +85,20 @@ export async function POST(req: NextRequest) {
     const encryptedBuf   = encrypt(aiResponse.summary)
     const ai_summary_enc = '\\x' + encryptedBuf.toString('hex')
 
-    // ── 5. Persist to daily_alignments (upsert by user+date) ────────────
-    // 使用 UTC+8 当地日期，与前端读取逻辑保持一致
-    const dateCN = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+    // ── 5. Resolve client date ────────────────────────────────────────────
+    // Prefer the client-provided ISO timestamp (user's actual local clock).
+    // Fall back to UTC+8 server-side calculation if client_ts is absent or invalid.
+    let clientDate: string
+    if (clientTs) {
+      const parsed = new Date(clientTs)
+      clientDate = isNaN(parsed.getTime())
+        ? new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+        : clientTs.slice(0, 10)
+    } else {
+      clientDate = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+    }
 
+    // ── 6. Persist to daily_alignments (upsert by user+date) ────────────
     const { data: alignment, error: dbError } = await supabase
       .from('daily_alignments')
       .upsert(
@@ -96,7 +108,7 @@ export async function POST(req: NextRequest) {
           theme_tags:     [],
           ai_summary_enc,
           is_urgent:      isUrgent,
-          date:           dateCN,
+          date:           clientDate,
           is_visible:     true,
         },
         { onConflict: 'user_id,date', ignoreDuplicates: false }
@@ -109,7 +121,24 @@ export async function POST(req: NextRequest) {
       console.error('[align] db upsert error:', dbError.code, dbError.message)
     }
 
-    // ── 6. If urgent, create anonymous urgent_flag via RPC ────────────────
+    // ── 7. Persist to spiritual_logs (growth timeline) ───────────────────
+    // Stores the AI comfort text + bible verse for the growth timeline.
+    // Uses the RLS client so user_id = auth.uid() check passes.
+    const { error: logErr } = await supabase
+      .from('spiritual_logs')
+      .insert({
+        user_id:     user.id,
+        mood:        statusTag || null,
+        ai_comfort:  aiResponse.comfort,
+        bible_verse: aiResponse.verse,
+        bible_ref:   aiResponse.verse_ref,
+        client_date: clientDate,
+      })
+    if (logErr) {
+      console.error('[align] spiritual_log insert error:', logErr.code, logErr.message)
+    }
+
+    // ── 8. If urgent, create anonymous urgent_flag via RPC ────────────────
     if (isUrgent && fellowshipId && alignment) {
       const db = createServiceClient()
       const { error: flagErr } = await db.rpc('flag_urgent', {
@@ -121,7 +150,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── 7. Return only what the UI needs ─────────────────────────────────
+    // ── 9. Return only what the UI needs ─────────────────────────────────
     return NextResponse.json({
       alignmentId: alignment?.id ?? '',
       comfort:     aiResponse.comfort,
