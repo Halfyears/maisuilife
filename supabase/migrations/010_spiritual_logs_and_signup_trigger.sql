@@ -22,10 +22,12 @@ CREATE TABLE IF NOT EXISTS public.spiritual_logs (
 
 ALTER TABLE public.spiritual_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "spiritual_logs: self read" ON public.spiritual_logs;
 CREATE POLICY "spiritual_logs: self read"
   ON public.spiritual_logs FOR SELECT
   USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "spiritual_logs: self insert" ON public.spiritual_logs;
 CREATE POLICY "spiritual_logs: self insert"
   ON public.spiritual_logs FOR INSERT
   WITH CHECK (user_id = auth.uid());
