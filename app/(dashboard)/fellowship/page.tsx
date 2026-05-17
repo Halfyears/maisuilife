@@ -23,14 +23,16 @@ export default async function FellowshipPage() {
     .eq('id', user.id)
     .single()
 
-  // ── 2. Find the user's fellowship ────────────────────
-  // For V1: take the first fellowship the user belongs to.
+  // ── 2. Find the user's approved fellowship ───────────
   const { data: membership } = await supabase
     .from('fellowship_members')
-    .select('fellowship_id, layer2_label')
-    .eq('leader_id', user.id)
-    .limit(1)
-    .maybeSingle()
+    .select('fellowship_id, layer2_label, fellowships(status)')
+    .eq('user_id', user.id)
+    .limit(10)
+    .then(r => ({
+      ...r,
+      data: r.data?.find(m => (m.fellowships as { status: string } | null)?.status === 'approved') ?? null,
+    }))
 
   // ── 3. Fetch posts via internal API ──────────────────
   // We call the internal route directly on the server to reuse

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { Settings, Wheat, ShieldCheck, Users, BookOpen, Key, LogIn } from 'lucide-react'
+import { Settings, Wheat, ShieldCheck, Users, BookOpen, Key, LogIn, Church } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { SignOutButton } from '@/components/shared/sign-out-button'
@@ -7,19 +7,14 @@ import { SignOutButton } from '@/components/shared/sign-out-button'
 export const metadata = { title: '设置中心 — 麦穗喜乐' }
 export const revalidate = 0
 
-// ── 角色徽标配置 ──────────────────────────────────────────────
 const ROLE_BADGE: Record<string, { label: string; className: string }> = {
   super_admin: {
     label: '⚡ 超级管理员',
     className: 'bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold text-xs px-3 py-1 rounded-full',
   },
-  pastor: {
-    label: '👑 属灵牧者',
-    className: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-xs px-3 py-1 rounded-full',
-  },
-  church: {
-    label: '⛪ 教会管理',
-    className: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-xs px-3 py-1 rounded-full',
+  church_admin: {
+    label: '⛪ 教会管理员',
+    className: 'bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-xs px-3 py-1 rounded-full',
   },
   leader: {
     label: '🌱 团契组长',
@@ -151,6 +146,30 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
           {['全站 AI 断路器控制', '全局 API 接口开关', '系统运行日志大盘'].map(item => (
             <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
               <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+              {item}
+            </div>
+          ))}
+        </div>
+      </a>
+    )
+  }
+
+  if (role === 'church_admin') {
+    return (
+      <a href="/church/hub"
+        className="block rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/80 to-purple-50/60
+                   px-6 py-5 shadow-md shadow-violet-900/5 transition-all hover:border-violet-200 active:scale-[0.99]">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <Church className="h-5 w-5 text-violet-500" />
+            <span className="text-base font-black text-stone-900">⛪ 教会管理中枢</span>
+          </div>
+          <span className="text-xs text-stone-400">进入 →</span>
+        </div>
+        <div className="space-y-2">
+          {['审核 / 批准团契创建申请', '直接创建并指派新团契组长', '编辑小组名称、地址与联系方式'].map(item => (
+            <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shrink-0" />
               {item}
             </div>
           ))}
