@@ -5,8 +5,11 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { InsightCard } from '@/components/console/insight-card'
 import { PastoralBoard } from '@/components/console/pastoral-board'
 import { SpatialToggle } from '@/components/console/spatial-toggle'
+import { ThemePlanner } from '@/components/console/theme-planner'
+import { MusicPlanner } from '@/components/console/music-planner'
 import type { InsightResponse } from '@/app/api/fellowship/insight/route'
 import type { PastoralListResponse } from '@/app/api/pastoral/list/route'
+import type { MusicSlot } from '@/app/api/fellowship/music/route'
 
 export const metadata = { title: '团契后台' }
 export const revalidate = 0
@@ -107,6 +110,42 @@ export default async function ConsolePage({
     // InsightCard 有刷新按钮，用户可手动重试
   }
 
+  // ── Direct DB: session plan + music slots ───────────────
+  const [sessionPlanRes, musicSlotsRes, recentAlignmentsRes] = await Promise.all([
+    db.from('fellowship_session_plans')
+      .select('theme, scripture_ref, scripture_text')
+      .eq('fellowship_id', fellowship.id)
+      .maybeSingle(),
+    db.from('fellowship_music_slots')
+      .select('id, slot_name, slot_order, songs, is_fixed')
+      .eq('fellowship_id', fellowship.id)
+      .order('slot_order'),
+    db.from('fellowship_members')
+      .select('user_id')
+      .eq('fellowship_id', fellowship.id)
+      .then(async ({ data: members }) => {
+        if (!members?.length) return { data: [] }
+        const ids = members.map((m: { user_id: string }) => m.user_id)
+        const threeDaysAgo = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10)
+        return db.from('daily_alignments')
+          .select('status_tag')
+          .in('user_id', ids)
+          .gte('date', threeDaysAgo)
+          .eq('is_visible', true)
+      }),
+  ])
+
+  const sessionPlan = sessionPlanRes.data as { theme: string | null; scripture_ref: string | null; scripture_text: string | null } | null
+  const musicSlots  = (musicSlotsRes.data ?? []) as MusicSlot[]
+
+  // Aggregate mood words (deduped, sorted by frequency)
+  const moodCounts: Record<string, number> = {}
+  ;((recentAlignmentsRes as { data: { status_tag: string }[] | null }).data ?? [])
+    .forEach((a) => { moodCounts[a.status_tag] = (moodCounts[a.status_tag] ?? 0) + 1 })
+  const moodWords = Object.entries(moodCounts)
+    .sort(([, a], [, b]) => b - a)
+    .map(([word]) => word)
+
   const roleLabel = profile.role === 'super_admin' ? '超级管理员'
     : profile.role === 'church_admin' ? '教会管理员'
     : '组长'
@@ -161,6 +200,21 @@ export default async function ConsolePage({
           pendingFlags={pastoralData.pending_flags}
           requests={pastoralData.requests}
           fellowshipId={fellowship.id}
+        />
+
+        {/* ── Theme & Scripture Planner ────── */}
+        <ThemePlanner
+          fellowshipId={fellowship.id}
+          initialTheme={sessionPlan?.theme ?? null}
+          initialScriptureRef={sessionPlan?.scripture_ref ?? null}
+          initialScriptureText={sessionPlan?.scripture_text ?? null}
+          moodWords={moodWords}
+        />
+
+        {/* ── Music Planner ─────────────────── */}
+        <MusicPlanner
+          fellowshipId={fellowship.id}
+          initialSlots={musicSlots}
         />
 
         {/* ── Spatial Toggle + YT Link ─────── */}
