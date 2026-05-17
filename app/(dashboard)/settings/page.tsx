@@ -16,7 +16,7 @@ const ROLE_BADGE: Record<string, { label: string; className: string }> = {
     label: '⛪ 教会管理员',
     className: 'bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-xs px-3 py-1 rounded-full',
   },
-  leader: {
+  group_leader: {
     label: '🌱 团契组长',
     className: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-xs px-3 py-1 rounded-full',
   },
@@ -218,7 +218,7 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
     )
   }
 
-  if (role === 'leader') {
+  if (role === 'group_leader') {
     return (
       <a href="/fellowship/console"
         className="block rounded-2xl border border-green-100 bg-gradient-to-br from-green-50/80 to-emerald-50/60

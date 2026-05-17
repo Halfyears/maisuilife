@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       layer2_label: '守望者',
     })
 
-    await db.from('users').update({ role: 'leader' }).eq('id', leader_id).eq('role', 'member')
+    await db.from('users').update({ role: 'group_leader' }).eq('id', leader_id).eq('role', 'member')
 
     return NextResponse.json({ id: fellowship.id })
   } catch {

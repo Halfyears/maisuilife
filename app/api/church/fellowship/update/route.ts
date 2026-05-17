@@ -44,14 +44,14 @@ export async function POST(req: NextRequest) {
     if (leader_id !== undefined && leader_id !== existing.leader_id) {
       const oldLeaderId = existing.leader_id
 
-      await db.from('users').update({ role: 'member' }).eq('id', oldLeaderId).eq('role', 'leader')
+      await db.from('users').update({ role: 'member' }).eq('id', oldLeaderId).eq('role', 'group_leader')
 
       await db.from('fellowship_members').upsert(
         { fellowship_id, user_id: leader_id, layer2_label: '守望者' },
         { onConflict: 'fellowship_id,user_id' }
       )
 
-      await db.from('users').update({ role: 'leader' }).eq('id', leader_id).eq('role', 'member')
+      await db.from('users').update({ role: 'group_leader' }).eq('id', leader_id).eq('role', 'member')
     }
 
     return NextResponse.json({ ok: true })

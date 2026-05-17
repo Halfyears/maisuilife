@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       leader_contact: leader_contact ?? null,
     }).eq('id', fellowship_id)
 
-    await db.from('users').update({ role: 'leader' }).eq('id', fellowship.leader_id).eq('role', 'member')
+    await db.from('users').update({ role: 'group_leader' }).eq('id', fellowship.leader_id).eq('role', 'member')
 
     return NextResponse.json({ ok: true })
   } catch {

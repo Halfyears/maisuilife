@@ -23,7 +23,7 @@ export default async function ConsolePage() {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'leader') redirect('/fellowship')
+  if (profile?.role !== 'group_leader') redirect('/fellowship')
 
   // ── Find fellowship led by this user ──────────────────
   const db = createServiceClient()

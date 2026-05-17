@@ -59,7 +59,7 @@ export default async function FellowshipPage() {
     }
   }
 
-  const isLeader = profile?.role === 'leader' || postsData?.is_leader
+  const isLeader = profile?.role === 'group_leader' || postsData?.is_leader
 
   return (
     <div className="flex min-h-dvh flex-col">
