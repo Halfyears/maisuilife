@@ -74,7 +74,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       const { verse, verse_ref } = getFallbackVerse(selectedTags)
       setAiResult({
         alignmentId: '',
-        comfort:     '孩子，你今日的心声已悄悄落在祂面前。祂的话语有时来得很慢，但每一字都精准地落在你心上。无论你今日带来了怎样的重担，祂都看见了，也都接住了。愿这段经文成为你今日的光。',
+        comfort:     '你今日的呼求，神没有一字遗漏，祂都听见了。无论你带来的是重担、疲惫还是沉默，这一切祂都知道。愿这段经文在你心中慢慢生根，成为今日的力量与安慰。',
         verse,
         verse_ref,
       })
