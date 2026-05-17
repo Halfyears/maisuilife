@@ -143,26 +143,26 @@ export function LoginForm() {
     return (
       <Shell>
         <div className="flex flex-col items-center gap-6 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full
-                          bg-white/10 text-3xl border border-white/20">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-2xl">
             🌾
           </div>
           <div>
-            <p className="text-lg font-bold text-white tracking-wide">欢迎回来，管理员</p>
-            <p className="mt-1 text-sm text-blue-200">请选择进入的页面</p>
+            <p className="text-base font-bold text-stone-900 tracking-wide">欢迎回来，管理员</p>
+            <p className="mt-1 text-sm font-medium text-stone-500">请选择进入的页面</p>
           </div>
           <div className="flex w-full flex-col gap-3">
             <button
               onClick={() => router.push('/admin/hub')}
-              className="w-full rounded-2xl bg-amber-500 py-3.5 text-sm font-bold text-white
-                         shadow-lg shadow-amber-500/30 hover:bg-amber-400 transition-colors"
+              className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3
+                         text-sm font-bold text-white shadow-md shadow-amber-500/20
+                         hover:opacity-90 active:scale-[0.98] transition-all"
             >
               进入管理中枢
             </button>
             <button
               onClick={() => router.push('/')}
-              className="w-full rounded-2xl border border-white/20 bg-white/10 py-3.5
-                         text-sm font-medium text-white hover:bg-white/20 transition-colors"
+              className="w-full rounded-xl border border-stone-200 py-3 text-sm font-medium
+                         text-stone-600 hover:bg-stone-50 transition-colors"
             >
               进入今日内室
             </button>
@@ -177,23 +177,18 @@ export function LoginForm() {
     return (
       <Shell>
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full
-                          bg-white/10 text-3xl border border-white/20">
-            ✉️
-          </div>
-          <div>
-            <p className="text-lg font-bold text-white tracking-wide">魔术链接已发送</p>
-            <p className="mt-2 text-sm text-blue-200 leading-relaxed">
-              请查收 <strong className="text-white">{email}</strong> 的邮件，
-              点击链接完成登录。
-            </p>
-          </div>
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-2xl">✉</div>
+          <p className="text-base font-bold text-stone-900 tracking-wide">魔术链接已发送</p>
+          <p className="text-sm font-medium text-stone-500 leading-relaxed">
+            请查收 <strong className="text-stone-700">{email}</strong> 的邮件，
+            点击链接完成登录。
+          </p>
           <button
             type="button"
             onClick={() => { setStep('form'); setError(null) }}
-            className="mt-2 text-sm text-blue-300 underline underline-offset-2 hover:text-white transition-colors"
+            className="text-sm text-stone-400 underline underline-offset-2 hover:text-stone-600 transition-colors"
           >
-            返回重试
+            返回
           </button>
         </div>
       </Shell>
@@ -204,13 +199,12 @@ export function LoginForm() {
   return (
     <Shell>
       {/* Logo */}
-      <div className="mb-8 flex flex-col items-center gap-3 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl
-                        bg-amber-400/20 border border-amber-400/30">
-          <Wheat className="h-7 w-7 text-amber-400" />
+      <div className="mb-7 flex flex-col items-center gap-2.5 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50">
+          <Wheat className="h-6 w-6 text-amber-500" />
         </div>
-        <h1 className="font-serif text-2xl font-bold text-white tracking-wide">麦穗喜乐</h1>
-        <p className="text-sm text-blue-200">属灵陪伴，同行成长</p>
+        <h1 className="font-serif text-2xl font-bold text-stone-900 tracking-wide">麦穗喜乐</h1>
+        <p className="text-sm font-medium text-stone-500">属灵陪伴，同行成长</p>
       </div>
 
       {/* ── OAuth buttons ──────────────────────────── */}
@@ -219,10 +213,9 @@ export function LoginForm() {
           type="button"
           onClick={() => signInWithOAuth('google')}
           disabled={!!oauthLoading}
-          className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white
-                     py-4 text-sm font-semibold text-stone-800
-                     shadow-lg shadow-black/20
-                     hover:bg-stone-50 active:scale-[0.98]
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-stone-200
+                     bg-white py-3 text-sm font-semibold text-stone-700
+                     shadow-sm hover:bg-stone-50 active:scale-[0.98]
                      disabled:opacity-60 transition-all"
         >
           {oauthLoading === 'google'
@@ -237,10 +230,9 @@ export function LoginForm() {
             type="button"
             onClick={() => signInWithOAuth('apple')}
             disabled={!!oauthLoading}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-black
-                       py-4 text-sm font-semibold text-white
-                       shadow-lg shadow-black/20
-                       hover:bg-neutral-900 active:scale-[0.98]
+            className="flex w-full items-center justify-center gap-3 rounded-xl
+                       bg-stone-900 py-3 text-sm font-semibold text-white
+                       shadow-sm hover:bg-stone-800 active:scale-[0.98]
                        disabled:opacity-60 transition-all"
           >
             {oauthLoading === 'apple'
@@ -253,25 +245,24 @@ export function LoginForm() {
       </div>
 
       {/* ── Divider ────────────────────────────────── */}
-      <div className="my-6 flex items-center gap-3">
-        <div className="flex-1 h-px bg-white/15" />
-        <span className="text-xs text-blue-300/80 font-medium">或使用邮箱魔术链接</span>
-        <div className="flex-1 h-px bg-white/15" />
+      <div className="my-5 flex items-center gap-3">
+        <div className="flex-1 h-px bg-stone-200" />
+        <span className="text-xs text-stone-400 font-medium">或使用邮箱魔术链接</span>
+        <div className="flex-1 h-px bg-stone-200" />
       </div>
 
       {/* ── Magic link form ─────────────────────────── */}
-      <form onSubmit={handleMagicLink} className="space-y-3">
+      <form onSubmit={handleMagicLink} className="space-y-4">
         <input
           type="email"
           required
           autoComplete="email"
-          placeholder="your@email.com"
+          placeholder="you@example.com"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          className="w-full rounded-2xl border border-white/20 bg-white/10
-                     px-4 py-3.5 text-sm text-white placeholder:text-blue-300/60
-                     focus:outline-none focus:border-amber-400/60 focus:ring-1 focus:ring-amber-400/40
-                     transition-all"
+          className="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm
+                     text-stone-900 placeholder:text-stone-300 transition-all
+                     focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-300"
         />
 
         {/* Turnstile (only rendered if NEXT_PUBLIC_TURNSTILE_SITE_KEY is set) */}
@@ -286,8 +277,8 @@ export function LoginForm() {
         </div>
 
         {error && (
-          <p className="rounded-xl border border-red-400/30 bg-red-500/20 px-4 py-2.5
-                        text-sm font-medium text-red-200">
+          <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2.5
+                        text-sm font-medium text-red-600">
             {error}
           </p>
         )}
@@ -295,11 +286,11 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={magicLoading || !!oauthLoading}
-          className="flex w-full items-center justify-center rounded-2xl
-                     bg-amber-500 py-3.5 text-sm font-bold text-white
-                     shadow-lg shadow-amber-500/25
-                     hover:bg-amber-400 active:scale-[0.98]
-                     disabled:opacity-60 transition-all"
+          className="flex w-full items-center justify-center rounded-xl
+                     bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600
+                     py-3 text-sm font-bold tracking-wide text-white
+                     shadow-md shadow-amber-500/20
+                     hover:opacity-90 active:scale-[0.98] disabled:opacity-60 transition-all"
         >
           {magicLoading
             ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />发送中…</>
@@ -308,11 +299,11 @@ export function LoginForm() {
       </form>
 
       {/* ── Register link ───────────────────────────── */}
-      <div className="mt-6 flex items-center justify-center gap-1 text-sm text-blue-300">
+      <div className="mt-5 flex items-center justify-center gap-1 text-xs text-stone-400">
         <span>还没有账号？</span>
         <Link
           href="/register"
-          className="font-semibold text-amber-400 underline underline-offset-2 hover:text-amber-300 transition-colors"
+          className="font-medium text-amber-600 underline underline-offset-2 hover:text-amber-700 transition-colors"
         >
           立即注册
         </Link>
@@ -321,16 +312,12 @@ export function LoginForm() {
   )
 }
 
-// ── Shell: full-page dark blue background ─────────────
+// ── Shell: original white card on neutral background ──
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="flex min-h-dvh items-center justify-center px-5 py-12"
-      style={{ background: 'linear-gradient(160deg, #0F3460 0%, #16213E 60%, #0D1B2A 100%)' }}
-    >
-      <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/8
-                      p-8 shadow-2xl shadow-black/40 backdrop-blur-xl"
-           style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+    <div className="flex min-h-dvh items-center justify-center px-4 py-12">
+      <div className="w-full max-w-sm rounded-2xl border border-stone-100/85 bg-white/90 p-8
+                      shadow-sm backdrop-blur-md">
         {children}
       </div>
     </div>
