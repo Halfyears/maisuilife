@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { AdminTopNav } from '@/components/shared/admin-top-nav'
 import { ChurchHubClient } from './_components/church-hub-client'
@@ -53,6 +53,10 @@ export default async function ChurchHubPage() {
     .eq('id', user.id)
     .single()
 
+  // Service client bypasses RLS — required so the member sub-query can read
+  // other users' display_name/role rows (RLS only allows self-reads on `users`).
+  const db = createServiceClient()
+
   const [pendingRes, activeRes, membersRes] = await Promise.all([
     supabase
       .from('fellowships')
@@ -60,18 +64,18 @@ export default async function ChurchHubPage() {
       .eq('status', 'pending')
       .order('created_at', { ascending: true }),
 
-    supabase
+    db
       .from('fellowships')
       .select(`
         id, name, invite_code, status, meeting_address, leader_contact,
         church_id, approved_at, created_at,
         users!leader_id(id, display_name),
-        fellowship_members(user_id, users(display_name, role))
+        fellowship_members(user_id, users!user_id(display_name, role))
       `)
       .in('status', ['approved'])
       .order('created_at', { ascending: false }),
 
-    supabase
+    db
       .from('users')
       .select('id, display_name, role')
       .not('role', 'eq', 'super_admin')

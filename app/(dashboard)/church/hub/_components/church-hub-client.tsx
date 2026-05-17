@@ -125,12 +125,13 @@ function ActiveTreeCard({
   const [contact,   setContact]   = useState(f.leader_contact  ?? '')
 
   const leaderName  = (f.users as { display_name: string } | null)?.display_name ?? '—'
-  const rawMembers  = (f.fellowship_members ?? []) as FellowshipMember[]
+  // PostgREST always returns an array for one-to-many; guard against null/undefined
+  const rawMembers  = Array.isArray(f.fellowship_members) ? (f.fellowship_members as FellowshipMember[]) : []
   const memberCount = rawMembers.length
 
   // Separate leader from regular members for display
-  const leaderId_actual = (f.users as { id: string } | null)?.id
-  const regularMembers  = rawMembers.filter(m => m.user_id !== leaderId_actual)
+  const leaderId_actual = (f.users as { id: string } | null)?.id ?? null
+  const regularMembers  = rawMembers.filter(m => m?.user_id != null && m.user_id !== leaderId_actual)
 
   return (
     <div className="rounded-2xl border border-stone-100 bg-white/90 overflow-hidden shadow-sm">
@@ -202,11 +203,11 @@ function ActiveTreeCard({
 
             {/* Regular members */}
             {regularMembers.length > 0 ? (
-              regularMembers.map(m => {
-                const displayName = m.users?.display_name ?? m.user_id.slice(0, 8)
+              regularMembers.map((m, idx) => {
+                const displayName = m.users?.display_name ?? m.user_id?.slice(0, 8) ?? '—'
                 const roleLabel   = ROLE_LABEL[m.users?.role ?? ''] ?? '信徒'
                 return (
-                  <div key={m.user_id} className="flex items-center gap-2">
+                  <div key={m.user_id ?? idx} className="flex items-center gap-2">
                     <ChevronRight className="h-3 w-3 text-stone-300 shrink-0" />
                     <span className="text-xs text-stone-600">{displayName}</span>
                     <span className="text-[10px] text-stone-400">{roleLabel}</span>
