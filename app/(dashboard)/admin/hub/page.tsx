@@ -83,7 +83,7 @@ export default async function AdminHubPage() {
                          hover:bg-amber-50/60 transition-colors"
             >
               <Home className="h-3.5 w-3.5" />
-              返回大盘
+              首页
             </Link>
             <span className={[
               'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',

@@ -31,5 +31,11 @@ export async function PATCH(req: NextRequest) {
     .eq('user_id', user.id)
     .eq('is_anonymous', false)
 
+  // 同步团契成员的 layer2_label（用于团契页面显示名）
+  await db
+    .from('fellowship_members')
+    .update({ layer2_label: name })
+    .eq('user_id', user.id)
+
   return NextResponse.json({ ok: true, display_name: name })
 }

@@ -182,15 +182,6 @@ export default async function FellowshipPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white
-                         px-3 py-1.5 text-xs font-medium text-stone-500
-                         hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
-            >
-              <Home className="h-3.5 w-3.5" />
-              首页
-            </Link>
             {isLeader && (
               <Link
                 href="/fellowship/console"
@@ -202,6 +193,15 @@ export default async function FellowshipPage() {
                 预备团契
               </Link>
             )}
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white
+                         px-3 py-1.5 text-xs font-medium text-stone-500
+                         hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+            >
+              <Home className="h-3.5 w-3.5" />
+              首页
+            </Link>
           </div>
         </div>
       </header>

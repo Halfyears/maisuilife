@@ -70,7 +70,7 @@ export default async function SettingsPage() {
                        hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
           >
             <Home className="h-3.5 w-3.5" />
-            返回主大盘
+            首页
           </Link>
         </div>
       </header>
@@ -121,25 +121,48 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
 
   if (role === 'super_admin') {
     return (
-      <a href="/church/hub"
-        className="block rounded-2xl border border-red-100 bg-gradient-to-br from-red-50/80 to-orange-50/60
-                   px-6 py-5 shadow-md shadow-red-900/5 transition-all hover:border-red-200 active:scale-[0.99]">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="h-5 w-5 text-red-500" />
-            <span className="text-base font-black text-stone-900">⚡ 全局超级管理中枢</span>
-          </div>
-          <span className="text-xs text-stone-400">进入 →</span>
-        </div>
-        <div className="space-y-2">
-          {['审核与批准团契创建申请', '直接创建并指派团契组长', '编辑各小组信息与联系方式'].map(item => (
-            <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
-              <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
-              {item}
+      <div className="space-y-3">
+        {/* 系统后台 */}
+        <a href="/admin/hub"
+          className="block rounded-2xl border border-red-100 bg-gradient-to-br from-red-50/80 to-orange-50/60
+                     px-6 py-5 shadow-md shadow-red-900/5 transition-all hover:border-red-200 active:scale-[0.99]">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="h-5 w-5 text-red-500" />
+              <span className="text-base font-black text-stone-900">⚡ 系统管理后台</span>
             </div>
-          ))}
-        </div>
-      </a>
+            <span className="text-xs text-stone-400">进入 →</span>
+          </div>
+          <div className="space-y-1.5">
+            {['AI 费率与成本监控', 'AI 熔断开关控制', '系统配置与全局设置'].map(item => (
+              <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </a>
+        {/* 教会管理 */}
+        <a href="/church/hub"
+          className="block rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/80 to-purple-50/60
+                     px-6 py-5 shadow-md shadow-violet-900/5 transition-all hover:border-violet-200 active:scale-[0.99]">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <Church className="h-5 w-5 text-violet-500" />
+              <span className="text-base font-black text-stone-900">⛪ 教会管理中枢</span>
+            </div>
+            <span className="text-xs text-stone-400">进入 →</span>
+          </div>
+          <div className="space-y-1.5">
+            {['审核与批准团契申请', '团契及用户总览表', '教会数据统计'].map(item => (
+              <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shrink-0" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </a>
+      </div>
     )
   }
 
@@ -156,7 +179,7 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
           <span className="text-xs text-stone-400">进入 →</span>
         </div>
         <div className="space-y-2">
-          {['审核与批准团契创建申请', '直接创建并指派新团契组长', '编辑各小组名称、地址与联系方式'].map(item => (
+          {['审核与批准团契申请', '团契及用户总览', '教会数据统计'].map(item => (
             <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
               <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shrink-0" />
               {item}
