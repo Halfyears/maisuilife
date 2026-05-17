@@ -24,5 +24,12 @@ export async function PATCH(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: 'db_error' }, { status: 500 })
 
+  // 同步历史代祷记录的显示名（非匿名条目）
+  await db
+    .from('prayer_requests')
+    .update({ display_name: name })
+    .eq('user_id', user.id)
+    .eq('is_anonymous', false)
+
   return NextResponse.json({ ok: true, display_name: name })
 }
