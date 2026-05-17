@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
 
   // ── Gemini: atmosphere advice ──────────────────────────
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.0-flash',
     generationConfig: { temperature: 0.6, maxOutputTokens: 256 },
   })
 
