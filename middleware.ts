@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Routes requiring auth (any role)
-const AUTH_REQUIRED = ['/daily', '/fellowship', '/settings']
+const AUTH_REQUIRED = ['/daily', '/fellowship', '/settings', '/growth']
 // Routes requiring super_admin (DB check happens in layout, middleware only checks auth)
 const ADMIN_PATHS   = ['/admin']
 

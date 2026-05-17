@@ -62,17 +62,31 @@ export default async function FellowshipPage() {
 
     if (fellowship && members && members.length > 0) {
       const memberIds = (members as { user_id: string; layer2_label: string }[]).map(m => m.user_id)
-      const today = new Date().toISOString().slice(0, 10)
+      // Use UTC+8 so the date matches what /api/align stores
+      const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
 
-      const { data: alignments } = await db
-        .from('daily_alignments')
-        .select('id, user_id, status_tag, is_silent, is_visible, react_nian, react_amen, ai_summary_enc')
-        .in('user_id', memberIds)
-        .eq('date', today)
-        .eq('is_visible', true)
-        .returns<AlignmentRow[]>()
+      // Always include viewer's user_id even if they fall outside the member page limit
+      const queryIds = memberIds.includes(user.id) ? memberIds : [...memberIds, user.id]
 
-      const viewerHasSubmitted = (alignments ?? []).some(a => a.user_id === user.id)
+      const [{ data: alignments }, { data: viewerRow }] = await Promise.all([
+        db
+          .from('daily_alignments')
+          .select('id, user_id, status_tag, is_silent, is_visible, react_nian, react_amen, ai_summary_enc')
+          .in('user_id', queryIds)
+          .eq('date', today)
+          .eq('is_visible', true)
+          .returns<AlignmentRow[]>(),
+        // Separate authoritative check — not affected by member page limit
+        db
+          .from('daily_alignments')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('date', today)
+          .eq('is_visible', true)
+          .maybeSingle(),
+      ])
+
+      const viewerHasSubmitted = !!viewerRow
 
       const labelByUserId = Object.fromEntries(
         (members as { user_id: string; layer2_label: string }[]).map(m => [m.user_id, m.layer2_label])

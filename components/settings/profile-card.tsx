@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { LogIn, Wheat, Pencil, X, Check, Loader2 } from 'lucide-react'
 
 interface ProfileCardProps {
@@ -12,6 +13,7 @@ interface ProfileCardProps {
 }
 
 export function ProfileCard({ initialName, email, badge, joinedYear, fellowship }: ProfileCardProps) {
+  const router = useRouter()
   const [name,    setName]    = useState(initialName)
   const [editing, setEditing] = useState(false)
   const [draft,   setDraft]   = useState(initialName)
@@ -41,6 +43,7 @@ export function ProfileCard({ initialName, email, badge, joinedYear, fellowship 
       if (!res.ok) { setError('保存失败，请稍后再试'); return }
       setName(draft.trim())
       setEditing(false)
+      router.refresh() // refresh server components across all pages to show updated name
     })
   }
 

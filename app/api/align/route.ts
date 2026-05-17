@@ -98,9 +98,11 @@ export async function POST(req: NextRequest) {
     let clientDate: string
     if (clientTs) {
       const parsed = new Date(clientTs)
+      // Apply UTC+8 offset so Chinese users who submit between 0:00–7:59 CST
+      // get the correct local date (not yesterday's UTC date).
       clientDate = isNaN(parsed.getTime())
         ? new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
-        : clientTs.slice(0, 10)
+        : new Date(parsed.getTime() + 8 * 3_600_000).toISOString().slice(0, 10)
     } else {
       clientDate = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
     }
