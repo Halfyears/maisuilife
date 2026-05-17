@@ -65,13 +65,15 @@ export function ProfileCard({ initialName, email, badge, joinedYear, fellowship 
                          focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:outline-none"
             />
           ) : (
-            <p className="text-base font-bold text-stone-900 truncate">{name || '—'}</p>
+            <p className="text-base font-bold text-stone-900">{name || '—'}</p>
           )}
           <p className="text-xs font-medium text-stone-400 truncate mt-0.5">{email}</p>
+          {/* 徽标放在名字下方，不与名字争宽度 */}
+          <span className={`${badge.className} mt-1.5 inline-block`}>{badge.label}</span>
           {error && <p className="text-[11px] text-red-500 mt-0.5">{error}</p>}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center shrink-0">
           {editing ? (
             <>
               <button
@@ -87,7 +89,7 @@ export function ProfileCard({ initialName, email, badge, joinedYear, fellowship 
                 type="button"
                 onClick={cancelEdit}
                 className="flex items-center justify-center h-8 w-8 rounded-xl border border-stone-200
-                           text-stone-400 hover:text-stone-600 hover:border-stone-300 transition-colors"
+                           text-stone-400 hover:text-stone-600 hover:border-stone-300 transition-colors ml-1"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -104,7 +106,6 @@ export function ProfileCard({ initialName, email, badge, joinedYear, fellowship 
               编辑
             </button>
           )}
-          <span className={badge.className}>{badge.label}</span>
         </div>
       </div>
 
