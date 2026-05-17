@@ -206,7 +206,7 @@ function ActiveTreeCard({
             {regularMembers.length > 0 ? (
               regularMembers.map((m, idx) => {
                 const profile     = members.find(u => u.id === m.user_id)
-                const displayName = profile?.display_name ?? m.user_id?.slice(0, 8) ?? '—'
+                const displayName = profile?.display_name ?? '未知成员'
                 const roleLabel   = ROLE_LABEL[profile?.role ?? ''] ?? '信徒'
                 return (
                   <div key={m.user_id ?? idx} className="flex items-center gap-2">

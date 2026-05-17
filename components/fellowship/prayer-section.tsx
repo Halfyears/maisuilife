@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback, useTransition } from 'react'
-import { Heart, CheckCircle2, Plus, X, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState, useCallback, useTransition, useEffect, useRef } from 'react'
+import { Heart, CheckCircle2, Plus, X, Loader2, ChevronDown, ChevronUp, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PrayerRequestItem } from '@/app/api/prayer/route'
 
@@ -11,25 +11,24 @@ interface PrayerSectionProps {
 }
 
 export function PrayerSection({ fellowshipId, initialRequests }: PrayerSectionProps) {
-  const [requests,    setRequests]    = useState<PrayerRequestItem[]>(initialRequests)
-  const [showForm,    setShowForm]    = useState(false)
+  const [requests,     setRequests]     = useState<PrayerRequestItem[]>(initialRequests)
+  const [showForm,     setShowForm]     = useState(false)
   const [showResolved, setShowResolved] = useState(false)
 
   const active   = requests.filter(r => !r.is_resolved)
   const resolved = requests.filter(r => r.is_resolved)
 
-  const handlePray = useCallback(async (id: string) => {
-    // 乐观更新
+  const handlePrayed = useCallback((id: string) => {
     setRequests(prev => prev.map(r =>
       r.id !== id ? r : {
         ...r,
         i_committed:    true,
         i_prayed_today: true,
-        pray_count:    r.i_committed ? r.pray_count : r.pray_count + 1,
-        total_prayers: r.total_prayers + 1,
+        pray_count:     r.i_committed ? r.pray_count : r.pray_count + 1,
+        total_prayers:  r.total_prayers + 1,
       }
     ))
-    await fetch('/api/prayer/pray', {
+    fetch('/api/prayer/pray', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ request_id: id }),
@@ -52,7 +51,6 @@ export function PrayerSection({ fellowshipId, initialRequests }: PrayerSectionPr
 
   return (
     <section className="mt-6">
-      {/* ── 标题栏 ──────────────────────────────────── */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Heart className="h-4 w-4 text-amber-500" />
@@ -75,7 +73,6 @@ export function PrayerSection({ fellowshipId, initialRequests }: PrayerSectionPr
         </button>
       </div>
 
-      {/* ── 发布表单 ─────────────────────────────────── */}
       {showForm && (
         <NewPrayerForm
           fellowshipId={fellowshipId}
@@ -84,7 +81,6 @@ export function PrayerSection({ fellowshipId, initialRequests }: PrayerSectionPr
         />
       )}
 
-      {/* ── 代祷列表 ─────────────────────────────────── */}
       {active.length === 0 && !showForm ? (
         <div className="rounded-2xl border border-stone-100 bg-white/80 px-5 py-6 text-center">
           <p className="text-sm text-stone-400">还没有代祷需求</p>
@@ -94,17 +90,12 @@ export function PrayerSection({ fellowshipId, initialRequests }: PrayerSectionPr
         <ul className="flex flex-col gap-3">
           {active.map(r => (
             <li key={r.id}>
-              <PrayerCard
-                item={r}
-                onPray={handlePray}
-                onResolve={handleResolve}
-              />
+              <PrayerCard item={r} onPrayed={handlePrayed} onResolve={handleResolve} />
             </li>
           ))}
         </ul>
       )}
 
-      {/* ── 已蒙恩的需求（折叠） ──────────────────────── */}
       {resolved.length > 0 && (
         <div className="mt-4">
           <button
@@ -119,7 +110,7 @@ export function PrayerSection({ fellowshipId, initialRequests }: PrayerSectionPr
             <ul className="flex flex-col gap-3 mt-3">
               {resolved.map(r => (
                 <li key={r.id}>
-                  <PrayerCard item={r} onPray={handlePray} onResolve={handleResolve} />
+                  <PrayerCard item={r} onPrayed={handlePrayed} onResolve={handleResolve} />
                 </li>
               ))}
             </ul>
@@ -130,16 +121,50 @@ export function PrayerSection({ fellowshipId, initialRequests }: PrayerSectionPr
   )
 }
 
-// ── 单张代祷卡片 ──────────────────────────────────────────────────────
-interface PrayerCardProps {
-  item:      PrayerRequestItem
-  onPray:    (id: string) => void
-  onResolve: (id: string) => void
-}
+// ── 代祷流程：idle → composing / silent → done ──────────────────────
+type PrayMode = 'idle' | 'composing' | 'silent' | 'done'
 
-function PrayerCard({ item, onPray, onResolve }: PrayerCardProps) {
-  const [expanded, setExpanded] = useState(false)
-  const hasContent = !!item.content
+function PrayerCard({
+  item,
+  onPrayed,
+  onResolve,
+}: {
+  item:      PrayerRequestItem
+  onPrayed:  (id: string) => void
+  onResolve: (id: string) => void
+}) {
+  const [expanded,   setExpanded]   = useState(false)
+  const [prayMode,   setPrayMode]   = useState<PrayMode>('idle')
+  const [prayText,   setPrayText]   = useState('')
+  const [countdown,  setCountdown]  = useState(8)
+  const [silentDone, setSilentDone] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // 启动静默倒计时
+  useEffect(() => {
+    if (prayMode !== 'silent') return
+    setCountdown(8)
+    setSilentDone(false)
+    timerRef.current = setInterval(() => {
+      setCountdown(n => {
+        if (n <= 1) {
+          clearInterval(timerRef.current!)
+          setSilentDone(true)
+          return 0
+        }
+        return n - 1
+      })
+    }, 1000)
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [prayMode])
+
+  function completePrayer() {
+    setPrayMode('done')
+    onPrayed(item.id)
+  }
+
+  const alreadyPrayed = item.i_prayed_today || prayMode === 'done'
+  const hasContent    = !!item.content
 
   const dateLabel = (() => {
     const d = new Date(item.created_at)
@@ -155,7 +180,8 @@ function PrayerCard({ item, onPray, onResolve }: PrayerCardProps) {
           ? 'border-amber-200 bg-amber-50/30'
           : 'border-stone-100',
     )}>
-      {/* ── 顶部：名字 + 日期 + 已蒙恩标记 ─── */}
+
+      {/* ── 顶部：名字 + 日期 ──────────────────────── */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-base">{item.is_anonymous ? '🫙' : '🙏'}</span>
@@ -174,10 +200,9 @@ function PrayerCard({ item, onPray, onResolve }: PrayerCardProps) {
         )}
       </div>
 
-      {/* ── 代祷事项标题 ─────────────────────── */}
+      {/* ── 代祷事项 ───────────────────────────────── */}
       <p className="text-sm font-medium text-stone-700 leading-snug mb-1">{item.title}</p>
 
-      {/* ── 详情（可展开）───────────────────── */}
       {hasContent && (
         <>
           {expanded && (
@@ -195,63 +220,162 @@ function PrayerCard({ item, onPray, onResolve }: PrayerCardProps) {
         </>
       )}
 
-      {/* ── 代祷统计 + 按钮 ───────────────── */}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-stone-100/80">
-        <p className="text-[11px] text-stone-400">
-          {item.pray_count > 0
-            ? `已有 ${item.pray_count} 人承诺代祷 · 累计 ${item.total_prayers} 次`
-            : '还没有人代祷，成为第一个吧'}
-        </p>
+      {/* ── 代祷统计 ────────────────────────────────── */}
+      <p className="text-[11px] text-stone-400 mt-3">
+        {item.pray_count > 0
+          ? `已有 ${item.pray_count} 人承诺代祷 · 累计 ${item.total_prayers} 次`
+          : '还没有人代祷，成为第一个吧'}
+      </p>
 
-        <div className="flex items-center gap-2">
-          {/* 已蒙恩按钮（仅发布者看到，且未解决时） */}
-          {item.is_self && !item.is_resolved && (
+      {/* ── 互动区 ──────────────────────────────────── */}
+      {!item.is_resolved && (
+        <div className="mt-3 pt-3 border-t border-stone-100/80">
+
+          {/* 已代祷状态 */}
+          {alreadyPrayed && (
+            <p className="text-center text-xs text-amber-600 font-medium">✓ 今日已为TA代祷</p>
+          )}
+
+          {/* 发布者的"已蒙恩"按钮 */}
+          {item.is_self && !alreadyPrayed && (
             <button
               type="button"
               onClick={() => onResolve(item.id)}
-              className="rounded-xl border border-green-200 bg-green-50 px-3 py-1.5
-                         text-[11px] font-semibold text-green-700 hover:bg-green-100
+              className="w-full rounded-xl border border-green-200 bg-green-50 py-2
+                         text-xs font-semibold text-green-700 hover:bg-green-100
                          transition-colors active:scale-[0.98]"
             >
-              已蒙恩
+              祷告已蒙应允，标记为已蒙恩
             </button>
           )}
 
-          {/* 代祷按钮（非发布者，未解决时） */}
-          {!item.is_resolved && (
-            <button
-              type="button"
-              onClick={() => !item.i_prayed_today && onPray(item.id)}
-              disabled={item.i_prayed_today}
-              className={cn(
-                'rounded-xl border px-3 py-1.5 text-[11px] font-semibold transition-colors active:scale-[0.98]',
-                item.i_prayed_today
-                  ? 'border-amber-200 bg-amber-50 text-amber-600 cursor-default'
-                  : 'border-stone-200 bg-white text-stone-600 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700',
+          {/* 他人代祷流程 */}
+          {!item.is_self && !alreadyPrayed && (
+            <>
+              {/* ── idle: 展示两个入口按钮 ─── */}
+              {prayMode === 'idle' && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPrayMode('composing')}
+                    className="flex-1 rounded-xl border border-amber-300 bg-amber-50 py-2.5
+                               text-xs font-bold text-amber-800 hover:bg-amber-100
+                               transition-colors active:scale-[0.98]"
+                  >
+                    🙏 为TA代祷
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrayMode('silent')}
+                    className="rounded-xl border border-stone-200 bg-white px-4 py-2.5
+                               text-xs text-stone-500 hover:border-stone-300 hover:bg-stone-50
+                               transition-colors active:scale-[0.98]"
+                  >
+                    静默
+                  </button>
+                </div>
               )}
-            >
-              {item.i_prayed_today ? '✓ 今日已代祷' : '🙏 为TA代祷'}
-            </button>
+
+              {/* ── composing: 文字代祷区 ─────── */}
+              {prayMode === 'composing' && (
+                <div className="space-y-2.5">
+                  <p className="text-[11px] text-stone-500 leading-relaxed">
+                    把你此刻对TA的代祷写下来——哪怕只是一句话。
+                    <span className="text-stone-400">（这段文字只有你看得到）</span>
+                  </p>
+                  <textarea
+                    value={prayText}
+                    onChange={e => setPrayText(e.target.value)}
+                    rows={3}
+                    maxLength={300}
+                    placeholder="主啊，我为TA的……祈求你……"
+                    className="w-full rounded-xl border border-amber-200 bg-amber-50/40 px-3 py-2.5
+                               text-sm text-stone-700 placeholder:text-stone-400 resize-none
+                               focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { if (prayText.trim()) completePrayer() }}
+                      disabled={!prayText.trim()}
+                      className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600
+                                 py-2.5 text-xs font-bold text-white shadow-sm
+                                 disabled:opacity-40 transition-opacity active:scale-[0.98]"
+                    >
+                      献上代祷
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPrayMode('idle')}
+                      className="rounded-xl border border-stone-200 px-4 py-2.5
+                                 text-xs text-stone-500 hover:bg-stone-50 transition-colors"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── silent: 静默代祷空间 ──────── */}
+              {prayMode === 'silent' && (
+                <div className="flex flex-col items-center gap-4 py-3">
+                  {/* 脉冲圆圈 */}
+                  <div className="relative flex items-center justify-center">
+                    <span className="absolute h-16 w-16 rounded-full bg-amber-200/60 animate-ping" style={{ animationDuration: '2s' }} />
+                    <span className="absolute h-12 w-12 rounded-full bg-amber-200/40 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                    <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-xl">
+                      🙏
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-500 text-center leading-relaxed max-w-[180px]">
+                    请在心中为TA默祷片刻<br />
+                    <span className="text-stone-400">你的存在本身就是祝福</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={completePrayer}
+                    disabled={!silentDone}
+                    className={cn(
+                      'rounded-xl px-6 py-2.5 text-xs font-bold transition-all',
+                      silentDone
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm active:scale-[0.98]'
+                        : 'border border-stone-200 text-stone-400 cursor-default',
+                    )}
+                  >
+                    {silentDone ? '完成代祷' : `请稍候 ${countdown} 秒…`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPrayMode('idle')}
+                    className="text-[11px] text-stone-400 hover:text-stone-600 transition-colors"
+                  >
+                    返回
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
-      </div>
+      )}
     </article>
   )
 }
 
-// ── 发布表单 ────────────────────────────────────────────────────────────
-interface NewPrayerFormProps {
+// ── 发布代祷表单 ─────────────────────────────────────────────────────
+function NewPrayerForm({
+  fellowshipId,
+  onCreated,
+  onCancel,
+}: {
   fellowshipId: string
   onCreated:    (item: PrayerRequestItem) => void
   onCancel:     () => void
-}
-
-function NewPrayerForm({ fellowshipId, onCreated, onCancel }: NewPrayerFormProps) {
-  const [title,       setTitle]       = useState('')
-  const [content,     setContent]     = useState('')
-  const [isAnonymous, setIsAnonymous] = useState(false)
-  const [isPending,   startTransition] = useTransition()
-  const [error,       setError]       = useState('')
+}) {
+  const [title,        setTitle]       = useState('')
+  const [content,      setContent]     = useState('')
+  const [isAnonymous,  setIsAnonymous] = useState(false)
+  const [isPending,    startTransition] = useTransition()
+  const [error,        setError]       = useState('')
 
   const handleSubmit = () => {
     if (!title.trim()) { setError('请填写代祷事项'); return }
@@ -264,21 +388,20 @@ function NewPrayerForm({ fellowshipId, onCreated, onCancel }: NewPrayerFormProps
       })
       if (!res.ok) { setError('发送失败，请稍后再试'); return }
       const { id } = await res.json()
-      const newItem: PrayerRequestItem = {
+      onCreated({
         id,
-        is_self:      true,
-        requester:    isAnonymous ? null : '你',
-        is_anonymous: isAnonymous,
-        title:        title.trim(),
-        content:      content.trim() || null,
-        is_resolved:  false,
-        created_at:   new Date().toISOString(),
-        pray_count:   0,
+        is_self:       true,
+        requester:     isAnonymous ? null : '你',
+        is_anonymous:  isAnonymous,
+        title:         title.trim(),
+        content:       content.trim() || null,
+        is_resolved:   false,
+        created_at:    new Date().toISOString(),
+        pray_count:    0,
         total_prayers: 0,
-        i_committed:  false,
+        i_committed:   false,
         i_prayed_today: false,
-      }
-      onCreated(newItem)
+      })
     })
   }
 
@@ -315,12 +438,11 @@ function NewPrayerForm({ fellowshipId, onCreated, onCancel }: NewPrayerFormProps
         />
       </div>
 
-      {/* 匿名开关 */}
       <label className="flex items-center gap-2.5 cursor-pointer select-none">
         <div
           onClick={() => setIsAnonymous(v => !v)}
           className={cn(
-            'relative h-5 w-9 rounded-full transition-colors',
+            'relative h-5 w-9 rounded-full transition-colors cursor-pointer',
             isAnonymous ? 'bg-amber-400' : 'bg-stone-200',
           )}
         >

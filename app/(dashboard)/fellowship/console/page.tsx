@@ -43,21 +43,29 @@ export default async function ConsolePage() {
   }
 
   // ── Parallel-fetch: insight + pastoral list ────────────
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  const cookieHeader = (await import('next/headers')).cookies()
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join('; ')
+  // 用绝对 URL 调用自身 API，包裹 try-catch 防止 URL 未配置时崩溃
+  let insightData: InsightResponse       = { advice: '点击右上角刷新按钮加载建议', stats: [], generated_at: new Date().toISOString() }
+  let pastoralData: PastoralListResponse = { pending_flags: [], requests: [] }
 
-  const headers = { Cookie: cookieHeader }
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+    if (baseUrl) {
+      const cookieHeader = (await import('next/headers')).cookies()
+        .getAll()
+        .map((c) => `${c.name}=${c.value}`)
+        .join('; ')
+      const headers = { Cookie: cookieHeader }
 
-  const [insightRes, pastoralRes] = await Promise.all([
-    fetch(`${baseUrl}/api/fellowship/insight?fellowship_id=${fellowship.id}`, { headers, cache: 'no-store' }),
-    fetch(`${baseUrl}/api/pastoral/list?fellowship_id=${fellowship.id}`,     { headers, cache: 'no-store' }),
-  ])
-
-  const insightData: InsightResponse       = insightRes.ok  ? await insightRes.json()  : { advice: '加载失败，请刷新', stats: [], generated_at: new Date().toISOString() }
-  const pastoralData: PastoralListResponse = pastoralRes.ok ? await pastoralRes.json() : { pending_flags: [], requests: [] }
+      const [insightRes, pastoralRes] = await Promise.all([
+        fetch(`${baseUrl}/api/fellowship/insight?fellowship_id=${fellowship.id}`, { headers, cache: 'no-store' }),
+        fetch(`${baseUrl}/api/pastoral/list?fellowship_id=${fellowship.id}`,     { headers, cache: 'no-store' }),
+      ])
+      if (insightRes.ok)  insightData  = await insightRes.json()
+      if (pastoralRes.ok) pastoralData = await pastoralRes.json()
+    }
+  } catch {
+    // InsightCard 有刷新按钮，用户可手动重试
+  }
 
   return (
     <main className="mx-auto max-w-md px-4 pb-12 pt-8">

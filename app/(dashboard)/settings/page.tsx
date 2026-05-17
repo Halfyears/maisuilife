@@ -4,6 +4,7 @@ import { Settings, Wheat, ShieldCheck, Users, BookOpen, Key, LogIn, Church, Home
 import { createClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { SignOutButton } from '@/components/shared/sign-out-button'
+import { ProfileCard } from '@/components/settings/profile-card'
 
 export const metadata = { title: '设置中心 — 麦穗喜乐' }
 export const revalidate = 0
@@ -34,7 +35,6 @@ export default async function SettingsPage() {
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
-  // 读取自身数据：RLS 策略允许 auth.uid() = id，无需 service role
   const [profileRes, membershipRes] = await Promise.all([
     supabase
       .from('users')
@@ -59,7 +59,6 @@ export default async function SettingsPage() {
   return (
     <div className="flex min-h-dvh flex-col">
 
-      {/* ── Header ────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center gap-2.5 px-5 py-3.5">
           <Settings className="h-4 w-4 text-stone-500" />
@@ -92,37 +91,16 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        {/* ── 高奢个人名片卡 ──────────────────────────────── */}
-        <div className="rounded-2xl border border-stone-100 bg-white/90 shadow-md shadow-amber-900/5 backdrop-blur-md overflow-hidden">
-          {/* 头像 + 名字 + 徽标 */}
-          <div className="flex items-center gap-4 px-5 py-5 border-b border-stone-100">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full
-                            bg-gradient-to-br from-amber-100 to-orange-100 text-2xl font-bold text-stone-700">
-              {profile?.display_name?.slice(0, 1) ?? '?'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-base font-bold text-stone-900 truncate">
-                {profile?.display_name ?? '—'}
-              </p>
-              <p className="text-xs font-medium text-stone-400 truncate mt-0.5">{user.email}</p>
-            </div>
-            <span className={badge.className}>{badge.label}</span>
-          </div>
+        {/* ── 个人名片（可编辑）──────────────────────────── */}
+        <ProfileCard
+          initialName={profile?.display_name ?? ''}
+          email={user.email ?? ''}
+          badge={badge}
+          joinedYear={joinedYear}
+          fellowship={fellowship ?? null}
+        />
 
-          {/* 信息行 */}
-          {[
-            { Icon: LogIn,      label: 'MaisuiLife 守护年份', value: joinedYear ? `自 ${joinedYear} 年起` : '—' },
-            { Icon: Wheat,      label: '所属麦穗团契',        value: fellowship ?? '暂未加入' },
-          ].map(({ Icon, label, value }) => (
-            <div key={label} className="flex items-center gap-4 px-5 py-3.5 border-b border-stone-50 last:border-0">
-              <Icon className="h-4 w-4 text-stone-300 shrink-0" />
-              <span className="text-xs font-medium text-stone-400 w-28 shrink-0">{label}</span>
-              <span className="text-sm font-medium text-stone-700">{value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* ── 千人千面：专属管理中枢 ─────────────────────── */}
+        {/* ── 角色专属管理中枢 ─────────────────────────── */}
         <RolePanel role={role} fellowship={fellowship} />
 
         {/* ── 安全退出 ────────────────────────────────────── */}
@@ -143,7 +121,7 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
 
   if (role === 'super_admin') {
     return (
-      <a href="/admin/hub"
+      <a href="/church/hub"
         className="block rounded-2xl border border-red-100 bg-gradient-to-br from-red-50/80 to-orange-50/60
                    px-6 py-5 shadow-md shadow-red-900/5 transition-all hover:border-red-200 active:scale-[0.99]">
         <div className="flex items-center justify-between mb-4">
@@ -154,7 +132,7 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
           <span className="text-xs text-stone-400">进入 →</span>
         </div>
         <div className="space-y-2">
-          {['全站 AI 断路器控制', '全局 API 接口开关', '系统运行日志大盘'].map(item => (
+          {['审核与批准团契创建申请', '直接创建并指派团契组长', '编辑各小组信息与联系方式'].map(item => (
             <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
               <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
               {item}
@@ -178,7 +156,7 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
           <span className="text-xs text-stone-400">进入 →</span>
         </div>
         <div className="space-y-2">
-          {['审核 / 批准团契创建申请', '直接创建并指派新团契组长', '编辑小组名称、地址与联系方式'].map(item => (
+          {['审核与批准团契创建申请', '直接创建并指派新团契组长', '编辑各小组名称、地址与联系方式'].map(item => (
             <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
               <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shrink-0" />
               {item}
@@ -198,27 +176,7 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
           <span className="text-base font-black text-stone-900">👑 牧养关怀宏观控制台</span>
         </div>
         <div className="space-y-2">
-          {['发布全教会今日经文', '旗下麦穗小组活跃度大盘'].map(item => (
-            <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
-              {item}
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (role === 'church') {
-    return (
-      <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/80 to-orange-50/60
-                      px-6 py-5 shadow-md shadow-amber-900/5">
-        <div className="flex items-center gap-2.5 mb-4">
-          <Settings className="h-5 w-5 text-amber-500" />
-          <span className="text-base font-black text-stone-900">⛪ 教会管理控制台</span>
-        </div>
-        <div className="space-y-2">
-          {['发布全教会今日经文', '旗下麦穗小组活跃度大盘'].map(item => (
+          {['发布全教会今日经文', '旗下麦穗小组活跃度总览'].map(item => (
             <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
               {item}
@@ -242,7 +200,7 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
           <span className="text-xs text-stone-400">进入 →</span>
         </div>
         <div className="space-y-2">
-          {['查看 / 刷新 6 位小组邀请码', '组员名册审核管理'].map(item => (
+          {['查看并刷新小组邀请码', '组员名册与关怀看板'].map(item => (
             <div key={item} className="flex items-center gap-2 text-xs text-stone-500">
               <span className="h-1.5 w-1.5 rounded-full bg-green-400 shrink-0" />
               {item}
@@ -253,7 +211,7 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
     )
   }
 
-  // 普通 user / member
+  // 普通用户
   return (
     <div className="rounded-2xl border border-stone-100 bg-white/90 px-6 py-5
                     shadow-md shadow-amber-900/5 backdrop-blur-md">
@@ -276,5 +234,3 @@ function RolePanel({ role, fellowship }: { role: string; fellowship?: string | n
     </div>
   )
 }
-
-// [Vercel Force Rebuild Seed: 20260516164202]

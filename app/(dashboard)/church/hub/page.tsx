@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
-import { Building2 } from 'lucide-react'
+import Link from 'next/link'
+import { Building2, Home } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { ChurchHubClient } from './_components/church-hub-client'
@@ -64,7 +65,15 @@ export default async function ChurchHubPage() {
         <div className="mx-auto flex max-w-md items-center gap-2.5 px-5 py-3.5">
           <Building2 className="h-4 w-4 text-violet-500" />
           <h1 className="text-sm font-bold text-stone-900">教会管理中枢</h1>
-          <span className="ml-auto text-[11px] text-stone-400">{adminName}</span>
+          <Link
+            href="/"
+            className="ml-auto flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white
+                       px-3 py-1.5 text-xs font-medium text-stone-500
+                       hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+          >
+            <Home className="h-3.5 w-3.5" />
+            返回主大盘
+          </Link>
         </div>
       </header>
 
