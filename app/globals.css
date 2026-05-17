@@ -107,6 +107,7 @@
 
   html {
     @apply font-sans;
+    font-size: 18px; /* 老年友好：基础字号放大，全局 rem 等比缩放 */
   }
 
   body {

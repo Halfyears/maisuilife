@@ -1,9 +1,10 @@
+import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
 import { DevopsCard }      from '@/components/admin/hub/devops-card'
 import { FinanceCard }     from '@/components/admin/hub/finance-card'
 import { PastoralCard }    from '@/components/admin/hub/pastoral-card'
 import { QuickActionsCard } from '@/components/admin/hub/quick-actions-card'
-import { Wheat }           from 'lucide-react'
+import { Wheat, Home }     from 'lucide-react'
 
 export const metadata  = { title: '管理中枢 — 麦穗喜乐' }
 export const revalidate = 60
@@ -75,6 +76,15 @@ export default async function AdminHubPage() {
           <span className="hidden sm:inline text-xs text-muted-foreground">|</span>
           <span className="hidden sm:inline text-xs text-muted-foreground truncate">麦穗喜乐后台</span>
           <div className="ml-auto flex items-center gap-2 shrink-0">
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5
+                         text-xs text-muted-foreground hover:border-amber-300 hover:text-amber-700
+                         hover:bg-amber-50/60 transition-colors"
+            >
+              <Home className="h-3.5 w-3.5" />
+              返回大盘
+            </Link>
             <span className={[
               'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
               aiActive

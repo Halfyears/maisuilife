@@ -50,12 +50,13 @@ export async function POST(req: NextRequest) {
   const userId = authData.user.id
 
   // ── Insert user profile ────────────────────────────────
-  const { error: profileErr } = await db.from('users').insert({
+  // upsert 防止 signup trigger 已建行导致 unique 冲突
+  const { error: profileErr } = await db.from('users').upsert({
     id:           userId,
     display_name: name,
     role:         'member',
     settings:     { elder_mode: false },
-  })
+  }, { onConflict: 'id' })
 
   if (profileErr) {
     // Roll back: delete the auth user so they can retry
