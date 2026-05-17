@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Settings2 } from 'lucide-react'
+import { Settings2, Home } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { decrypt } from '@/lib/crypto'
 import { FellowshipView } from '@/components/fellowship/fellowship-view'
@@ -167,17 +167,28 @@ export default async function FellowshipPage() {
             </h1>
           </div>
 
-          {isLeader && (
+          <div className="flex items-center gap-2">
             <Link
-              href="/fellowship/console"
+              href="/"
               className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white
                          px-3 py-1.5 text-xs font-medium text-stone-500
                          hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
             >
-              <Settings2 className="h-3.5 w-3.5" />
-              预备团契
+              <Home className="h-3.5 w-3.5" />
+              首页
             </Link>
-          )}
+            {isLeader && (
+              <Link
+                href="/fellowship/console"
+                className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white
+                           px-3 py-1.5 text-xs font-medium text-stone-500
+                           hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                预备团契
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 

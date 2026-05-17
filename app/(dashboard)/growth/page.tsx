@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
-import { BarChart2, Sprout, BookOpen, CalendarDays } from 'lucide-react'
+import Link from 'next/link'
+import { BarChart2, Sprout, BookOpen, CalendarDays, Home } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 
@@ -127,7 +128,16 @@ export default async function GrowthPage() {
         <div className="mx-auto flex max-w-md items-center gap-2.5 px-5 py-3.5">
           <BarChart2 className="h-4 w-4 text-amber-500" />
           <h1 className="text-sm font-bold text-stone-900">灵命成长</h1>
-          <span className="ml-auto text-[11px] text-stone-400">近 90 天</span>
+          <span className="text-[11px] text-stone-400">近 90 天</span>
+          <Link
+            href="/"
+            className="ml-auto flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white
+                       px-3 py-1.5 text-xs font-medium text-stone-500
+                       hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+          >
+            <Home className="h-3.5 w-3.5" />
+            首页
+          </Link>
         </div>
       </header>
 
