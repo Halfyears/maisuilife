@@ -56,7 +56,7 @@ export default function RegisterPage() {
           // Registration succeeded but sign-in failed; redirect to login
           router.push('/login?registered=1')
         } else {
-          router.push('/daily')
+          router.push('/')
         }
         return
       }
