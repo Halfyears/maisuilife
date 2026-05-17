@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Monitor, ExternalLink } from 'lucide-react'
+import { Monitor, ExternalLink, Users } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { InsightCard } from '@/components/console/insight-card'
 import { PastoralBoard } from '@/components/console/pastoral-board'
@@ -8,42 +8,82 @@ import { SpatialToggle } from '@/components/console/spatial-toggle'
 import type { InsightResponse } from '@/app/api/fellowship/insight/route'
 import type { PastoralListResponse } from '@/app/api/pastoral/list/route'
 
-export const metadata = { title: '预备团契 — 组长后台' }
+export const metadata = { title: '团契后台' }
 export const revalidate = 0
 
-export default async function ConsolePage() {
-  // ── Auth + leader guard ────────────────────────────────
+const CONSOLE_ROLES = ['group_leader', 'church_admin', 'super_admin'] as const
+type ConsoleRole = typeof CONSOLE_ROLES[number]
+
+export default async function ConsolePage({
+  searchParams,
+}: {
+  searchParams: { id?: string }
+}) {
+  // ── Auth + role guard ──────────────────────────────────
   const supabase = createClient()
   const { data: authData } = await supabase.auth.getUser()
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profileRaw } = await supabase
     .from('users')
     .select('role, display_name')
     .eq('id', user.id)
     .single()
+  const profile = profileRaw as { role: string; display_name: string } | null
 
-  if (profile?.role !== 'group_leader') redirect('/fellowship')
+  if (!profile || !CONSOLE_ROLES.includes(profile.role as ConsoleRole)) {
+    redirect('/fellowship')
+  }
 
-  // ── Find fellowship led by this user ──────────────────
   const db = createServiceClient()
-  const { data: fellowship } = await db
-    .from('fellowships')
-    .select('id, name, meeting_mode, yt_link')
-    .eq('leader_id', user.id)
-    .single()
+  const isPrivileged = profile.role === 'church_admin' || profile.role === 'super_admin'
+
+  // ── Fellowship resolution ──────────────────────────────
+  // group_leader → own fellowship
+  // church_admin / super_admin + no ?id → show picker
+  // church_admin / super_admin + ?id   → load that fellowship
+  let fellowship: { id: string; name: string; meeting_mode: string; yt_link: string | null } | null = null
+
+  type FellowshipRow = { id: string; name: string; meeting_mode: string; yt_link: string | null }
+  type PickerRow     = { id: string; name: string; users?: { display_name: string } | null }
+
+  if (isPrivileged && searchParams.id) {
+    const { data } = await db
+      .from('fellowships')
+      .select('id, name, meeting_mode, yt_link')
+      .eq('id', searchParams.id)
+      .single()
+    fellowship = data as FellowshipRow | null
+  } else if (isPrivileged && !searchParams.id) {
+    // Show fellowship picker
+    const { data: all } = await db
+      .from('fellowships')
+      .select('id, name, users!leader_id(display_name)')
+      .order('name')
+    return <FellowshipPicker fellowships={(all ?? []) as PickerRow[]} displayName={profile.display_name} />
+  } else {
+    // group_leader: own fellowship
+    const { data } = await db
+      .from('fellowships')
+      .select('id, name, meeting_mode, yt_link')
+      .eq('leader_id', user.id)
+      .single()
+    fellowship = data as FellowshipRow | null
+  }
 
   if (!fellowship) {
     return (
       <main className="mx-auto max-w-md px-4 py-12 text-center">
-        <p className="text-muted-foreground">尚未创建团契。</p>
+        <p className="text-sm text-muted-foreground">未找到对应团契。</p>
+        <Link href="/fellowship" className="mt-4 block text-xs text-amber-600 underline underline-offset-2">
+          返回团契
+        </Link>
       </main>
     )
   }
 
   // ── Parallel-fetch: insight + pastoral list ────────────
-  // 用绝对 URL 调用自身 API，包裹 try-catch 防止 URL 未配置时崩溃
   let insightData: InsightResponse       = { advice: '点击右上角刷新按钮加载建议', stats: [], generated_at: new Date().toISOString() }
   let pastoralData: PastoralListResponse = { pending_flags: [], requests: [] }
 
@@ -67,20 +107,32 @@ export default async function ConsolePage() {
     // InsightCard 有刷新按钮，用户可手动重试
   }
 
+  const roleLabel = profile.role === 'super_admin' ? '超级管理员'
+    : profile.role === 'church_admin' ? '教会管理员'
+    : '组长'
+
   return (
     <main className="mx-auto max-w-md px-4 pb-12 pt-8">
-      {/* ── Header ─────────────────────────────── */}
+      {/* ── Header ─────────────────────────── */}
       <header className="mb-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              组长后台
+              {roleLabel}后台
             </p>
             <h1 className="font-serif text-2xl font-bold text-foreground">
-              预备团契
+              {fellowship.name}
             </h1>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {fellowship.name} · {profile.display_name}
+              {profile.display_name}
+              {isPrivileged && (
+                <Link
+                  href="/fellowship/console"
+                  className="ml-2 text-amber-600 underline underline-offset-2 hover:text-amber-700"
+                >
+                  切换团契
+                </Link>
+              )}
             </p>
           </div>
 
@@ -121,14 +173,78 @@ export default async function ConsolePage() {
         </div>
 
         {/* ── Quick links ──────────────────── */}
-        <div className="flex gap-2 text-xs">
+        <div className="flex gap-3 text-xs">
           <Link
             href="/fellowship"
             className="text-muted-foreground underline underline-offset-2 hover:text-foreground"
           >
             ← 返回团契
           </Link>
+          {isPrivileged && (
+            <Link
+              href="/fellowship/console"
+              className="text-muted-foreground underline underline-offset-2 hover:text-foreground"
+            >
+              切换团契
+            </Link>
+          )}
         </div>
+      </div>
+    </main>
+  )
+}
+
+// ── 团契选择器（church_admin / super_admin 无 ?id 时显示）─────────
+function FellowshipPicker({
+  fellowships,
+  displayName,
+}: {
+  fellowships: { id: string; name: string; users?: { display_name: string } | null }[]
+  displayName: string
+}) {
+  return (
+    <main className="mx-auto max-w-md px-4 pb-12 pt-8">
+      <header className="mb-6">
+        <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">管理后台</p>
+        <h1 className="font-serif text-2xl font-bold text-foreground">选择团契</h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">{displayName}</p>
+      </header>
+
+      {fellowships.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-12">尚未有任何团契。</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {fellowships.map((f) => (
+            <li key={f.id}>
+              <Link
+                href={`/fellowship/console?id=${f.id}`}
+                className="flex items-center justify-between rounded-2xl border border-border bg-card px-5 py-4
+                           hover:border-amber-200 hover:bg-amber-50/40 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-lg">
+                    <Users className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{f.name}</p>
+                    {f.users?.display_name && (
+                      <p className="text-xs text-muted-foreground">组长：{f.users.display_name}</p>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground group-hover:text-amber-600 transition-colors">
+                  进入 →
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-6">
+        <Link href="/fellowship" className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground">
+          ← 返回团契
+        </Link>
       </div>
     </main>
   )
