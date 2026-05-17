@@ -82,8 +82,15 @@ export async function POST(req: NextRequest) {
     rawTranscript = null
 
     // ── 4. Encrypt summary (AES-256-GCM) before any persistence ─────────
-    const encryptedBuf   = encrypt(aiResponse.summary)
-    const ai_summary_enc = '\\x' + encryptedBuf.toString('hex')
+    // Non-fatal: if ENCRYPTION_KEY is missing/invalid, skip encrypted storage
+    // and still return the AI response to the client.
+    let ai_summary_enc: string | null = null
+    try {
+      const encryptedBuf = encrypt(aiResponse.summary)
+      ai_summary_enc = '\\x' + encryptedBuf.toString('hex')
+    } catch {
+      console.error('[align] encryption unavailable — AI response will still be returned')
+    }
 
     // ── 5. Resolve client date ────────────────────────────────────────────
     // Prefer the client-provided ISO timestamp (user's actual local clock).
@@ -106,7 +113,7 @@ export async function POST(req: NextRequest) {
           user_id:        user.id,
           status_tag:     statusTag,
           theme_tags:     [],
-          ai_summary_enc,
+          ...(ai_summary_enc !== null ? { ai_summary_enc } : {}),
           is_urgent:      isUrgent,
           date:           clientDate,
           is_visible:     true,
