@@ -239,7 +239,7 @@ function PrayerCard({
                                text-sm font-bold text-amber-800 hover:bg-amber-100
                                transition-colors active:scale-[0.98]"
                   >
-                    🙏 {item.is_self ? '为自己代祷' : '为TA代祷'}
+                    🙏 {item.is_self ? '为自己代祷' : item.is_anonymous ? '为TA代祷' : `为${item.requester}代祷`}
                   </button>
                   <button
                     type="button"
@@ -248,7 +248,7 @@ function PrayerCard({
                                text-sm text-stone-500 hover:border-stone-300 hover:bg-stone-50
                                transition-colors active:scale-[0.98]"
                   >
-                    静默
+                    静默代祷
                   </button>
                 </div>
               )}
