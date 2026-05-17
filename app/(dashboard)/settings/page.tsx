@@ -30,7 +30,8 @@ const DEFAULT_BADGE = {
 
 export default async function SettingsPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: authData } = await supabase.auth.getUser()
+  const user = authData?.user ?? null
   if (!user) redirect('/login')
 
   // 读取自身数据：RLS 策略允许 auth.uid() = id，无需 service role

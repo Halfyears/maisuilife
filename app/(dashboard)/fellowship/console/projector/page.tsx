@@ -11,7 +11,8 @@ export const revalidate = 30  // re-fetch every 30s for live display
  */
 export default async function ProjectorPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: authData } = await supabase.auth.getUser()
+  const user = authData?.user ?? null
   if (!user) redirect('/login')
 
   const db = createServiceClient()

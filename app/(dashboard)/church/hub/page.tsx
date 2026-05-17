@@ -11,7 +11,8 @@ export const metadata = { title: '教会管理中枢 — 麦穗喜乐' }
 export default async function ChurchHubPage() {
   // ── Auth (anon client, same pattern as admin layouts) ─────────
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: authData } = await supabase.auth.getUser()
+  const user = authData?.user ?? null
   if (!user) redirect('/login')
 
   // ── Role check (service client, same pattern as admin layouts) ─

@@ -14,7 +14,8 @@ export const revalidate = 0
 export default async function ConsolePage() {
   // ── Auth + leader guard ────────────────────────────────
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: authData } = await supabase.auth.getUser()
+  const user = authData?.user ?? null
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

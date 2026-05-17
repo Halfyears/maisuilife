@@ -48,7 +48,8 @@ function computeStreak(dates: string[]): number {
 
 export default async function GrowthPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: authData } = await supabase.auth.getUser()
+  const user = authData?.user ?? null
   if (!user) redirect('/login')
 
   // ── Stats: from daily_alignments (full history for streak/total) ───────
