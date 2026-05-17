@@ -234,10 +234,10 @@ export default async function GrowthPage() {
                         )}
                       </div>
 
-                      {/* AI 属灵回应摘要（前120字）— 仅提交后有 */}
+                      {/* AI 属灵回应 — 仅提交后有 */}
                       {item.ai_comfort ? (
-                        <p className="text-xs text-stone-600 leading-relaxed mb-2 line-clamp-3">
-                          {item.ai_comfort.slice(0, 120)}{item.ai_comfort.length > 120 ? '…' : ''}
+                        <p className="text-xs text-stone-600 leading-relaxed mb-2">
+                          {item.ai_comfort}
                         </p>
                       ) : (
                         <p className="text-[11px] text-stone-300 italic mb-2">已在内室与祂相遇</p>

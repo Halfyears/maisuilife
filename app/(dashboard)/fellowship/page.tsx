@@ -4,8 +4,10 @@ import { Settings2 } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { decrypt } from '@/lib/crypto'
 import { FellowshipView } from '@/components/fellowship/fellowship-view'
+import { PrayerSection } from '@/components/fellowship/prayer-section'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import type { FellowshipPost, FellowshipPostsResponse } from '@/app/api/fellowship/posts/route'
+import type { PrayerRequestItem } from '@/app/api/prayer/route'
 
 export const metadata = { title: '麦穗团契 — 麦穗喜乐' }
 
@@ -111,6 +113,44 @@ export default async function FellowshipPage() {
     }
   }
 
+  // ── 4. 预取代祷需求 ──────────────────────────────────
+  let prayerRequests: PrayerRequestItem[] = []
+  if (membership) {
+    const db = createServiceClient()
+    const today = new Date().toISOString().slice(0, 10)
+
+    const { data: rows } = await db
+      .from('prayer_requests')
+      .select('id, user_id, display_name, is_anonymous, title, content, is_resolved, created_at, prayer_commitments(user_id, total_count, last_prayed)')
+      .eq('fellowship_id', membership.fellowship_id)
+      .order('is_resolved', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(30)
+
+    prayerRequests = (rows ?? []).map((r: {
+      id: string; user_id: string; display_name: string; is_anonymous: boolean;
+      title: string; content: string | null; is_resolved: boolean; created_at: string;
+      prayer_commitments: { user_id: string; total_count: number; last_prayed: string }[]
+    }) => {
+      const commitments = r.prayer_commitments ?? []
+      const mine = commitments.find(c => c.user_id === user.id)
+      return {
+        id:             r.id,
+        is_self:        r.user_id === user.id,
+        requester:      r.is_anonymous ? null : r.display_name,
+        is_anonymous:   r.is_anonymous,
+        title:          r.title,
+        content:        r.content ?? null,
+        is_resolved:    r.is_resolved,
+        created_at:     r.created_at,
+        pray_count:     commitments.length,
+        total_prayers:  commitments.reduce((s, c) => s + c.total_count, 0),
+        i_committed:    !!mine,
+        i_prayed_today: mine ? mine.last_prayed.slice(0, 10) === today : false,
+      } satisfies PrayerRequestItem
+    })
+  }
+
   const isLeader = profile?.role === 'group_leader' || postsData?.is_leader
 
   return (
@@ -160,6 +200,14 @@ export default async function FellowshipPage() {
 
         {/* ── Fellowship view ───────────────────────── */}
         {postsData && <FellowshipView data={postsData} />}
+
+        {/* ── 代祷需求 ──────────────────────────────── */}
+        {membership && (
+          <PrayerSection
+            fellowshipId={membership.fellowship_id}
+            initialRequests={prayerRequests}
+          />
+        )}
       </main>
 
       <BottomNav />
