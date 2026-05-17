@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import Link from 'next/link'
 import { Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STATUS_TAGS } from '@/lib/constants'
@@ -94,9 +95,14 @@ export function MemberCard({ post, isUnlocked, fellowshipId }: MemberCardProps) 
 
           {/* Blur overlay + lock icon */}
           {!summaryVisible && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-lg backdrop-blur-md">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 rounded-lg backdrop-blur-md">
               <Lock className="h-4 w-4 text-muted-foreground/60" />
-              <span className="text-xs text-muted-foreground/60">完成今日祷告后可见</span>
+              <Link
+                href="/daily"
+                className="text-xs font-medium text-amber-600 underline underline-offset-2 hover:text-amber-700 transition-colors"
+              >
+                前往内室记录后解锁
+              </Link>
             </div>
           )}
         </div>
