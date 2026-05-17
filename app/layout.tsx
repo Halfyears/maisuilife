@@ -19,17 +19,21 @@ export const metadata: Metadata = {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
   let elderMode = false
-  if (user) {
-    const { data } = await supabase
-      .from('users')
-      .select('settings')
-      .eq('id', user.id)
-      .single()
-    elderMode = (data?.settings as { elder_mode?: boolean })?.elder_mode ?? false
+  try {
+    const supabase = createClient()
+    const { data } = await supabase.auth.getUser()
+    const user = data?.user ?? null
+    if (user) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('settings')
+        .eq('id', user.id)
+        .maybeSingle()
+      elderMode = (profile?.settings as { elder_mode?: boolean })?.elder_mode ?? false
+    }
+  } catch {
+    // Never let layout auth errors crash the entire app
   }
 
   return (
