@@ -19,7 +19,6 @@ export type PendingFellowship = {
 
 export type FellowshipMember = {
   user_id: string
-  users: { display_name: string; role: string } | null
 }
 
 export type ActiveFellowship = {
@@ -70,7 +69,7 @@ export default async function ChurchHubPage() {
         id, name, invite_code, status, meeting_address, leader_contact,
         church_id, approved_at, created_at,
         users!leader_id(id, display_name),
-        fellowship_members(user_id, users!user_id(display_name, role))
+        fellowship_members(user_id)
       `)
       .in('status', ['approved'])
       .order('created_at', { ascending: false }),

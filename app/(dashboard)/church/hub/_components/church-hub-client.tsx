@@ -6,7 +6,7 @@ import {
   Loader2, Check, X, Plus, Edit2, ChevronDown, ChevronUp,
   Users, MapPin, Phone, Crown, ChevronRight,
 } from 'lucide-react'
-import type { PendingFellowship, ActiveFellowship, SelectableMember, FellowshipMember } from '../page'
+import type { PendingFellowship, ActiveFellowship, SelectableMember } from '../page'
 
 // ── shared post helper ────────────────────────────────────────
 async function callApi(path: string, body: Record<string, unknown>) {
@@ -125,8 +125,8 @@ function ActiveTreeCard({
   const [contact,   setContact]   = useState(f.leader_contact  ?? '')
 
   const leaderName  = (f.users as { display_name: string } | null)?.display_name ?? '—'
-  // PostgREST always returns an array for one-to-many; guard against null/undefined
-  const rawMembers  = Array.isArray(f.fellowship_members) ? (f.fellowship_members as FellowshipMember[]) : []
+  // PostgREST returns an array for one-to-many; guard against null/undefined
+  const rawMembers  = Array.isArray(f.fellowship_members) ? f.fellowship_members : []
   const memberCount = rawMembers.length
 
   // Separate leader from regular members for display
@@ -201,11 +201,13 @@ function ActiveTreeCard({
               <span className="text-[10px] text-violet-500 font-medium bg-violet-50 border border-violet-100 rounded-full px-1.5 py-0.5">组长</span>
             </div>
 
-            {/* Regular members */}
+            {/* Regular members — look up profile from the members list
+                already fetched by the server component (avoids FK join) */}
             {regularMembers.length > 0 ? (
               regularMembers.map((m, idx) => {
-                const displayName = m.users?.display_name ?? m.user_id?.slice(0, 8) ?? '—'
-                const roleLabel   = ROLE_LABEL[m.users?.role ?? ''] ?? '信徒'
+                const profile     = members.find(u => u.id === m.user_id)
+                const displayName = profile?.display_name ?? m.user_id?.slice(0, 8) ?? '—'
+                const roleLabel   = ROLE_LABEL[profile?.role ?? ''] ?? '信徒'
                 return (
                   <div key={m.user_id ?? idx} className="flex items-center gap-2">
                     <ChevronRight className="h-3 w-3 text-stone-300 shrink-0" />
