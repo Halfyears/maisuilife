@@ -50,6 +50,7 @@ export default async function FellowshipPage() {
 
   // ── 3. Fetch posts directly (no HTTP self-call) ──────
   let postsData: FellowshipPostsResponse | null = null
+  let fellowshipType = 'standard'
 
   if (membership) {
     const db = createServiceClient()
@@ -118,12 +119,12 @@ export default async function FellowshipPage() {
 
       posts.sort((a, b) => Number(b.is_self) - Number(a.is_self))
 
+      fellowshipType = (fellowship as { fellowship_type?: string }).fellowship_type ?? 'standard'
       postsData = {
         fellowship_id:   fellowshipId,
         fellowship_name: fellowship.name,
         is_unlocked:     viewerHasSubmitted,
         is_leader:       (fellowship as { leader_id: string }).leader_id === user.id,
-        fellowship_type: (fellowship as { fellowship_type?: string }).fellowship_type ?? 'standard',
         posts,
       }
     }
@@ -167,8 +168,8 @@ export default async function FellowshipPage() {
     })
   }
 
-  const isLeader           = profile?.role === 'group_leader' || postsData?.is_leader
-  const isAccountability   = postsData?.fellowship_type === 'accountability'
+  const isLeader         = profile?.role === 'group_leader' || postsData?.is_leader
+  const isAccountability = fellowshipType === 'accountability'
 
   return (
     <div className="flex min-h-dvh flex-col">
