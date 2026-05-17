@@ -6,7 +6,7 @@ import {
   Loader2, Check, X, Plus, Edit2, ChevronDown, ChevronUp,
   Users, MapPin, Phone, Crown, ChevronRight,
 } from 'lucide-react'
-import type { PendingFellowship, ActiveFellowship, SelectableMember } from '../page'
+import type { PendingFellowship, ActiveFellowship, SelectableMember } from '../_types'
 
 // ── shared post helper ────────────────────────────────────────
 async function callApi(path: string, body: Record<string, unknown>) {
