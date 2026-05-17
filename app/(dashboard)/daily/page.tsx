@@ -114,11 +114,11 @@ function AlreadySubmitted({ statusTag }: { statusTag: string }) {
         ✓
       </div>
       <div>
-        <p className="text-base font-bold text-stone-900 tracking-wide">今日已对齐</p>
+        <p className="text-base font-bold text-stone-900 tracking-wide">今日心声已放在祂面前</p>
         <p className="mt-1 text-sm font-medium text-stone-500">心境：{statusTag}</p>
       </div>
       <p className="max-w-[220px] text-xs text-stone-400 leading-relaxed">
-        今日记录已安全交托，明日内室将在 00:00 开放。
+        今日祷告已记录，明日内室将在午夜 00:00 重新开放。
       </p>
       <Link
         href="/fellowship"

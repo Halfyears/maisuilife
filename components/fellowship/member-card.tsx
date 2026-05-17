@@ -96,7 +96,7 @@ export function MemberCard({ post, isUnlocked, fellowshipId }: MemberCardProps) 
           {!summaryVisible && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-lg backdrop-blur-md">
               <Lock className="h-4 w-4 text-muted-foreground/60" />
-              <span className="text-xs text-muted-foreground/60">交账后可见</span>
+              <span className="text-xs text-muted-foreground/60">完成今日祷告后可见</span>
             </div>
           )}
         </div>
