@@ -12,11 +12,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Groq from 'groq-sdk'
 
 export const runtime = 'nodejs'
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 export interface InsightResponse {
   advice:     string   // ≤100字，给组长的氛围建议
@@ -105,12 +103,7 @@ export async function GET(req: NextRequest) {
       }).join('\n')
     : '近三天暂无状态数据'
 
-  // ── Gemini: atmosphere advice ──────────────────────────
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-lite',
-    generationConfig: { temperature: 0.6, maxOutputTokens: 256 },
-  })
-
+  // ── Groq: atmosphere advice ────────────────────────────
   const prompt = [
     '你是一位经验丰富的小组长导师。',
     '基于以下组员状态分布（仅统计数字，无个人信息），',
@@ -123,10 +116,16 @@ export async function GET(req: NextRequest) {
 
   let advice = '正在预备中，请稍候…'
   try {
-    const result = await model.generateContent(prompt)
-    advice = result.response.text().trim().slice(0, 100)
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model:      'llama-3.3-70b-versatile',
+      temperature: 0.6,
+      max_tokens:  256,
+    })
+    advice = (completion.choices[0]?.message?.content ?? '').trim().slice(0, 100)
   } catch (err) {
-    console.error('[insight] gemini error:', err instanceof Error ? err.name : err)
+    console.error('[insight] groq error:', err instanceof Error ? err.name : err)
     advice = 'AI 预备建议暂时无法生成，请稍后刷新。'
   }
 

@@ -66,7 +66,6 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       if (res.ok) {
         const data: AIResult = await res.json()
         setAiResult(data)
-        router.refresh()
       } else {
         throw new Error('api_error')
       }
