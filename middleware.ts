@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
   // ── 3. Already-logged-in → skip login/register ─────────
   if ((pathname === '/login' || pathname === '/register') && user) {
     const homeUrl = request.nextUrl.clone()
-    homeUrl.pathname = '/daily'
+    homeUrl.pathname = '/'
     return NextResponse.redirect(homeUrl)
   }
 
@@ -55,5 +55,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/health).*)'],
+  // Skip static files, images, health check, and the auth callback (it manages its own session)
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/health|api/auth/callback).*)'],
 }
