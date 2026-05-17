@@ -52,6 +52,23 @@ export default async function ChurchHubPage() {
     .eq('id', user.id)
     .single()
 
+  // Guard: service client requires SUPABASE_SERVICE_ROLE_KEY.
+  // If the env var is missing the constructor throws — catch it so the page
+  // renders an actionable error instead of crashing with a blank Application Error.
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center gap-4">
+        <Church className="h-8 w-8 text-violet-400" />
+        <p className="text-sm font-bold text-stone-900">服务器配置未完成</p>
+        <p className="text-xs text-stone-500 max-w-xs leading-relaxed">
+          请在 Vercel → Settings → Environment Variables 中添加{' '}
+          <code className="font-mono bg-stone-100 px-1 rounded">SUPABASE_SERVICE_ROLE_KEY</code>，
+          然后重新部署。
+        </p>
+      </div>
+    )
+  }
+
   // Service client bypasses RLS — required so the member sub-query can read
   // other users' display_name/role rows (RLS only allows self-reads on `users`).
   const db = createServiceClient()
