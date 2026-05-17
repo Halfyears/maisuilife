@@ -231,28 +231,15 @@ function PrayerCard({
 
       {/* ── 互动区 ──────────────────────────────────── */}
       {!item.is_resolved && (
-        <div className="mt-3 pt-3 border-t border-stone-100/80">
+        <div className="mt-3 pt-3 border-t border-stone-100/80 space-y-2.5">
 
           {/* 已代祷状态 */}
           {alreadyPrayed && (
-            <p className="text-center text-xs text-amber-600 font-medium">✓ 今日已为TA代祷</p>
+            <p className="text-center text-xs text-amber-600 font-medium">✓ 今日已为此祷告</p>
           )}
 
-          {/* 发布者：低调的"已蒙恩"入口 */}
-          {item.is_self && (
-            <p className="text-center">
-              <button
-                type="button"
-                onClick={() => onResolve(item.id)}
-                className="text-[11px] text-stone-400 hover:text-green-600 underline underline-offset-2 transition-colors"
-              >
-                祷告已蒙应允？点此标记
-              </button>
-            </p>
-          )}
-
-          {/* 他人代祷流程 */}
-          {!item.is_self && !alreadyPrayed && (
+          {/* 代祷流程 — 所有人均可，包括发布者本人 */}
+          {!alreadyPrayed && (
             <>
               {/* ── idle: 展示两个入口按钮 ─── */}
               {prayMode === 'idle' && (
@@ -264,7 +251,7 @@ function PrayerCard({
                                text-xs font-bold text-amber-800 hover:bg-amber-100
                                transition-colors active:scale-[0.98]"
                   >
-                    🙏 为TA代祷
+                    🙏 {item.is_self ? '为自己代祷' : '为TA代祷'}
                   </button>
                   <button
                     type="button"
@@ -356,6 +343,19 @@ function PrayerCard({
                 </div>
               )}
             </>
+          )}
+
+          {/* 发布者：绿色整行"已蒙恩"按钮 */}
+          {item.is_self && (
+            <button
+              type="button"
+              onClick={() => onResolve(item.id)}
+              className="w-full rounded-xl border border-green-200 bg-green-50 py-2.5
+                         text-xs font-semibold text-green-700
+                         hover:bg-green-100 transition-colors active:scale-[0.98]"
+            >
+              ✓ 祷告已蒙应允，标记为已蒙恩
+            </button>
           )}
         </div>
       )}
