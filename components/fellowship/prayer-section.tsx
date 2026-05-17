@@ -244,11 +244,11 @@ function PrayerCard({
                   <button
                     type="button"
                     onClick={() => setPrayMode('silent')}
-                    className="rounded-xl border border-stone-200 bg-white px-5 py-3.5
-                               text-sm text-stone-500 hover:border-stone-300 hover:bg-stone-50
+                    className="flex-1 rounded-xl border border-indigo-200 bg-indigo-50 py-3.5
+                               text-sm font-bold text-indigo-700 hover:bg-indigo-100
                                transition-colors active:scale-[0.98]"
                   >
-                    静默代祷
+                    🕊 静默代祷
                   </button>
                 </div>
               )}
