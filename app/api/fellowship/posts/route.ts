@@ -64,7 +64,8 @@ interface AlignmentRow {
 export async function GET(req: NextRequest) {
   // ── 0. Auth ───────────────────────────────────────────
   const supabase = createClient()
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
+  const { data: authData, error: authErr } = await supabase.auth.getUser()
+  const user = authData?.user ?? null
   if (authErr || !user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }

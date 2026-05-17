@@ -1,15 +1,27 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Settings2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { decrypt } from '@/lib/crypto'
 import { FellowshipView } from '@/components/fellowship/fellowship-view'
 import { BottomNav } from '@/components/shared/bottom-nav'
-import type { FellowshipPostsResponse } from '@/app/api/fellowship/posts/route'
+import type { FellowshipPost, FellowshipPostsResponse } from '@/app/api/fellowship/posts/route'
 
 export const metadata = { title: '麦穗团契 — 麦穗喜乐' }
 
 // Always fetch fresh (midnight purge changes visibility)
 export const revalidate = 0
+
+interface AlignmentRow {
+  id: string
+  user_id: string
+  status_tag: string
+  is_silent: boolean
+  is_visible: boolean
+  react_nian: number
+  react_amen: number
+  ai_summary_enc: string | null
+}
 
 export default async function FellowshipPage() {
   const supabase = createClient()
@@ -17,17 +29,14 @@ export default async function FellowshipPage() {
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
-  // ── 1. Fetch user profile (role + display_name) ──────
+  // ── 1. Fetch user profile ────────────────────────────
   const { data: profile } = await supabase
     .from('users')
     .select('display_name, role')
     .eq('id', user.id)
     .single()
 
-  // ── 2. Find the user's fellowship membership ─────────
-  // Avoid the fellowships(status) PostgREST join — it's fragile if the status
-  // column migration hasn't been applied. Users are only inserted into
-  // fellowship_members for approved fellowships, so no status filter needed.
+  // ── 2. Find fellowship membership ────────────────────
   const { data: membershipRow } = await supabase
     .from('fellowship_members')
     .select('fellowship_id, layer2_label')
@@ -37,28 +46,68 @@ export default async function FellowshipPage() {
 
   const membership = membershipRow ?? null
 
-  // ── 3. Fetch posts via internal API ──────────────────
-  // We call the internal route directly on the server to reuse
-  // all the data-masking logic without duplicating it.
+  // ── 3. Fetch posts directly (no HTTP self-call) ──────
   let postsData: FellowshipPostsResponse | null = null
 
   if (membership) {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-    const apiUrl  = `${baseUrl}/api/fellowship/posts?fellowship_id=${membership.fellowship_id}`
+    const db = createServiceClient()
+    const fellowshipId = membership.fellowship_id
 
-    // Pass the session cookie so the API route can authenticate
-    const cookieHeader = (await import('next/headers')).cookies()
-      .getAll()
-      .map((c) => `${c.name}=${c.value}`)
-      .join('; ')
+    const [{ data: fellowship }, { data: members }] = await Promise.all([
+      db.from('fellowships').select('name, leader_id').eq('id', fellowshipId).single(),
+      db.from('fellowship_members').select('user_id, layer2_label').eq('fellowship_id', fellowshipId).limit(12),
+    ])
 
-    const res = await fetch(apiUrl, {
-      headers: { Cookie: cookieHeader },
-      cache: 'no-store',
-    })
+    if (fellowship && members && members.length > 0) {
+      const memberIds = (members as { user_id: string; layer2_label: string }[]).map(m => m.user_id)
+      const today = new Date().toISOString().slice(0, 10)
 
-    if (res.ok) {
-      postsData = await res.json()
+      const { data: alignments } = await db
+        .from('daily_alignments')
+        .select('id, user_id, status_tag, is_silent, is_visible, react_nian, react_amen, ai_summary_enc')
+        .in('user_id', memberIds)
+        .eq('date', today)
+        .eq('is_visible', true)
+        .returns<AlignmentRow[]>()
+
+      const viewerHasSubmitted = (alignments ?? []).some(a => a.user_id === user.id)
+
+      const labelByUserId = Object.fromEntries(
+        (members as { user_id: string; layer2_label: string }[]).map(m => [m.user_id, m.layer2_label])
+      )
+
+      const posts: FellowshipPost[] = (alignments ?? []).map(row => {
+        let summary: string | null = null
+        if (viewerHasSubmitted && row.ai_summary_enc && !row.is_silent) {
+          try {
+            const hex = row.ai_summary_enc.replace(/^\\x/, '')
+            const buf = Buffer.from(hex, 'hex')
+            summary = decrypt(buf)
+          } catch {
+            summary = null
+          }
+        }
+        return {
+          alignment_id: row.id,
+          layer2_label: labelByUserId[row.user_id] ?? '同行者',
+          status_tag:   row.status_tag,
+          is_silent:    row.is_silent,
+          is_self:      row.user_id === user.id,
+          react_nian:   row.react_nian,
+          react_amen:   row.react_amen,
+          summary,
+        } satisfies FellowshipPost
+      })
+
+      posts.sort((a, b) => Number(b.is_self) - Number(a.is_self))
+
+      postsData = {
+        fellowship_id:   fellowshipId,
+        fellowship_name: fellowship.name,
+        is_unlocked:     viewerHasSubmitted,
+        is_leader:       (fellowship as { leader_id: string }).leader_id === user.id,
+        posts,
+      }
     }
   }
 
