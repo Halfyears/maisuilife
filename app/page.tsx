@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
-import { Wheat, BookOpen, Users, ChevronRight } from 'lucide-react'
+import { TimeGreeting } from '@/components/home/time-greeting'
+import { Wheat, BookOpen, ChevronRight } from 'lucide-react'
 
 export const metadata = { title: '麦穗喜乐' }
 export const revalidate = 0
@@ -14,7 +15,8 @@ function todayCN(): string {
 
 export default async function RootPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: authData } = await supabase.auth.getUser()
+  const user = authData?.user ?? null
   if (!user) redirect('/login')
 
   // 用户自身数据用 RLS 客户端读取，无需 service role
@@ -32,7 +34,7 @@ export default async function RootPage() {
     .eq('date', today)
     .maybeSingle()
 
-  const firstName = profile?.display_name?.slice(0, 4) ?? '朋友'
+  const firstName = profile?.display_name ?? '朋友'
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -53,9 +55,9 @@ export default async function RootPage() {
 
         {/* Greeting */}
         <div className="mb-8">
-          <p className="text-sm font-medium text-stone-500">早安，{firstName}</p>
+          <TimeGreeting name={firstName} />
           <h1 className="mt-1 text-2xl font-bold text-stone-900 tracking-wide">
-            {todayAlignment ? '今日已对齐 ✓' : '愿你今日平安'}
+            {todayAlignment ? '今日已祷告 ✓' : '愿你今日平安'}
           </h1>
           {todayAlignment && (
             <p className="mt-1 text-sm text-stone-400">
