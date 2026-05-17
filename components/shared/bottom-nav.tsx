@@ -2,14 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Sprout, Users, BarChart2, Settings } from 'lucide-react'
+import { Sprout, Users, Target, BarChart2, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const TABS = [
-  { href: '/daily',      Icon: Sprout,    label: '内室记录' },
-  { href: '/fellowship', Icon: Users,     label: '麦穗团契' },
-  { href: '/growth',     Icon: BarChart2, label: '灵命成长' },
-  { href: '/settings',   Icon: Settings,  label: '设置中心' },
+  { href: '/daily',          Icon: Sprout,    label: '内室记录' },
+  { href: '/fellowship',     Icon: Users,     label: '麦穗团契' },
+  { href: '/accountability', Icon: Target,    label: '同行小组' },
+  { href: '/growth',         Icon: BarChart2, label: '灵命成长' },
+  { href: '/settings',       Icon: Settings,  label: '设置中心' },
 ] as const
 
 export function BottomNav() {

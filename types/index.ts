@@ -34,29 +34,41 @@ export interface Fellowship {
   meeting_mode:    string | null
   yt_link:         string | null
   created_at:      string
-  // Accountability fields
-  fellowship_type:            'standard' | 'accountability'
-  goal_title:                 string | null
-  goal_description:           string | null
-  goal_category:              'prayer' | 'bible_reading' | 'custom' | null
-  goal_start_date:            string | null
-  goal_end_date:              string | null
-  schedule_days_of_week:      number[]
-  schedule_time:              string | null
-  schedule_timezone:          string
-  enable_auto_reminder:       boolean
-  reminder_advance_minutes:   number
+}
+
+// ── 同行小组（独立于团契体系）────────────────────────────────────
+
+export interface AccountabilityGroup {
+  id:                    string
+  name:                  string
+  goal_title:            string | null
+  goal_description:      string | null
+  goal_category:         'prayer' | 'bible_reading' | 'custom'
+  organizer_id:          string
+  invite_code:           string
+  schedule_days_of_week: number[]
+  schedule_time:         string | null
+  start_date:            string | null
+  end_date:              string | null
+  created_at:            string
+}
+
+export interface AccountabilityGroupMember {
+  group_id:     string
+  user_id:      string
+  display_name: string
+  joined_at:    string
 }
 
 export interface AccountabilityCheckin {
-  id:            string
-  fellowship_id: string
-  user_id:       string
-  checkin_date:  string
-  status:        'done' | 'missed' | 'postponed'
-  note:          string | null
-  created_at:    string
-  updated_at:    string
+  id:           string
+  group_id:     string
+  user_id:      string
+  checkin_date: string
+  status:       'done' | 'missed' | 'postponed'
+  note:         string | null
+  created_at:   string
+  updated_at:   string
 }
 
 export interface MemberProgress {
@@ -227,6 +239,18 @@ export type Database = {
         Row:           SystemConfig
         Insert:        Omit<SystemConfig, 'id'>
         Update:        Partial<SystemConfig>
+        Relationships: []
+      }
+      accountability_groups: {
+        Row:           AccountabilityGroup
+        Insert:        Omit<AccountabilityGroup, 'id' | 'created_at'>
+        Update:        Partial<AccountabilityGroup>
+        Relationships: []
+      }
+      accountability_group_members: {
+        Row:           AccountabilityGroupMember
+        Insert:        AccountabilityGroupMember
+        Update:        Partial<AccountabilityGroupMember>
         Relationships: []
       }
       accountability_checkins: {

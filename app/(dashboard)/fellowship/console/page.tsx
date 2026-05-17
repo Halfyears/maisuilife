@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Monitor, ExternalLink, Users, Target } from 'lucide-react'
+import { Monitor, ExternalLink, Users } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { InsightCard } from '@/components/console/insight-card'
 import { PastoralBoard } from '@/components/console/pastoral-board'
@@ -225,25 +225,6 @@ export default async function ConsolePage({
             ytLink={fellowship.yt_link}
           />
         </div>
-
-        {/* ── 同行打卡设置 ──────────────────── */}
-        <Link
-          href="/fellowship/console/accountability-setup"
-          className="flex items-center justify-between rounded-2xl border border-amber-100
-                     bg-gradient-to-r from-amber-50/80 to-orange-50/50 px-5 py-4
-                     hover:border-amber-200 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100">
-              <Target className="h-4.5 w-4.5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-stone-900">同行打卡设置</p>
-              <p className="text-xs text-stone-500 mt-0.5">配置目标、约定日期与打卡模式</p>
-            </div>
-          </div>
-          <span className="text-xs text-stone-400">进入 →</span>
-        </Link>
 
         {/* ── Quick links ──────────────────── */}
         <div className="flex gap-3 text-xs">

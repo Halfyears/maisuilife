@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Settings2, Home, Target } from 'lucide-react'
+import { Settings2, Home } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { decrypt } from '@/lib/crypto'
 import { FellowshipView } from '@/components/fellowship/fellowship-view'
@@ -50,14 +50,13 @@ export default async function FellowshipPage() {
 
   // ── 3. Fetch posts directly (no HTTP self-call) ──────
   let postsData: FellowshipPostsResponse | null = null
-  let fellowshipType = 'standard'
 
   if (membership) {
     const db = createServiceClient()
     const fellowshipId = membership.fellowship_id
 
     const [{ data: fellowship }, { data: members }] = await Promise.all([
-      db.from('fellowships').select('name, leader_id, fellowship_type').eq('id', fellowshipId).single(),
+      db.from('fellowships').select('name, leader_id').eq('id', fellowshipId).single(),
       db.from('fellowship_members').select('user_id, layer2_label').eq('fellowship_id', fellowshipId).limit(12),
     ])
 
@@ -119,7 +118,6 @@ export default async function FellowshipPage() {
 
       posts.sort((a, b) => Number(b.is_self) - Number(a.is_self))
 
-      fellowshipType = (fellowship as { fellowship_type?: string }).fellowship_type ?? 'standard'
       postsData = {
         fellowship_id:   fellowshipId,
         fellowship_name: fellowship.name,
@@ -168,8 +166,7 @@ export default async function FellowshipPage() {
     })
   }
 
-  const isLeader         = profile?.role === 'group_leader' || postsData?.is_leader
-  const isAccountability = fellowshipType === 'accountability'
+  const isLeader = profile?.role === 'group_leader' || postsData?.is_leader
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -186,17 +183,6 @@ export default async function FellowshipPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {isAccountability && (
-              <Link
-                href="/fellowship/accountability"
-                className="flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50
-                           px-3 py-1.5 text-xs font-medium text-amber-700
-                           hover:bg-amber-100 transition-colors"
-              >
-                <Target className="h-3.5 w-3.5" />
-                同行打卡
-              </Link>
-            )}
             {isLeader && (
               <Link
                 href="/fellowship/console"

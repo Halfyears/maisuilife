@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 type CheckinStatus = 'done' | 'missed' | 'postponed'
 
-interface CheckinButtonProps {
-  fellowshipId:  string
+interface Props {
+  groupId:       string
   today:         string
   currentStatus: CheckinStatus | null
   currentNote:   string | null
@@ -37,7 +37,7 @@ const STATUS_OPTIONS: { value: CheckinStatus; icon: string; label: string; activ
   },
 ]
 
-export function CheckinButton({ fellowshipId, today, currentStatus, currentNote }: CheckinButtonProps) {
+export function CheckinButton({ groupId, today, currentStatus, currentNote }: Props) {
   const router  = useRouter()
   const [open,   setOpen]   = useState(false)
   const [status, setStatus] = useState<CheckinStatus>(currentStatus ?? 'done')
@@ -49,15 +49,10 @@ export function CheckinButton({ fellowshipId, today, currentStatus, currentNote 
     setSaving(true)
     setError(null)
     try {
-      const res = await fetch('/api/fellowship/accountability/checkin', {
+      const res = await fetch('/api/accountability/checkin', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          fellowship_id: fellowshipId,
-          checkin_date:  today,
-          status,
-          note: note.trim() || undefined,
-        }),
+        body:    JSON.stringify({ group_id: groupId, checkin_date: today, status, note: note.trim() || undefined }),
       })
       if (!res.ok) throw new Error()
       setOpen(false)
@@ -68,10 +63,6 @@ export function CheckinButton({ fellowshipId, today, currentStatus, currentNote 
       setSaving(false)
     }
   }
-
-  const buttonLabel = currentStatus
-    ? '修改今日打卡'
-    : '完成今日打卡'
 
   return (
     <>
@@ -86,10 +77,9 @@ export function CheckinButton({ fellowshipId, today, currentStatus, currentNote 
               : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-orange-500/20 hover:opacity-90',
         ].join(' ')}
       >
-        {buttonLabel}
+        {currentStatus ? '修改今日打卡' : '完成今日打卡'}
       </button>
 
-      {/* ── Modal overlay ───────────────────────────────────── */}
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-stone-900/40 backdrop-blur-sm p-4"
@@ -99,7 +89,6 @@ export function CheckinButton({ fellowshipId, today, currentStatus, currentNote 
             <h3 className="text-base font-black text-stone-900 mb-1.5">今日打卡</h3>
             <p className="text-xs text-stone-400 mb-5">{today}</p>
 
-            {/* Status selection */}
             <div className="grid grid-cols-3 gap-2 mb-5">
               {STATUS_OPTIONS.map(opt => (
                 <button
@@ -117,7 +106,6 @@ export function CheckinButton({ fellowshipId, today, currentStatus, currentNote 
               ))}
             </div>
 
-            {/* Note input */}
             <textarea
               value={note}
               onChange={e => setNote(e.target.value)}
@@ -130,16 +118,13 @@ export function CheckinButton({ fellowshipId, today, currentStatus, currentNote 
                          resize-none mb-4"
             />
 
-            {error && (
-              <p className="text-xs text-red-600 mb-3 text-center">{error}</p>
-            )}
+            {error && <p className="text-xs text-red-600 mb-3 text-center">{error}</p>}
 
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex-1 rounded-2xl border border-stone-200 py-3 text-sm font-medium text-stone-500
-                           hover:bg-stone-50 transition-colors"
+                className="flex-1 rounded-2xl border border-stone-200 py-3 text-sm font-medium text-stone-500 hover:bg-stone-50 transition-colors"
               >
                 取消
               </button>
@@ -150,13 +135,9 @@ export function CheckinButton({ fellowshipId, today, currentStatus, currentNote 
                 className="flex-1 flex items-center justify-center gap-2 rounded-2xl
                            bg-gradient-to-r from-amber-500 to-orange-500
                            py-3 text-sm font-bold text-white
-                           shadow-md shadow-orange-500/20 hover:opacity-90
-                           disabled:opacity-60 transition-opacity"
+                           shadow-md shadow-orange-500/20 hover:opacity-90 disabled:opacity-60 transition-opacity"
               >
-                {saving
-                  ? <><Loader2 className="h-4 w-4 animate-spin" />提交中…</>
-                  : '确认打卡'
-                }
+                {saving ? <><Loader2 className="h-4 w-4 animate-spin" />提交中…</> : '确认打卡'}
               </button>
             </div>
           </div>
