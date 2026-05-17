@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Settings2, Home } from 'lucide-react'
+import { Settings2, Home, Target } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { decrypt } from '@/lib/crypto'
 import { FellowshipView } from '@/components/fellowship/fellowship-view'
@@ -56,12 +56,13 @@ export default async function FellowshipPage() {
     const fellowshipId = membership.fellowship_id
 
     const [{ data: fellowship }, { data: members }] = await Promise.all([
-      db.from('fellowships').select('name, leader_id').eq('id', fellowshipId).single(),
+      db.from('fellowships').select('name, leader_id, fellowship_type').eq('id', fellowshipId).single(),
       db.from('fellowship_members').select('user_id, layer2_label').eq('fellowship_id', fellowshipId).limit(12),
     ])
 
     if (fellowship && members && members.length > 0) {
       const memberIds = (members as { user_id: string; layer2_label: string }[]).map(m => m.user_id)
+
       // Use UTC+8 so the date matches what /api/align stores
       const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
 
@@ -122,6 +123,7 @@ export default async function FellowshipPage() {
         fellowship_name: fellowship.name,
         is_unlocked:     viewerHasSubmitted,
         is_leader:       (fellowship as { leader_id: string }).leader_id === user.id,
+        fellowship_type: (fellowship as { fellowship_type?: string }).fellowship_type ?? 'standard',
         posts,
       }
     }
@@ -165,7 +167,8 @@ export default async function FellowshipPage() {
     })
   }
 
-  const isLeader = profile?.role === 'group_leader' || postsData?.is_leader
+  const isLeader           = profile?.role === 'group_leader' || postsData?.is_leader
+  const isAccountability   = postsData?.fellowship_type === 'accountability'
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -182,6 +185,17 @@ export default async function FellowshipPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {isAccountability && (
+              <Link
+                href="/fellowship/accountability"
+                className="flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50
+                           px-3 py-1.5 text-xs font-medium text-amber-700
+                           hover:bg-amber-100 transition-colors"
+              >
+                <Target className="h-3.5 w-3.5" />
+                同行打卡
+              </Link>
+            )}
             {isLeader && (
               <Link
                 href="/fellowship/console"

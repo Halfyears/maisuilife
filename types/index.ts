@@ -34,6 +34,40 @@ export interface Fellowship {
   meeting_mode:    string | null
   yt_link:         string | null
   created_at:      string
+  // Accountability fields
+  fellowship_type:            'standard' | 'accountability'
+  goal_title:                 string | null
+  goal_description:           string | null
+  goal_category:              'prayer' | 'bible_reading' | 'custom' | null
+  goal_start_date:            string | null
+  goal_end_date:              string | null
+  schedule_days_of_week:      number[]
+  schedule_time:              string | null
+  schedule_timezone:          string
+  enable_auto_reminder:       boolean
+  reminder_advance_minutes:   number
+}
+
+export interface AccountabilityCheckin {
+  id:            string
+  fellowship_id: string
+  user_id:       string
+  checkin_date:  string
+  status:        'done' | 'missed' | 'postponed'
+  note:          string | null
+  created_at:    string
+  updated_at:    string
+}
+
+export interface MemberProgress {
+  user_id:          string
+  user_name:        string
+  completed:        number
+  total:            number
+  completion_rate:  number
+  consecutive_days: number
+  status:           'on_track' | 'missing' | 'perfect'
+  today_status:     'done' | 'missed' | 'postponed' | null
 }
 
 export interface SpiritualLog {
@@ -193,6 +227,12 @@ export type Database = {
         Row:           SystemConfig
         Insert:        Omit<SystemConfig, 'id'>
         Update:        Partial<SystemConfig>
+        Relationships: []
+      }
+      accountability_checkins: {
+        Row:           AccountabilityCheckin
+        Insert:        Omit<AccountabilityCheckin, 'id' | 'created_at' | 'updated_at'>
+        Update:        Partial<AccountabilityCheckin>
         Relationships: []
       }
       spiritual_logs: {
