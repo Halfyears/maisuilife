@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Groq from 'groq-sdk'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function GET() {
-  // Require auth
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  const { data: authData } = await supabase.auth.getUser()
+  if (!authData?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
 
-  const key = process.env.GEMINI_API_KEY
+  const key = process.env.GROQ_API_KEY
   const out: Record<string, unknown> = {
     key_set:     !!key,
     key_preview: key ? key.slice(0, 10) + '…' : null,
@@ -20,14 +19,18 @@ export async function GET() {
   if (!key) return NextResponse.json(out)
 
   try {
-    const genAI = new GoogleGenerativeAI(key)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
-    const result = await model.generateContent('用中文写一句话')
-    out.gemini_ok = true
-    out.sample    = result.response.text().slice(0, 100)
+    const groq = new Groq({ apiKey: key })
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: '用中文写一句话' }],
+      model:     'llama-3.3-70b-versatile',
+      max_tokens: 50,
+    })
+    out.groq_ok = true
+    out.model   = 'llama-3.3-70b-versatile'
+    out.sample  = completion.choices[0]?.message?.content?.slice(0, 100)
   } catch (err) {
-    out.gemini_ok    = false
-    out.gemini_error = String(err)
+    out.groq_ok    = false
+    out.groq_error = String(err)
   }
 
   return NextResponse.json(out)
