@@ -187,8 +187,10 @@ function PrayerCard({
           <span className="text-base">{item.is_anonymous ? '🫙' : '🙏'}</span>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-stone-800 truncate">
-              {item.is_anonymous ? '匿名弟兄姐妹' : item.requester}
-              {item.is_self && <span className="ml-1 text-[11px] text-amber-600 font-normal">(你)</span>}
+              {item.is_self
+                ? <span>{item.requester && item.requester !== '你' ? item.requester : ''}<span className={cn('text-amber-600 font-normal text-[11px]', item.requester && item.requester !== '你' && 'ml-1')}>（你）</span></span>
+                : item.is_anonymous ? '匿名弟兄姐妹' : item.requester
+              }
             </p>
             <p className="text-[10px] text-stone-400">{dateLabel}</p>
           </div>
@@ -236,17 +238,17 @@ function PrayerCard({
             <p className="text-center text-xs text-amber-600 font-medium">✓ 今日已为TA代祷</p>
           )}
 
-          {/* 发布者的"已蒙恩"按钮 */}
-          {item.is_self && !alreadyPrayed && (
-            <button
-              type="button"
-              onClick={() => onResolve(item.id)}
-              className="w-full rounded-xl border border-green-200 bg-green-50 py-2
-                         text-xs font-semibold text-green-700 hover:bg-green-100
-                         transition-colors active:scale-[0.98]"
-            >
-              祷告已蒙应允，标记为已蒙恩
-            </button>
+          {/* 发布者：低调的"已蒙恩"入口 */}
+          {item.is_self && (
+            <p className="text-center">
+              <button
+                type="button"
+                onClick={() => onResolve(item.id)}
+                className="text-[11px] text-stone-400 hover:text-green-600 underline underline-offset-2 transition-colors"
+              >
+                祷告已蒙应允？点此标记
+              </button>
+            </p>
           )}
 
           {/* 他人代祷流程 */}
@@ -391,7 +393,7 @@ function NewPrayerForm({
       onCreated({
         id,
         is_self:       true,
-        requester:     isAnonymous ? null : '你',
+        requester:     isAnonymous ? null : '',
         is_anonymous:  isAnonymous,
         title:         title.trim(),
         content:       content.trim() || null,
