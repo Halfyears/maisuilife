@@ -141,6 +141,27 @@ export default async function AccountabilityGroupPage({
 
       <main className="flex-1 mx-auto w-full max-w-md px-4 pt-5 pb-32 space-y-5">
 
+        {/* ── 今日打卡 ─────────────────────────────────────── */}
+        <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm shadow-amber-900/5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">今日打卡</p>
+              <p className="text-sm font-bold text-stone-900 mt-0.5">{today}</p>
+            </div>
+            {myCheckin && <StatusBadge status={myCheckin.status} />}
+          </div>
+          {myTodayScheduled ? (
+            <CheckinButton
+              groupId={groupId}
+              today={today}
+              currentStatus={myCheckin?.status ?? null}
+              currentNote={myCheckin?.note ?? null}
+            />
+          ) : (
+            <p className="text-xs text-stone-400 text-center py-2">今天不在约定打卡日 🌿</p>
+          )}
+        </div>
+
         {/* ── 目标信息 ─────────────────────────────────────── */}
         {group.goal_title && (
           <div className="rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50/80 to-orange-50/50 px-5 py-4">
@@ -185,27 +206,6 @@ export default async function AccountabilityGroupPage({
 
         {/* ── 本周进度 ─────────────────────────────────────── */}
         <WeeklyBanner rate={overallRate} done={totalDone} total={totalMax} count={memberProgress.length} />
-
-        {/* ── 今日打卡 ─────────────────────────────────────── */}
-        <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm shadow-amber-900/5">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">今日打卡</p>
-              <p className="text-sm font-bold text-stone-900 mt-0.5">{today}</p>
-            </div>
-            {myCheckin && <StatusBadge status={myCheckin.status} />}
-          </div>
-          {myTodayScheduled ? (
-            <CheckinButton
-              groupId={groupId}
-              today={today}
-              currentStatus={myCheckin?.status ?? null}
-              currentNote={myCheckin?.note ?? null}
-            />
-          ) : (
-            <p className="text-xs text-stone-400 text-center py-2">今天不在约定打卡日 🌿</p>
-          )}
-        </div>
 
         {/* ── 成员进度 ─────────────────────────────────────── */}
         <section>
