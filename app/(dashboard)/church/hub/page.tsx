@@ -73,7 +73,8 @@ export default async function ChurchHubPage() {
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
           <Church className="h-4 w-4 text-violet-500 shrink-0" />
           <div className="flex-1 min-w-0">
-            <ChurchNameEditor initialName={churchName} />
+            <p className="text-xs text-stone-400 leading-none">教会管理中枢</p>
+            {churchName && <p className="text-sm font-semibold text-stone-800 truncate mt-0.5">{churchName}</p>}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {actorRole === 'super_admin' && (
@@ -103,6 +104,12 @@ export default async function ChurchHubPage() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-5 space-y-5 pb-10">
+
+        {/* ── 教会名称 ─────────────────────────────────────────────── */}
+        <section className="rounded-2xl border border-stone-100 bg-white px-4 py-4 shadow-sm">
+          <p className="text-xs font-semibold text-stone-500 mb-3">教会名称</p>
+          <ChurchNameEditor initialName={churchName} />
+        </section>
 
         {/* ── 概览统计（带锚点链接）─────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">
@@ -198,8 +205,22 @@ export default async function ChurchHubPage() {
             </table>
           </div>
 
-          <div className="px-4 py-3 border-t border-stone-50">
+          <div className="px-4 py-3 border-t border-stone-50 space-y-3">
             <CreateFellowshipForm />
+            <div className="rounded-xl bg-amber-50 border border-amber-100 px-3 py-3 space-y-1.5">
+              <p className="text-xs font-semibold text-amber-800 mb-2">新建团契前请按以下步骤操作：</p>
+              {[
+                '确认未来组长已在本系统注册',
+                '在下方「成员管理」中将其角色改为「组长」',
+                '填写团契名称和组长注册邮箱，点击创建',
+                '系统自动生成邀请码，复制后转发给团契成员加入',
+              ].map((step, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs text-stone-600">
+                  <span className="shrink-0 flex h-4 w-4 items-center justify-center rounded-full bg-amber-200 text-amber-800 font-bold text-[10px] mt-0.5">{i + 1}</span>
+                  <span>{step}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
