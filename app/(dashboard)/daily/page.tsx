@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import { DoorOpen } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { todayLocal } from '@/lib/date'
-import { LocalDateChip } from '@/components/shared/local-date-display'
 import { DailyForm } from '@/components/daily/daily-form'
 import { PastoralNotification } from '@/components/shared/pastoral-notification'
 import { BottomNav } from '@/components/shared/bottom-nav'
@@ -20,6 +19,11 @@ export default async function DailyPage() {
 
   const today = todayLocal()
   const db    = createServiceClient()
+
+  // Format display date from cookie-based local date (YYYY-MM-DD)
+  const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+  const todayDate   = new Date(today + 'T12:00:00')
+  const displayDate = `${todayDate.getMonth() + 1}月${todayDate.getDate()}日 · 星期${WEEKDAYS[todayDate.getDay()]}`
 
   const [alignmentRes, membershipRes, pastoralRes] = await Promise.all([
     supabase
@@ -64,7 +68,7 @@ export default async function DailyPage() {
           {/* 左：标题 + 日期 */}
           <div>
             <p className="text-xl font-black leading-none text-stone-900 tracking-wide">今日内室</p>
-            <LocalDateChip className="text-[11px] text-stone-400 mt-1 block" />
+            <p className="text-[11px] text-stone-400 mt-1">{displayDate}</p>
           </div>
 
           {/* 右：退出按钮 */}
