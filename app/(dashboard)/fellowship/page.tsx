@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Settings2, Home } from 'lucide-react'
-import { CopyLinkButton } from '@/components/fellowship/copy-link-button'
+import { FellowshipInviteCard } from '@/components/fellowship/copy-link-button'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { decrypt } from '@/lib/crypto'
 import { FellowshipView } from '@/components/fellowship/fellowship-view'
@@ -189,12 +189,6 @@ export default async function FellowshipPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {fellowshipInviteCode && (
-              <CopyLinkButton
-                invitePath={`/fellowship/join?code=${fellowshipInviteCode}`}
-                label="邀请加入"
-              />
-            )}
             {isLeader && (
               <Link
                 href="/fellowship/console"
@@ -224,6 +218,13 @@ export default async function FellowshipPage() {
           <p className="mb-4 text-xs font-medium text-stone-400">
             以「{membership.layer2_label || '同行者'}」身份参与
           </p>
+        )}
+
+        {/* ── 邀请码卡片 ───────────────────────────────── */}
+        {membership && fellowshipInviteCode && (
+          <div className="mb-5">
+            <FellowshipInviteCard code={fellowshipInviteCode} />
+          </div>
         )}
 
         {/* ── Unlock status banner ──────────────────── */}
