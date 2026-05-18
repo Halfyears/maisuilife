@@ -77,6 +77,14 @@ export default async function AdminHubPage() {
           <span className="hidden sm:inline text-xs text-muted-foreground truncate">麦穗喜乐后台</span>
           <div className="ml-auto flex items-center gap-2 shrink-0">
             <Link
+              href="/settings"
+              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5
+                         text-xs text-muted-foreground hover:border-amber-300 hover:text-amber-700
+                         hover:bg-amber-50/60 transition-colors"
+            >
+              设置中心
+            </Link>
+            <Link
               href="/"
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5
                          text-xs text-muted-foreground hover:border-amber-300 hover:text-amber-700
