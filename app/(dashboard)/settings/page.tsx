@@ -6,7 +6,7 @@ import { BottomNav } from '@/components/shared/bottom-nav'
 import { SignOutButton } from '@/components/shared/sign-out-button'
 import { ProfileCard } from '@/components/settings/profile-card'
 
-export const metadata = { title: '设置中心 — 麦穗喜乐' }
+export const metadata = { title: '设置中心 — 麦穗喜乐 MaisuiJoy' }
 export const revalidate = 0
 
 const ROLE_BADGE: Record<string, { label: string; className: string }> = {
