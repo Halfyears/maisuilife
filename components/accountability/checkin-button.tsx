@@ -82,7 +82,7 @@ export function CheckinButton({ groupId, today, currentStatus, currentNote }: Pr
 
       {open && (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-stone-900/40 backdrop-blur-sm p-4 pb-6"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-900/40 backdrop-blur-sm p-4"
           onClick={e => { if (e.target === e.currentTarget) setOpen(false) }}
         >
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
