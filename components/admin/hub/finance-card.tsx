@@ -232,7 +232,104 @@ function PaymentSection({ cfg }: { cfg: SystemConfig }) {
   )
 }
 
-// ── Generic raw config ────────────────────────────────────────────────────────
+// ── Global Notice Section ────────────────────────────────────────────────────
+const NOTICE_TYPES = [
+  { value: 'info',    label: '📢 普通通知' },
+  { value: 'warning', label: '⚠️ 警告提示' },
+  { value: 'success', label: '✅ 喜讯公告' },
+]
+
+function GlobalNoticeSection({ cfg }: { cfg: SystemConfig }) {
+  const v = cfg.value
+  const [open,    setOpen]    = useState(false)
+  const [saving,  setSaving]  = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
+  const [enabled, setEnabled] = useState(Boolean(v.enabled))
+  const [text,    setText]    = useState(String(v.text ?? ''))
+  const [type,    setType]    = useState(String(v.type ?? 'info'))
+
+  async function save() {
+    setSaving(true); setError(null)
+    try { await patchConfig(cfg.key, { enabled, text: text.trim(), type }); setOpen(false) }
+    catch { setError('保存失败') }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`inline-block h-2 w-2 rounded-full ${enabled ? 'bg-green-500' : 'bg-stone-300'}`} />
+            <span className="text-sm text-stone-700">{enabled ? '已开启' : '未开启'}</span>
+          </div>
+          {enabled && text && (
+            <p className="text-xs text-stone-500 mt-1 leading-relaxed line-clamp-2">{text}</p>
+          )}
+          {!text && <p className="text-xs text-stone-400 mt-1">暂无公告内容</p>}
+        </div>
+        <button onClick={() => setOpen(o => !o)}
+          className="shrink-0 flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1
+                     text-xs text-stone-500 hover:bg-stone-100 transition-colors">
+          <Pencil className="h-3 w-3" />{open ? '收起' : '编辑'}
+        </button>
+      </div>
+      {open && (
+        <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-4 space-y-3">
+          <Row label="是否启用">
+            <div className="flex gap-2">
+              {[{ v: true, l: '开启' }, { v: false, l: '关闭' }].map(o => (
+                <button key={String(o.v)} type="button" onClick={() => setEnabled(o.v)}
+                  className={`rounded-lg border px-4 py-1.5 text-xs font-medium transition-colors
+                    ${enabled === o.v ? 'bg-amber-500 border-amber-500 text-white' : 'border-stone-200 text-stone-500 hover:bg-stone-100'}`}>
+                  {o.l}
+                </button>
+              ))}
+            </div>
+          </Row>
+          <Row label="公告内容">
+            <textarea value={text} onChange={e => setText(e.target.value)} rows={3}
+              placeholder="输入要显示给所有用户的公告…"
+              className={`${inp} resize-none`} />
+          </Row>
+          <Row label="公告类型">
+            <div className="flex flex-wrap gap-2">
+              {NOTICE_TYPES.map(t => (
+                <button key={t.value} type="button" onClick={() => setType(t.value)}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors
+                    ${type === t.value ? 'bg-amber-500 border-amber-500 text-white' : 'border-stone-200 text-stone-500 hover:bg-stone-100'}`}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </Row>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-1">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin text-stone-400" /> : (
+              <>
+                <button onClick={save}
+                  className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5
+                             text-xs font-bold text-white hover:bg-amber-600 transition-colors">
+                  <Save className="h-3 w-3" />保存
+                </button>
+                <button onClick={() => { setOpen(false); setError(null) }}
+                  className="rounded-lg border border-stone-200 p-1.5 text-stone-400 hover:bg-stone-100 transition-colors">
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Generic raw config (fallback for unknown keys) ────────────────────────────
+const CN_LABELS: Record<string, string> = {
+  cost_rates: 'AI 费率参考（每次对齐成本，USD）',
+}
+
 function RawSection({ cfg }: { cfg: SystemConfig }) {
   const [open,   setOpen]   = useState(false)
   const [raw,    setRaw]    = useState(JSON.stringify(cfg.value, null, 2))
@@ -241,18 +338,17 @@ function RawSection({ cfg }: { cfg: SystemConfig }) {
 
   async function save() {
     let parsed: Record<string, unknown>
-    try { parsed = JSON.parse(raw) } catch { setError('JSON 格式错误'); return }
+    try { parsed = JSON.parse(raw) } catch { setError('JSON 格式有误，请检查'); return }
     setSaving(true); setError(null)
     try { await patchConfig(cfg.key, parsed); setOpen(false) }
     catch { setError('保存失败') }
     finally { setSaving(false) }
   }
 
-  const LABELS: Record<string, string> = { cost_rates: 'AI 费率参考' }
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-stone-500">{LABELS[cfg.key] ?? cfg.key}</p>
+        <p className="text-xs font-semibold text-stone-500">{CN_LABELS[cfg.key] ?? cfg.key}</p>
         <button onClick={() => setOpen(o => !o)}
           className="flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1
                      text-xs text-stone-500 hover:bg-stone-100 transition-colors">
@@ -261,24 +357,23 @@ function RawSection({ cfg }: { cfg: SystemConfig }) {
       </div>
       {open && (
         <div className="space-y-2">
-          <textarea value={raw} onChange={e => setRaw(e.target.value)} rows={6}
+          <textarea value={raw} onChange={e => setRaw(e.target.value)} rows={5}
             className={`${inp} font-mono resize-none`} />
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex gap-2">
-            {saving
-              ? <Loader2 className="h-4 w-4 animate-spin text-stone-400" />
-              : <>
-                  <button onClick={save}
-                    className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5
-                               text-xs font-bold text-white hover:bg-amber-600 transition-colors">
-                    <Save className="h-3 w-3" />保存
-                  </button>
-                  <button onClick={() => setOpen(false)}
-                    className="rounded-lg border border-stone-200 p-1.5 text-stone-400 hover:bg-stone-100 transition-colors">
-                    <X className="h-3 w-3" />
-                  </button>
-                </>
-            }
+            {saving ? <Loader2 className="h-4 w-4 animate-spin text-stone-400" /> : (
+              <>
+                <button onClick={save}
+                  className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5
+                             text-xs font-bold text-white hover:bg-amber-600 transition-colors">
+                  <Save className="h-3 w-3" />保存
+                </button>
+                <button onClick={() => setOpen(false)}
+                  className="rounded-lg border border-stone-200 p-1.5 text-stone-400 hover:bg-stone-100 transition-colors">
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -299,10 +394,16 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
+// Keys with dedicated UIs elsewhere — excluded from this card
+const EXCLUDED = ['ai_circuit_breaker', 'church_name']
+
 export function FinanceCard({ configs }: { configs: SystemConfig[] }) {
   const donationCfg = configs.find(c => c.key === 'donation_settings')
   const paymentCfg  = configs.find(c => c.key === 'payment_links')
-  const otherCfgs   = configs.filter(c => !['donation_settings', 'payment_links'].includes(c.key))
+  const noticeCfg   = configs.find(c => c.key === 'global_notice')
+  const otherCfgs   = configs.filter(c =>
+    !['donation_settings', 'payment_links', 'global_notice', ...EXCLUDED].includes(c.key)
+  )
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
@@ -310,11 +411,18 @@ export function FinanceCard({ configs }: { configs: SystemConfig[] }) {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
           <DollarSign className="h-4 w-4 text-amber-600" />
         </div>
-        <h2 className="font-semibold text-foreground">奉献 & 财务</h2>
+        <h2 className="font-semibold text-foreground">奉献 & 系统配置</h2>
       </div>
 
-      {donationCfg && (
+      {noticeCfg && (
         <div>
+          <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">全局公告</p>
+          <GlobalNoticeSection cfg={noticeCfg} />
+        </div>
+      )}
+
+      {donationCfg && (
+        <div className={noticeCfg ? 'pt-2 border-t border-stone-100' : ''}>
           <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">奉献设置</p>
           <DonationSection cfg={donationCfg} />
         </div>
