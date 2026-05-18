@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { DoorOpen } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { todayLocal } from '@/lib/date'
-import { LocalDailyDate } from '@/components/shared/local-date-display'
+import { LocalDateChip } from '@/components/shared/local-date-display'
 import { DailyForm } from '@/components/daily/daily-form'
 import { PastoralNotification } from '@/components/shared/pastoral-notification'
 import { BottomNav } from '@/components/shared/bottom-nav'
@@ -61,8 +61,11 @@ export default async function DailyPage() {
       {/* ── Sticky header ──────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
-          {/* 左：日期（读设备本地时间） */}
-          <LocalDailyDate />
+          {/* 左：标题 + 日期 */}
+          <div>
+            <p className="text-xl font-black leading-none text-stone-900 tracking-wide">今日内室</p>
+            <LocalDateChip className="text-[11px] text-stone-400 mt-1 block" />
+          </div>
 
           {/* 右：退出按钮 */}
           <Link

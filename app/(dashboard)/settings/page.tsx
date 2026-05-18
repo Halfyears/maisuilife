@@ -87,7 +87,7 @@ export default async function SettingsPage() {
             <p className="text-sm font-black tracking-wide bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
               麦穗喜乐
             </p>
-            <p className="text-xs font-medium text-stone-500">MaisuiLife · 属灵陪伴，同行成长</p>
+            <p className="text-xs font-medium text-stone-500">MaisuiJoy · 平安喜乐</p>
           </div>
         </div>
 
@@ -107,7 +107,7 @@ export default async function SettingsPage() {
         <SignOutButton />
 
         <p className="text-center text-[11px] text-stone-300 pb-2">
-          麦穗喜乐 · MaisuiLife · 属灵陪伴，同行成长
+          麦穗喜乐 · MaisuiJoy · 平安喜乐
         </p>
       </main>
 
