@@ -19,7 +19,7 @@ export default function AppleIcon() {
         }}
       >
         {/* Wheat SVG — scaled for 180px */}
-        <svg width="80" height="80" viewBox="0 0 220 220" style={{ marginBottom: '2px' }}>
+        <svg width="72" height="72" viewBox="0 0 220 220" style={{ marginBottom: '4px' }}>
           <line x1="110" y1="200" x2="110" y2="40" stroke="#FEF3C7" strokeWidth="7" strokeLinecap="round" />
           <ellipse cx="110" cy="44" rx="14" ry="22" fill="#FEF3C7" opacity="0.95" />
           <ellipse cx="87"  cy="72"  rx="13" ry="20" fill="#FEF3C7" opacity="0.92" transform="rotate(-28 87 72)"  />
@@ -40,9 +40,10 @@ export default function AppleIcon() {
         <div
           style={{
             color:         '#FEF3C7',
-            fontSize:      '32px',
+            fontSize:      '48px',
             fontWeight:    '900',
-            letterSpacing: '0.04em',
+            letterSpacing: '0.03em',
+            lineHeight:    '1',
           }}
         >
           麦穗

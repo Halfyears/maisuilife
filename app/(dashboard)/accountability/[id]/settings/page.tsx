@@ -213,19 +213,17 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
               className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3">
             <div>
               <label className="text-xs font-medium text-stone-600 block mb-1.5">开始日期</label>
               <input type="date" value={start} onChange={e => setStart(e.target.value)}
-                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent" />
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent" />
             </div>
             <div>
-              <label className="text-xs font-medium text-stone-600 block mb-1.5">
-                结束日期
-                <span className="ml-1 font-normal text-stone-400">（留空=不设截止）</span>
-              </label>
+              <label className="text-xs font-medium text-stone-600 block mb-1.5">结束日期</label>
               <input type="date" value={end} onChange={e => setEnd(e.target.value)}
-                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent" />
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent" />
+              <p className="mt-1 text-[11px] text-stone-400">留空表示不设截止日期</p>
             </div>
           </div>
         </div>

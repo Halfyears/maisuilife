@@ -240,16 +240,9 @@ function InviteCodeCard({ code, isOrganizer, groupId, hasSchedule }: {
 }) {
   return (
     <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm">
-      <p className="text-xs text-stone-400 mb-1.5">{isOrganizer ? '分享给想同行的人' : '小组邀请码'}</p>
-      <div className="flex items-center gap-3">
-        <p className="text-2xl font-black tracking-[0.25em] text-stone-900 flex-1">{code}</p>
-        <div className="flex items-center gap-2 shrink-0">
-          <CopyCodeButton code={code} />
-          <CopyLinkButton code={code} />
-        </div>
-      </div>
-      <div className="flex items-center justify-between mt-2.5">
-        <p className="text-[11px] text-stone-400">点击「复制链接」，对方打开后可一键加入</p>
+      {/* 标题行 */}
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-stone-400">{isOrganizer ? '分享给想同行的人' : '小组邀请码'}</p>
         {hasSchedule && (
           <a
             href={`/api/accountability/calendar?id=${groupId}`}
@@ -260,6 +253,13 @@ function InviteCodeCard({ code, isOrganizer, groupId, hasSchedule }: {
             添加到日历
           </a>
         )}
+      </div>
+      {/* 邀请码 */}
+      <p className="text-3xl font-black tracking-[0.3em] text-stone-900 mb-3">{code}</p>
+      {/* 按钮行 */}
+      <div className="flex gap-2">
+        <CopyCodeButton code={code} />
+        <CopyLinkButton code={code} />
       </div>
     </div>
   )

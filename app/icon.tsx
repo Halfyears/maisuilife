@@ -21,10 +21,10 @@ export default function Icon() {
       >
         {/* Wheat SVG */}
         <svg
-          width="220"
-          height="220"
+          width="200"
+          height="200"
           viewBox="0 0 220 220"
-          style={{ marginBottom: '8px' }}
+          style={{ marginBottom: '12px' }}
         >
           {/* Central stem */}
           <line x1="110" y1="200" x2="110" y2="40" stroke="#FEF3C7" strokeWidth="7" strokeLinecap="round" />
@@ -59,11 +59,11 @@ export default function Icon() {
         <div
           style={{
             color:        '#FEF3C7',
-            fontSize:     '88px',
+            fontSize:     '128px',
             fontWeight:   '900',
-            letterSpacing: '0.05em',
+            letterSpacing: '0.04em',
             lineHeight:   '1',
-            textShadow:   '0 2px 8px rgba(0,0,0,0.15)',
+            textShadow:   '0 3px 10px rgba(0,0,0,0.2)',
           }}
         >
           麦穗
