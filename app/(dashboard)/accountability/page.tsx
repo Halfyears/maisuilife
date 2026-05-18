@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Target, Plus, LogIn } from 'lucide-react'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { todayCSTString, getWeekStartCST, getScheduledDates } from '@/lib/accountability'
 import type { AccountabilityGroup, AccountabilityCheckin } from '@/types'
@@ -15,7 +15,7 @@ export default async function AccountabilityIndexPage() {
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
-  const db = createServiceClient()
+  const db = createAdminClient()
   const today     = todayCSTString()
   const weekStart = getWeekStartCST()
 

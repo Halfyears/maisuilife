@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CalendarCheck, CalendarPlus, FileText, Settings } from 'lucide-react'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { CheckinButton } from '@/components/accountability/checkin-button'
 import { CopyCodeButton, CopyLinkButton } from '@/components/accountability/copy-code-button'
@@ -24,7 +24,7 @@ export default async function AccountabilityGroupPage({
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
-  const db = createServiceClient()
+  const db = createAdminClient()
   const groupId = params.id
 
   // Verify membership

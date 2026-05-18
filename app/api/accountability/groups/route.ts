@@ -96,6 +96,12 @@ export async function POST(req: NextRequest) {
 
   if (memberErr) {
     console.error('[accountability/groups] member insert error:', memberErr.message)
+    // Roll back: delete the just-created group so the user can retry cleanly
+    await db.from('accountability_groups').delete().eq('id', group.id)
+    return NextResponse.json({
+      error:   'member_insert_failed',
+      message: `成员添加失败（${memberErr.message}），请重试`,
+    }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, group: groupData }, { status: 201 })

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Award, Target, TrendingUp } from 'lucide-react'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { todayCSTString, DAY_LABEL, consecutiveDays } from '@/lib/accountability'
 import type { AccountabilityGroup, AccountabilityCheckin } from '@/types'
 
@@ -13,7 +13,7 @@ export default async function AccountabilityReportPage({ params }: { params: { i
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
-  const db = createServiceClient()
+  const db = createAdminClient()
   const groupId = params.id
 
   const { data: memberRow } = await db
