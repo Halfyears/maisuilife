@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Noto_Serif_SC } from 'next/font/google'
 import { createClient } from '@/lib/supabase/server'
 import { ElderModeWrapper } from '@/components/elder-mode-wrapper'
+import { ClientDateSync } from '@/components/shared/client-date-sync'
 import './globals.css'
 
 // 1. 移除了不可用的 Geist 字体
@@ -59,6 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         className="font-sans antialiased"
         style={{ backgroundColor: '#FBFBF9', color: '#1C1917' }}
       >
+        <ClientDateSync />
         <ElderModeWrapper elderMode={elderMode}>
           {children}
         </ElderModeWrapper>

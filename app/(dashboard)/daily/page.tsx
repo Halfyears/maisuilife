@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { DoorOpen } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { todayLocal } from '@/lib/date'
+import { LocalDailyDate } from '@/components/shared/local-date-display'
 import { DailyForm } from '@/components/daily/daily-form'
 import { PastoralNotification } from '@/components/shared/pastoral-notification'
 import { BottomNav } from '@/components/shared/bottom-nav'
@@ -9,16 +11,6 @@ import { BottomNav } from '@/components/shared/bottom-nav'
 export const metadata = { title: '今日内室 — 麦穗喜乐' }
 export const revalidate = 0
 
-// UTC+8 当地日期
-function todayCN(): string {
-  return new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
-}
-
-function todayDisplay(): { month: number; day: number; weekday: string } {
-  const d = new Date(Date.now() + 8 * 3_600_000)
-  const days = ['日', '一', '二', '三', '四', '五', '六']
-  return { month: d.getUTCMonth() + 1, day: d.getUTCDate(), weekday: days[d.getUTCDay()] }
-}
 
 export default async function DailyPage() {
   const supabase = createClient()
@@ -26,9 +18,8 @@ export default async function DailyPage() {
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
-  const today   = todayCN()
-  const dateStr = todayDisplay()
-  const db      = createServiceClient()
+  const today = todayLocal()
+  const db    = createServiceClient()
 
   const [alignmentRes, membershipRes, pastoralRes] = await Promise.all([
     supabase
@@ -70,15 +61,8 @@ export default async function DailyPage() {
       {/* ── Sticky header ──────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
-          {/* 左：日期 */}
-          <div>
-            <p className="text-lg font-black leading-none text-stone-900">
-              {dateStr.month}月{dateStr.day}日
-            </p>
-            <p className="text-[11px] text-stone-400 mt-0.5 tracking-wide">
-              星期{dateStr.weekday} · 今日内室
-            </p>
-          </div>
+          {/* 左：日期（读设备本地时间） */}
+          <LocalDailyDate />
 
           {/* 右：退出按钮 */}
           <Link

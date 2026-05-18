@@ -1,17 +1,14 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { todayLocal } from '@/lib/date'
+import { LocalDateChip } from '@/components/shared/local-date-display'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { TimeGreeting } from '@/components/home/time-greeting'
 import { Wheat, BookOpen, ChevronRight } from 'lucide-react'
 
 export const metadata = { title: '首页' }
 export const revalidate = 0
-
-// UTC+8 当地日期，避免服务器在 UTC 时区时日期错位
-function todayCN(): string {
-  return new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
-}
 
 export default async function RootPage() {
   const supabase = createClient()
@@ -26,7 +23,7 @@ export default async function RootPage() {
     .eq('id', user.id)
     .single()
 
-  const today = todayCN()
+  const today = todayLocal()
   const { data: todayAlignment } = await supabase
     .from('daily_alignments')
     .select('status_tag')
@@ -46,7 +43,7 @@ export default async function RootPage() {
           <span className="font-serif text-base font-black tracking-wide bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
             麦穗喜乐
           </span>
-          <span className="ml-auto text-xs text-stone-400">{formatDate(new Date(Date.now() + 8 * 3_600_000))}</span>
+          <LocalDateChip className="ml-auto text-xs text-stone-400" />
         </div>
       </header>
 
@@ -161,7 +158,3 @@ export default async function RootPage() {
   )
 }
 
-function formatDate(d: Date): string {
-  const days = ['日', '一', '二', '三', '四', '五', '六']
-  return `${d.getMonth() + 1}月${d.getDate()}日 · 星期${days[d.getDay()]}`
-}
