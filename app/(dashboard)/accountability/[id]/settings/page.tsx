@@ -10,20 +10,22 @@ const DAY_OPTIONS = [
   { value: 4, label: '周四' }, { value: 5, label: '周五' }, { value: 6, label: '周六' },
   { value: 7, label: '周日' },
 ]
-const CATEGORY_OPTIONS = [
-  { value: 'prayer',        label: '🙏 祷告'   },
-  { value: 'bible_reading', label: '📖 读经'   },
-  { value: 'custom',        label: '✨ 自定义' },
+const PRESET_CATEGORIES = [
+  { value: 'prayer',        label: '🙏 祷告' },
+  { value: 'bible_reading', label: '📖 读经' },
 ]
+const PRESET_VALUES = new Set(['prayer', 'bible_reading'])
 
 export default function AccountabilitySettingsPage({ params }: { params: { id: string } }) {
   const router  = useRouter()
   const groupId = params.id
 
-  const [name,  setName]  = useState('')
-  const [goal,  setGoal]  = useState('')
-  const [desc,  setDesc]  = useState('')
-  const [cat,   setCat]   = useState('custom')
+  const [name,       setName]       = useState('')
+  const [goal,       setGoal]       = useState('')
+  const [desc,       setDesc]       = useState('')
+  const [cat,        setCat]        = useState('custom')
+  const [customCat,  setCustomCat]  = useState('')
+  const [editCustom, setEditCustom] = useState(false)
   const [days,  setDays]  = useState<number[]>([])
   const [time,  setTime]  = useState('')
   const [start, setStart] = useState('')
@@ -42,7 +44,14 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
           setName(g.name ?? '')
           setGoal(g.goal_title ?? '')
           setDesc(g.goal_description ?? '')
-          setCat(g.goal_category ?? 'custom')
+          // If saved value is a preset, use it; otherwise it's a custom label
+          const savedCat = g.goal_category ?? 'custom'
+          if (PRESET_VALUES.has(savedCat)) {
+            setCat(savedCat)
+          } else {
+            setCat('custom')
+            setCustomCat(savedCat === 'custom' ? '' : savedCat)
+          }
           setDays(Array.isArray(g.schedule_days_of_week) ? g.schedule_days_of_week : [])
           setTime(g.schedule_time ?? '')
           setStart(g.start_date ?? '')
@@ -61,6 +70,9 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
     setSaving(true)
     setSaved(false)
     setError(null)
+    const finalCat = cat === 'custom'
+      ? (customCat.trim() || '自定义')
+      : cat
     try {
       const res = await fetch('/api/accountability/settings', {
         method:  'PATCH',
@@ -70,7 +82,7 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
           name:                  name.trim(),
           goal_title:            goal.trim() || null,
           goal_description:      desc.trim() || null,
-          goal_category:         cat,
+          goal_category:         finalCat,
           schedule_days_of_week: days,
           schedule_time:         time  || null,
           start_date:            start || null,
@@ -139,16 +151,41 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
 
           <div>
             <label className="text-xs font-medium text-stone-600 block mb-2">目标类型</label>
-            <div className="flex gap-2 flex-wrap">
-              {CATEGORY_OPTIONS.map(opt => (
-                <button key={opt.value} type="button" onClick={() => setCat(opt.value)}
+            <div className="flex gap-2 flex-wrap items-center">
+              {PRESET_CATEGORIES.map(opt => (
+                <button key={opt.value} type="button" onClick={() => { setCat(opt.value); setEditCustom(false) }}
                   className={['rounded-xl border px-3 py-1.5 text-xs font-medium transition-all',
                     cat === opt.value ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-stone-200 text-stone-500 hover:border-amber-200',
                   ].join(' ')}>
                   {opt.label}
                 </button>
               ))}
+              <button type="button" onClick={() => { setCat('custom'); setEditCustom(true) }}
+                className={['rounded-xl border px-3 py-1.5 text-xs font-medium transition-all',
+                  cat === 'custom' ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-stone-200 text-stone-500 hover:border-amber-200',
+                ].join(' ')}>
+                {cat === 'custom' && customCat.trim() ? `✨ ${customCat.trim()}` : '✨ 自定义'}
+              </button>
             </div>
+            {cat === 'custom' && editCustom && (
+              <div className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  value={customCat}
+                  onChange={e => setCustomCat(e.target.value.slice(0, 20))}
+                  placeholder="输入自定义类型名称…"
+                  maxLength={20}
+                  autoFocus
+                  className="flex-1 rounded-xl border border-amber-300 bg-amber-50/50 px-3 py-2
+                             text-xs text-stone-800 placeholder-stone-300
+                             focus:outline-none focus:ring-2 focus:ring-amber-300"
+                />
+                <button type="button" onClick={() => setEditCustom(false)}
+                  className="rounded-xl bg-amber-500 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600 transition-colors">
+                  确定
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -183,7 +220,10 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
                 className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent" />
             </div>
             <div>
-              <label className="text-xs font-medium text-stone-600 block mb-1.5">结束日期</label>
+              <label className="text-xs font-medium text-stone-600 block mb-1.5">
+                结束日期
+                <span className="ml-1 font-normal text-stone-400">（留空=不设截止）</span>
+              </label>
               <input type="date" value={end} onChange={e => setEnd(e.target.value)}
                 className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent" />
             </div>

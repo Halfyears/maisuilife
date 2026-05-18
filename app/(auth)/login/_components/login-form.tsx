@@ -220,7 +220,7 @@ export function LoginForm() {
           <Wheat className="h-6 w-6 text-amber-500" />
         </div>
         <h1 className="font-serif text-2xl font-bold text-stone-900 tracking-wide">麦穗喜乐</h1>
-        <p className="text-sm font-medium text-stone-500">属灵陪伴，同行成长</p>
+        <p className="text-sm font-medium text-stone-500">麦穗喜乐 · 平安喜乐</p>
       </div>
 
       {/* ── OAuth buttons ──────────────────────────── */}

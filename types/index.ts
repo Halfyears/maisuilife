@@ -43,7 +43,7 @@ export interface AccountabilityGroup {
   name:                  string
   goal_title:            string | null
   goal_description:      string | null
-  goal_category:         'prayer' | 'bible_reading' | 'custom'
+  goal_category:         string
   organizer_id:          string
   invite_code:           string
   schedule_days_of_week: number[]

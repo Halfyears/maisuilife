@@ -5,7 +5,7 @@ import { BottomNav } from '@/components/shared/bottom-nav'
 import { TimeGreeting } from '@/components/home/time-greeting'
 import { Wheat, BookOpen, ChevronRight } from 'lucide-react'
 
-export const metadata = { title: '麦穗喜乐' }
+export const metadata = { title: '首页' }
 export const revalidate = 0
 
 // UTC+8 当地日期，避免服务器在 UTC 时区时日期错位

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Settings2, Home } from 'lucide-react'
+import { CopyLinkButton } from '@/components/fellowship/copy-link-button'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { decrypt } from '@/lib/crypto'
 import { FellowshipView } from '@/components/fellowship/fellowship-view'
@@ -50,15 +51,20 @@ export default async function FellowshipPage() {
 
   // ── 3. Fetch posts directly (no HTTP self-call) ──────
   let postsData: FellowshipPostsResponse | null = null
+  let fellowshipInviteCode: string | null = null
 
   if (membership) {
     const db = createServiceClient()
     const fellowshipId = membership.fellowship_id
 
     const [{ data: fellowship }, { data: members }] = await Promise.all([
-      db.from('fellowships').select('name, leader_id').eq('id', fellowshipId).single(),
+      db.from('fellowships').select('name, leader_id, invite_code').eq('id', fellowshipId).single(),
       db.from('fellowship_members').select('user_id, layer2_label').eq('fellowship_id', fellowshipId).limit(12),
     ])
+
+    if (fellowship) {
+      fellowshipInviteCode = (fellowship as { invite_code: string }).invite_code ?? null
+    }
 
     if (fellowship && members && members.length > 0) {
       const memberIds = (members as { user_id: string; layer2_label: string }[]).map(m => m.user_id)
@@ -183,6 +189,12 @@ export default async function FellowshipPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {fellowshipInviteCode && (
+              <CopyLinkButton
+                invitePath={`/fellowship/join?code=${fellowshipInviteCode}`}
+                label="邀请加入"
+              />
+            )}
             {isLeader && (
               <Link
                 href="/fellowship/console"

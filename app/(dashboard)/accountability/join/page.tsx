@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Target } from 'lucide-react'
+import { Suspense } from 'react'
 
 const ERROR_MAP: Record<string, string> = {
   code_required:  '请输入邀请码',
@@ -12,17 +13,19 @@ const ERROR_MAP: Record<string, string> = {
   unauthorized:   '请先登录',
 }
 
-export default function JoinAccountabilityPage() {
-  const router = useRouter()
-  const [code,    setCode]    = useState('')
+function JoinForm() {
+  const router      = useRouter()
+  const searchParams = useSearchParams()
+  const presetCode  = (searchParams.get('code') ?? '').toUpperCase().slice(0, 6)
+
+  const [code,    setCode]    = useState(presetCode)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const autoSubmitted = useRef(false)
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    const trimmed = code.trim().toUpperCase()
+  async function submit(codeToSubmit?: string) {
+    const trimmed = (codeToSubmit ?? code).trim().toUpperCase()
     if (trimmed.length !== 6) { setError('请输入 6 位邀请码'); return }
     setLoading(true)
     setError(null)
@@ -45,6 +48,15 @@ export default function JoinAccountabilityPage() {
       setLoading(false)
     }
   }
+
+  // Auto-submit when arriving via invite link with a full 6-char code
+  useEffect(() => {
+    if (presetCode.length === 6 && !autoSubmitted.current) {
+      autoSubmitted.current = true
+      submit(presetCode)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="flex min-h-dvh flex-col" style={{ backgroundColor: '#FBFBF9' }}>
@@ -71,15 +83,19 @@ export default function JoinAccountabilityPage() {
             <p className="text-base font-bold text-stone-900">成功加入「{success}」</p>
             <p className="text-sm text-stone-500">正在跳转…</p>
           </div>
+        ) : loading && presetCode.length === 6 ? (
+          <div className="flex flex-col items-center gap-4 py-8 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+            <p className="text-sm text-stone-500">正在加入小组…</p>
+          </div>
         ) : (
-          <form onSubmit={submit} className="space-y-6">
+          <form onSubmit={e => { e.preventDefault(); submit() }} className="space-y-6">
             <div className="text-center">
               <p className="text-base font-bold text-stone-900 mb-1">输入 6 位邀请码</p>
               <p className="text-xs text-stone-500">向小组召集人获取邀请码</p>
             </div>
 
             <input
-              ref={inputRef}
               type="text"
               value={code}
               onChange={e => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
@@ -90,7 +106,7 @@ export default function JoinAccountabilityPage() {
                          text-stone-900 placeholder-stone-200
                          focus:outline-none focus:border-amber-400
                          transition-colors"
-              autoFocus
+              autoFocus={!presetCode}
               autoCapitalize="characters"
               autoComplete="off"
             />
@@ -112,5 +128,17 @@ export default function JoinAccountabilityPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function JoinAccountabilityPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-dvh items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+      </div>
+    }>
+      <JoinForm />
+    </Suspense>
   )
 }

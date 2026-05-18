@@ -83,6 +83,16 @@ export function buildMemberProgress(
 
 export const DAY_LABEL = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日']
 
+const PRESET_CATEGORY_LABEL: Record<string, string> = {
+  prayer:        '🙏 祷告',
+  bible_reading: '📖 读经',
+}
+
+export function goalCategoryLabel(cat: string): string {
+  return PRESET_CATEGORY_LABEL[cat] ?? `✨ ${cat}`
+}
+
+// Kept for backward compat
 export const GOAL_CATEGORY_LABEL: Record<string, string> = {
   prayer:        '🙏 祷告',
   bible_reading: '📖 读经',

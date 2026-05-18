@@ -1,13 +1,14 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CalendarCheck, Copy, Settings } from 'lucide-react'
+import { ArrowLeft, CalendarCheck, CalendarPlus, FileText, Settings } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { CheckinButton } from '@/components/accountability/checkin-button'
+import { CopyCodeButton, CopyLinkButton } from '@/components/accountability/copy-code-button'
 import { MemberProgressList } from '@/components/accountability/member-progress-list'
 import {
   todayCSTString, getWeekStartCST, getScheduledDates,
-  buildMemberProgress, DAY_LABEL, GOAL_CATEGORY_LABEL,
+  buildMemberProgress, DAY_LABEL, goalCategoryLabel,
 } from '@/lib/accountability'
 import type { AccountabilityGroup, AccountabilityCheckin } from '@/types'
 
@@ -105,6 +106,15 @@ export default async function AccountabilityGroupPage({
             <h1 className="text-sm font-bold text-stone-900 truncate">{group.name}</h1>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href={`/accountability/${groupId}/report`}
+              className="flex items-center gap-1 rounded-xl border border-stone-200 bg-white
+                         px-2.5 py-1.5 text-xs font-medium text-stone-500
+                         hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              报告
+            </Link>
             {isOrganizer && (
               <Link
                 href={`/accountability/${groupId}/settings`}
@@ -135,7 +145,7 @@ export default async function AccountabilityGroupPage({
         {group.goal_title && (
           <div className="rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50/80 to-orange-50/50 px-5 py-4">
             <div className="flex items-start gap-3">
-              <span className="text-lg mt-0.5">{GOAL_CATEGORY_LABEL[group.goal_category ?? ''] ?? '✨'}</span>
+              <span className="text-lg mt-0.5">{goalCategoryLabel(group.goal_category ?? '')}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-stone-900">{group.goal_title}</p>
                 {group.goal_description && (
@@ -158,7 +168,8 @@ export default async function AccountabilityGroupPage({
         )}
 
         {/* ── 邀请码 ──────────────────────────────────────── */}
-        <InviteCodeCard code={group.invite_code} isOrganizer={isOrganizer} />
+        <InviteCodeCard code={group.invite_code} isOrganizer={isOrganizer} groupId={groupId}
+          hasSchedule={scheduleDays.length > 0} />
 
         {/* ── 本周进度 ─────────────────────────────────────── */}
         <WeeklyBanner rate={overallRate} done={totalDone} total={totalMax} count={memberProgress.length} />
@@ -224,32 +235,36 @@ export default async function AccountabilityGroupPage({
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function InviteCodeCard({ code, isOrganizer }: { code: string; isOrganizer: boolean }) {
+function InviteCodeCard({ code, isOrganizer, groupId, hasSchedule }: {
+  code: string; isOrganizer: boolean; groupId: string; hasSchedule: boolean
+}) {
   return (
-    <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-3.5 shadow-sm flex items-center gap-3">
-      <div className="flex-1 min-w-0">
-        <p className="text-xs text-stone-400 mb-0.5">{isOrganizer ? '分享邀请码给同行者' : '小组邀请码'}</p>
-        <p className="text-xl font-black tracking-[0.25em] text-stone-900">{code}</p>
+    <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm">
+      <p className="text-xs text-stone-400 mb-1.5">{isOrganizer ? '分享给想同行的人' : '小组邀请码'}</p>
+      <div className="flex items-center gap-3">
+        <p className="text-2xl font-black tracking-[0.25em] text-stone-900 flex-1">{code}</p>
+        <div className="flex items-center gap-2 shrink-0">
+          <CopyCodeButton code={code} />
+          <CopyLinkButton code={code} />
+        </div>
       </div>
-      <CopyCodeButton code={code} />
+      <div className="flex items-center justify-between mt-2.5">
+        <p className="text-[11px] text-stone-400">点击「复制链接」，对方打开后可一键加入</p>
+        {hasSchedule && (
+          <a
+            href={`/api/accountability/calendar?id=${groupId}`}
+            download
+            className="flex items-center gap-1 text-[11px] text-amber-600 font-medium hover:text-amber-700 transition-colors"
+          >
+            <CalendarPlus className="h-3 w-3" />
+            添加到日历
+          </a>
+        )}
+      </div>
     </div>
   )
 }
 
-function CopyCodeButton({ code }: { code: string }) {
-  // Server component can't have onClick — render as client island inline
-  return (
-    <button
-      onClick={() => navigator.clipboard?.writeText(code)}
-      className="flex items-center gap-1 rounded-xl border border-stone-200 px-3 py-2
-                 text-xs font-medium text-stone-500 hover:bg-stone-50 transition-colors"
-      suppressHydrationWarning
-    >
-      <Copy className="h-3.5 w-3.5" />
-      复制
-    </button>
-  )
-}
 
 function WeeklyBanner({ rate, done, total, count }: {
   rate: number; done: number; total: number; count: number

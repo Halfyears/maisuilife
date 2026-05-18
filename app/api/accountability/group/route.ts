@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const groupId = req.nextUrl.searchParams.get('id')
   if (!groupId) return NextResponse.json({ error: 'missing_id' }, { status: 400 })
 
-  const db = createServiceClient()
+  const db = createAdminClient()
 
   // Verify organizer
   const { data: group } = await db

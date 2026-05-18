@@ -181,7 +181,7 @@ function PrayerCard({
       {/* ── 顶部：名字 + 日期 ──────────────────────── */}
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-lg">{item.is_anonymous ? '🫙' : '🙏'}</span>
+          <span className="text-lg">{item.is_anonymous ? '🎭' : '🙏'}</span>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-stone-800 truncate">
               {item.is_self
@@ -376,11 +376,11 @@ function NewPrayerForm({
         body:    JSON.stringify({ fellowship_id: fellowshipId, title, content, is_anonymous: isAnonymous }),
       })
       if (!res.ok) { setError('发送失败，请稍后再试'); return }
-      const { id } = await res.json()
+      const data = await res.json()
       onCreated({
-        id,
+        id:             data.id,
         is_self:        true,
-        requester:      isAnonymous ? null : '',
+        requester:      isAnonymous ? null : (data.display_name || ''),
         is_anonymous:   isAnonymous,
         title:          title.trim(),
         content:        content.trim() || null,

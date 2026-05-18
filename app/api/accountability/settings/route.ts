@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest) {
   const { group_id } = body as { group_id: string }
   if (!group_id) return NextResponse.json({ error: 'missing_group_id' }, { status: 400 })
 
-  const db = createServiceClient()
+  const db = createAdminClient()
 
   // Only organizer can update
   const { data: group } = await db
@@ -25,8 +25,9 @@ export async function PATCH(req: NextRequest) {
     .eq('id', group_id)
     .single()
 
-  if (!group) return NextResponse.json({ error: 'not_found' }, { status: 404 })
-  if (group.organizer_id !== user.id) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  const groupRow = group as { organizer_id: string } | null
+  if (!groupRow) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  if (groupRow.organizer_id !== user.id) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
 
   const updates: Record<string, unknown> = {}
   if ('name'                  in body) updates.name                  = (body.name as string)?.trim().slice(0, 100) ?? null

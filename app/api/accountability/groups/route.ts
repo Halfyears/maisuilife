@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
@@ -9,8 +9,8 @@ function generateInviteCode(): string {
 }
 
 // POST /api/accountability/groups
-// Body: { name, goal_title?, goal_description?, goal_category?, schedule_days_of_week?, schedule_time?, start_date?, end_date? }
 export async function POST(req: NextRequest) {
+  // 1. Verify auth via cookie client
   const supabase = createClient()
   const { data: authData } = await supabase.auth.getUser()
   const user = authData?.user ?? null
@@ -20,16 +20,32 @@ export async function POST(req: NextRequest) {
   const name = (body.name ?? '').trim().slice(0, 100)
   if (!name) return NextResponse.json({ error: 'name_required' }, { status: 400 })
 
-  const db = createServiceClient()
+  // 2. Use direct admin client (no cookie dependency)
+  const db = createAdminClient()
 
-  // Fetch organizer display name
-  const { data: profile } = await db
+  // 3. Check table exists before anything else
+  const { error: tableErr } = await db
+    .from('accountability_groups')
+    .select('id')
+    .limit(0)
+
+  if (tableErr) {
+    console.error('[accountability/groups] table check failed:', tableErr.message)
+    return NextResponse.json({
+      error:   'setup_required',
+      message: `数据库表未初始化，请在 Supabase SQL 编辑器运行 014_accountability_groups.sql（${tableErr.message}）`,
+    }, { status: 500 })
+  }
+
+  // 4. Fetch display name
+  const { data: profileData } = await db
     .from('users')
     .select('display_name')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
+  const displayName = (profileData as { display_name: string } | null)?.display_name ?? '召集人'
 
-  // Generate unique invite code (retry on collision)
+  // 5. Generate unique invite code
   let invite_code = generateInviteCode()
   for (let i = 0; i < 5; i++) {
     const { data: existing } = await db
@@ -41,7 +57,8 @@ export async function POST(req: NextRequest) {
     invite_code = generateInviteCode()
   }
 
-  const { data: group, error } = await db
+  // 6. Insert group
+  const { data: groupData, error: insertErr } = await db
     .from('accountability_groups')
     .insert({
       name,
@@ -58,14 +75,28 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
 
-  if (error || !group) return NextResponse.json({ error: 'db_error' }, { status: 500 })
+  if (insertErr || !groupData) {
+    console.error('[accountability/groups] insert error:', insertErr?.message)
+    return NextResponse.json({
+      error:   'db_error',
+      message: insertErr?.message ?? 'insert failed',
+    }, { status: 500 })
+  }
 
-  // Add organizer as first member
-  await db.from('accountability_group_members').insert({
-    group_id:     group.id,
-    user_id:      user.id,
-    display_name: profile?.display_name ?? '召集人',
-  })
+  const group = groupData as { id: string; invite_code: string; name: string }
 
-  return NextResponse.json({ ok: true, group }, { status: 201 })
+  // 7. Add organizer as first member
+  const { error: memberErr } = await db
+    .from('accountability_group_members')
+    .insert({
+      group_id:     group.id,
+      user_id:      user.id,
+      display_name: displayName,
+    })
+
+  if (memberErr) {
+    console.error('[accountability/groups] member insert error:', memberErr.message)
+  }
+
+  return NextResponse.json({ ok: true, group: groupData }, { status: 201 })
 }

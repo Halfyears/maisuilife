@@ -119,5 +119,8 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: 'db_error' }, { status: 500 })
 
-  return NextResponse.json({ id: created.id })
+  return NextResponse.json({
+    id:           (created as { id: string }).id,
+    display_name: is_anonymous ? null : (profile?.display_name ?? ''),
+  })
 }

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Loader2, Wheat } from 'lucide-react'
 
@@ -13,31 +13,32 @@ const ERROR_MAP: Record<string, string> = {
   join_failed:              '加入失败，请稍后重试',
 }
 
-export default function FellowshipJoinPage() {
-  const router = useRouter()
-  const [code,    setCode]    = useState('')
+function JoinForm() {
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const presetCode   = (searchParams.get('code') ?? '').toUpperCase().slice(0, 8)
+
+  const [code,    setCode]    = useState(presetCode)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const autoSubmitted = useRef(false)
 
-  async function handleJoin(e: React.FormEvent) {
-    e.preventDefault()
-    if (code.trim().length < 4) { setError('请输入正确的邀请码'); return }
+  async function handleJoin(codeToSubmit?: string) {
+    const trimmed = (codeToSubmit ?? code).trim()
+    if (trimmed.length < 4) { setError('请输入正确的邀请码'); return }
     setLoading(true); setError(null)
-
     try {
       const res = await fetch('/api/fellowship/join', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ invite_code: code.trim() }),
+        body:    JSON.stringify({ invite_code: trimmed }),
       })
       const data = await res.json()
-
       if (!res.ok) {
         setError(ERROR_MAP[data.error] ?? '加入失败，请重试')
         return
       }
-
       setSuccess(data.fellowship_name ?? '麦穗团契')
       setTimeout(() => router.push('/fellowship'), 1800)
     } catch {
@@ -47,9 +48,17 @@ export default function FellowshipJoinPage() {
     }
   }
 
+  // Auto-submit when arriving via invite link with a full code
+  useEffect(() => {
+    if (presetCode.length >= 4 && !autoSubmitted.current) {
+      autoSubmitted.current = true
+      handleJoin(presetCode)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <div className="flex min-h-dvh flex-col">
-      {/* Header */}
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center gap-3 px-5 py-3.5">
           <Link
@@ -69,37 +78,36 @@ export default function FellowshipJoinPage() {
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-md px-4 pt-10 pb-32">
-
         {success ? (
-          /* ── 成功状态 ──────────────────────────── */
           <div className="flex flex-col items-center gap-4 py-12 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full
                             bg-gradient-to-br from-amber-100 to-orange-100 text-3xl shadow-sm">
               🌾
             </div>
             <div>
-              <p className="text-base font-bold text-stone-900 tracking-wide">
-                已成功加入「{success}」
-              </p>
+              <p className="text-base font-bold text-stone-900 tracking-wide">已成功加入「{success}」</p>
               <p className="mt-1 text-sm text-stone-500">正在跳转到团契页面…</p>
             </div>
           </div>
+        ) : loading && presetCode.length >= 4 ? (
+          <div className="flex flex-col items-center gap-4 py-12 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+            <p className="text-sm text-stone-500">正在加入团契…</p>
+          </div>
         ) : (
-          /* ── 输入表单 ──────────────────────────── */
           <div className="rounded-2xl border border-stone-100 bg-white/90 p-6
                           shadow-md shadow-amber-900/5 backdrop-blur-md">
             <div className="mb-6 flex flex-col items-center gap-2 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full
-                              bg-amber-50 text-2xl">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-2xl">
                 👥
               </div>
-              <p className="text-base font-bold text-stone-900">输入 6 位邀请码</p>
+              <p className="text-base font-bold text-stone-900">输入邀请码</p>
               <p className="text-sm text-stone-500 leading-snug">
-                向你的真实团契组长索取邀请码，即可加入守望小组。
+                向你的团契组长索取邀请码，即可加入守望小组。
               </p>
             </div>
 
-            <form onSubmit={handleJoin} className="space-y-4">
+            <form onSubmit={e => { e.preventDefault(); handleJoin() }} className="space-y-4">
               <input
                 type="text"
                 value={code}
@@ -109,6 +117,7 @@ export default function FellowshipJoinPage() {
                 autoCapitalize="characters"
                 autoCorrect="off"
                 spellCheck={false}
+                autoFocus={!presetCode}
                 className="w-full rounded-xl border border-stone-200 bg-stone-50/80
                            px-4 py-4 text-center text-2xl font-mono font-bold tracking-[0.35em]
                            text-stone-900 placeholder:text-stone-300 placeholder:text-lg
@@ -146,5 +155,17 @@ export default function FellowshipJoinPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function FellowshipJoinPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-dvh items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+      </div>
+    }>
+      <JoinForm />
+    </Suspense>
   )
 }

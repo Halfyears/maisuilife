@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Noto_Serif_SC } from 'next/font/google'
 import { createClient } from '@/lib/supabase/server'
 import { ElderModeWrapper } from '@/components/elder-mode-wrapper'
@@ -13,9 +13,26 @@ const notoSerif = Noto_Serif_SC({
 })
 
 export const metadata: Metadata = {
-  title: '麦穗喜乐',
-  description: '属灵陪伴，同行成长',
-  icons: { icon: '/favicon.ico' },
+  title: {
+    default:  '麦穗喜乐 MaisuiJoy',
+    template: '%s — 麦穗喜乐',
+  },
+  description:     '麦穗喜乐 平安喜乐',
+  manifest:        '/manifest.json',
+  appleWebApp: {
+    capable:        true,
+    statusBarStyle: 'default',
+    title:          '麦穗喜乐',
+  },
+  formatDetection: { telephone: false },
+}
+
+export const viewport: Viewport = {
+  themeColor:         '#F59E0B',
+  width:              'device-width',
+  initialScale:       1,
+  maximumScale:       1,
+  userScalable:       false,
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
