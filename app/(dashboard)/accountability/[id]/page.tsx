@@ -164,12 +164,24 @@ export default async function AccountabilityGroupPage({
                 )}
               </div>
             </div>
+            {scheduleDays.length > 0 && (
+              <a
+                href={`/api/accountability/calendar?id=${groupId}`}
+                download
+                className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl
+                           border border-amber-200 bg-white/70 px-4 py-3
+                           text-sm font-bold text-amber-700
+                           hover:bg-amber-100 active:scale-[0.98] transition-all"
+              >
+                <CalendarPlus className="h-4 w-4" />
+                添加到日历
+              </a>
+            )}
           </div>
         )}
 
         {/* ── 邀请码 ──────────────────────────────────────── */}
-        <InviteCodeCard code={group.invite_code} isOrganizer={isOrganizer} groupId={groupId}
-          hasSchedule={scheduleDays.length > 0} />
+        <InviteCodeCard code={group.invite_code} isOrganizer={isOrganizer} />
 
         {/* ── 本周进度 ─────────────────────────────────────── */}
         <WeeklyBanner rate={overallRate} done={totalDone} total={totalMax} count={memberProgress.length} />
@@ -235,28 +247,13 @@ export default async function AccountabilityGroupPage({
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function InviteCodeCard({ code, isOrganizer, groupId, hasSchedule }: {
-  code: string; isOrganizer: boolean; groupId: string; hasSchedule: boolean
+function InviteCodeCard({ code, isOrganizer }: {
+  code: string; isOrganizer: boolean
 }) {
   return (
     <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm">
-      {/* 标题行 */}
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs text-stone-400">{isOrganizer ? '分享给想同行的人' : '小组邀请码'}</p>
-        {hasSchedule && (
-          <a
-            href={`/api/accountability/calendar?id=${groupId}`}
-            download
-            className="flex items-center gap-1 text-[11px] text-amber-600 font-medium hover:text-amber-700 transition-colors"
-          >
-            <CalendarPlus className="h-3 w-3" />
-            添加到日历
-          </a>
-        )}
-      </div>
-      {/* 邀请码 */}
+      <p className="text-xs text-stone-400 mb-2">{isOrganizer ? '分享给想同行的人' : '小组邀请码'}</p>
       <p className="text-3xl font-black tracking-[0.3em] text-stone-900 mb-3">{code}</p>
-      {/* 按钮行 */}
       <div className="flex gap-2">
         <CopyCodeButton code={code} />
         <CopyLinkButton code={code} />

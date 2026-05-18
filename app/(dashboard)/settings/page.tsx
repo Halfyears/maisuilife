@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { SignOutButton } from '@/components/shared/sign-out-button'
 import { ProfileCard } from '@/components/settings/profile-card'
+import { PushSubscribeButton } from '@/components/shared/push-subscribe-button'
 
 export const metadata = { title: '设置中心 — 麦穗喜乐 MaisuiJoy' }
 export const revalidate = 0
@@ -99,6 +100,9 @@ export default async function SettingsPage() {
           joinedYear={joinedYear}
           fellowship={fellowship ?? null}
         />
+
+        {/* ── 灵命推送通知 ─────────────────────────────── */}
+        <PushSubscribeButton />
 
         {/* ── 角色专属管理中枢 ─────────────────────────── */}
         <RolePanel role={role} fellowship={fellowship} />

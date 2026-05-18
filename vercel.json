@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/daily-refresh",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-report",
+      "schedule": "0 17 * * 0"
+    },
+    {
+      "path": "/api/cron/monthly-report",
+      "schedule": "30 17 1 * *"
     }
   ]
 }
