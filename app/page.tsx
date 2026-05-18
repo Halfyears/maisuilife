@@ -46,7 +46,7 @@ export default async function RootPage() {
           <span className="font-serif text-base font-black tracking-wide bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
             麦穗喜乐
           </span>
-          <span className="ml-auto text-xs text-stone-400">{formatDate(new Date())}</span>
+          <span className="ml-auto text-xs text-stone-400">{formatDate(new Date(Date.now() + 8 * 3_600_000))}</span>
         </div>
       </header>
 

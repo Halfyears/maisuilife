@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft, Wheat } from 'lucide-react'
+import { DoorOpen } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { DailyForm } from '@/components/daily/daily-form'
 import { PastoralNotification } from '@/components/shared/pastoral-notification'
@@ -14,14 +14,21 @@ function todayCN(): string {
   return new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
 }
 
+function todayDisplay(): { month: number; day: number; weekday: string } {
+  const d = new Date(Date.now() + 8 * 3_600_000)
+  const days = ['日', '一', '二', '三', '四', '五', '六']
+  return { month: d.getUTCMonth() + 1, day: d.getUTCDate(), weekday: days[d.getUTCDay()] }
+}
+
 export default async function DailyPage() {
   const supabase = createClient()
   const { data: authData } = await supabase.auth.getUser()
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
-  const today = todayCN()
-  const db    = createServiceClient()
+  const today   = todayCN()
+  const dateStr = todayDisplay()
+  const db      = createServiceClient()
 
   const [alignmentRes, membershipRes, pastoralRes] = await Promise.all([
     supabase
@@ -62,24 +69,27 @@ export default async function DailyPage() {
 
       {/* ── Sticky header ──────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-md items-center gap-3 px-5 py-3.5">
-          <Link
-            href="/"
-            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-stone-500
-                       hover:bg-stone-100 hover:text-stone-800 transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="text-sm font-medium">退出</span>
-          </Link>
-
-          <div className="flex flex-1 items-center justify-center gap-2">
-            <Wheat className="h-4 w-4 text-amber-500" />
-            <h1 className="text-sm font-bold text-stone-900 tracking-wide">今日内室</h1>
+        <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
+          {/* 左：日期 */}
+          <div>
+            <p className="text-lg font-black leading-none text-stone-900">
+              {dateStr.month}月{dateStr.day}日
+            </p>
+            <p className="text-[11px] text-stone-400 mt-0.5 tracking-wide">
+              星期{dateStr.weekday} · 今日内室
+            </p>
           </div>
 
-          <span className="w-14 text-right text-[11px] text-stone-400">
-            {formatDate(new Date())}
-          </span>
+          {/* 右：退出按钮 */}
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white
+                       px-3 py-2 text-xs font-medium text-stone-500
+                       hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+          >
+            <DoorOpen className="h-4 w-4" />
+            退出内室
+          </Link>
         </div>
       </header>
 
@@ -132,6 +142,3 @@ function AlreadySubmitted({ statusTag }: { statusTag: string }) {
   )
 }
 
-function formatDate(d: Date): string {
-  return `${d.getMonth() + 1}/${d.getDate()}`
-}
