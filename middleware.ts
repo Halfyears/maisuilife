@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Routes requiring auth (any role)
-const AUTH_REQUIRED = ['/daily', '/fellowship', '/settings', '/growth']
+const AUTH_REQUIRED = ['/daily', '/fellowship', '/accountability', '/settings', '/growth']
 // Routes requiring super_admin (DB check happens in layout, middleware only checks auth)
 const ADMIN_PATHS   = ['/admin']
 
@@ -36,7 +36,9 @@ export async function middleware(request: NextRequest) {
   if (needsAuth && !user) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
-    loginUrl.searchParams.set('redirect', pathname)
+    // Preserve query string so invite codes survive the login redirect
+    const search = request.nextUrl.search
+    loginUrl.searchParams.set('redirect', pathname + search)
     return NextResponse.redirect(loginUrl)
   }
 
