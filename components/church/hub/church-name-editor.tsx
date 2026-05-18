@@ -15,10 +15,10 @@ export function ChurchNameEditor({ initialName }: { initialName: string }) {
     setSaving(true)
     setError(null)
     try {
-      const res = await fetch('/api/admin/config', {
+      const res = await fetch('/api/church/update-name', {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ key: 'church_name', value: { name: draft.trim() } }),
+        body:    JSON.stringify({ name: draft.trim() }),
       })
       if (!res.ok) throw new Error()
       setName(draft.trim())
