@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { DollarSign, Pencil, Save, X, Loader2, RefreshCw, Sparkles } from 'lucide-react'
+import Link from 'next/link'
+import { DollarSign, Pencil, Save, X, Loader2, RefreshCw, Sparkles, ClipboardList } from 'lucide-react'
 
 interface SystemConfig {
   id: string; key: string; value: Record<string, unknown>; updated_at: string
@@ -22,11 +23,11 @@ const PAGE_OPTIONS = [
 ]
 const CURRENCY_OPTIONS = ['USD', 'CNY', 'HKD', 'TWD', 'SGD']
 const PAYMENT_FIELDS = [
-  { key: 'zelle',      label: 'Zelle'    },
-  { key: 'venmo',      label: 'Venmo'    },
-  { key: 'paypal',     label: 'PayPal'   },
-  { key: 'wechat_pay', label: '微信支付' },
-  { key: 'alipay',     label: '支付宝'   },
+  { key: 'zelle_account',  label: 'Zelle 收款账号（邮箱或手机号）', placeholder: 'your@email.com 或 +1 xxx-xxx-xxxx' },
+  { key: 'venmo_username', label: 'Venmo 用户名（不含 @）',         placeholder: 'your_venmo_username'              },
+  { key: 'paypal_me',      label: 'PayPal.me 链接',                  placeholder: 'https://paypal.me/yourname'       },
+  { key: 'wechat_qr_url',  label: '微信收款二维码图片地址（URL）',   placeholder: 'https://…/wechat-qr.png'         },
+  { key: 'alipay_qr_url',  label: '支付宝收款二维码图片地址（URL）', placeholder: 'https://…/alipay-qr.png'         },
 ]
 
 function pageLabel(key: string) {
@@ -152,7 +153,11 @@ function DonationSection({ cfg }: { cfg: SystemConfig }) {
     Array.isArray(v.show_on) ? v.show_on as string[] : []
   )
 
-  const amtsArr    = amounts.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n) && n > 0)
+  // Support both ASCII comma and Chinese full-width comma（，）
+  function parseAmounts(raw: string) {
+    return raw.split(/[,，]/).map(s => Number(s.trim())).filter(n => !isNaN(n) && n > 0)
+  }
+  const amtsArr    = parseAmounts(amounts)
   const pagesText  = showOn.length ? showOn.map(pageLabel).join('、') : '未设置显示页面'
   const hasAppeals = appeals.some(a => a.title)
 
@@ -182,7 +187,7 @@ function DonationSection({ cfg }: { cfg: SystemConfig }) {
           body:  a.body.trim(),
           pages: a.pages,
         })),
-        amounts: amtsArr,
+        amounts: parseAmounts(amounts),
         currency,
         show_on: showOn,
       })
@@ -327,8 +332,7 @@ function PaymentSection({ cfg }: { cfg: SystemConfig }) {
   const [error,  setError]  = useState<string | null>(null)
   const [draft,  setDraft]  = useState<Record<string, string>>(
     Object.fromEntries(
-      [...PAYMENT_FIELDS.map(f => f.key), 'label']
-        .map(k => [k, String(cfg.value[k] ?? '')])
+      PAYMENT_FIELDS.map(f => [f.key, String(cfg.value[f.key] ?? '')])
     )
   )
 
@@ -338,7 +342,7 @@ function PaymentSection({ cfg }: { cfg: SystemConfig }) {
     setSaving(true); setError(null)
     try {
       const value: Record<string, string> = {}
-      for (const k of [...PAYMENT_FIELDS.map(f => f.key), 'label']) value[k] = draft[k]?.trim() ?? ''
+      for (const f of PAYMENT_FIELDS) value[f.key] = draft[f.key]?.trim() ?? ''
       await patchConfig(cfg.key, value)
       setOpen(false)
     } catch { setError('保存失败') }
@@ -368,7 +372,7 @@ function PaymentSection({ cfg }: { cfg: SystemConfig }) {
             <Row key={f.key} label={f.label}>
               <input value={draft[f.key] ?? ''}
                 onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))}
-                placeholder="https://…"
+                placeholder={f.placeholder}
                 className={inp} />
             </Row>
           ))}
@@ -573,7 +577,12 @@ export function FinanceCard({ configs }: { configs: SystemConfig[] }) {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100">
           <DollarSign className="h-4 w-4 text-amber-600" />
         </div>
-        <h2 className="font-semibold text-foreground">奉献 & 系统配置</h2>
+        <h2 className="font-semibold text-foreground flex-1">奉献 & 系统配置</h2>
+        <Link href="/admin/payments"
+          className="flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50
+                     px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors">
+          <ClipboardList className="h-3 w-3" />审核凭证
+        </Link>
       </div>
 
       {noticeCfg && (

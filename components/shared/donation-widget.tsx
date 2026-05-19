@@ -1,17 +1,9 @@
 import { createAdminClient } from '@/lib/supabase/server'
-import { DonationInteractive } from './donation-interactive'
-
-const PAY_META: Record<string, { label: string; color: string; icon: string }> = {
-  zelle:      { label: 'Zelle',    color: 'bg-[#6D1ED4]', icon: '💜' },
-  venmo:      { label: 'Venmo',    color: 'bg-[#3D95CE]', icon: '💙' },
-  paypal:     { label: 'PayPal',   color: 'bg-[#003087]', icon: '🔵' },
-  wechat_pay: { label: '微信支付', color: 'bg-[#07C160]', icon: '💚' },
-  alipay:     { label: '支付宝',   color: 'bg-[#1677FF]', icon: '🔷' },
-}
+import { DonationInteractive, type PaymentConfig } from './donation-interactive'
 
 interface Appeal {
-  title: string
-  body:  string
+  title:  string
+  body:   string
   pages?: string[]
 }
 
@@ -29,7 +21,6 @@ export async function DonationWidget({ pageKey }: Props) {
 
     const don = donRes.data?.value as Record<string, unknown> | null
     const pay = payRes.data?.value as Record<string, unknown> | null
-
     if (!don) return null
 
     const showOn = Array.isArray(don.show_on) ? (don.show_on as string[]) : []
@@ -40,28 +31,30 @@ export async function DonationWidget({ pageKey }: Props) {
       ? (don.amounts as number[]).filter(n => typeof n === 'number' && n > 0)
       : [10, 20, 50]
 
-    // Find the appeal for this page
-    const appeals: Appeal[] = Array.isArray(don.appeals)
-      ? (don.appeals as Appeal[])
-      : []
+    const appeals: Appeal[] = Array.isArray(don.appeals) ? (don.appeals as Appeal[]) : []
     const appeal =
       appeals.find(a => Array.isArray(a.pages) && a.pages.includes(pageKey)) ??
       appeals[0] ??
       null
 
-    // Build payment links
-    const payLinks = pay
-      ? Object.entries(PAY_META)
-          .filter(([k]) => pay[k] && typeof pay[k] === 'string' && (pay[k] as string).trim())
-          .map(([k, meta]) => ({ key: k, ...meta, href: (pay[k] as string).trim() }))
-      : []
+    function str(key: string) {
+      return pay && typeof pay[key] === 'string' ? (pay[key] as string).trim() : undefined
+    }
+
+    const payment: PaymentConfig = {
+      zelle_account:  str('zelle_account')  || str('zelle'),
+      venmo_username: str('venmo_username') || str('venmo'),
+      paypal_me:      str('paypal_me')      || str('paypal'),
+      wechat_qr_url:  str('wechat_qr_url') || str('wechat_pay'),
+      alipay_qr_url:  str('alipay_qr_url') || str('alipay'),
+    }
 
     return (
       <DonationInteractive
         appeal={appeal ? { title: appeal.title, body: appeal.body } : null}
         amounts={amounts}
         currency={currency}
-        payLinks={payLinks}
+        payment={payment}
       />
     )
   } catch {
