@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Settings, Wheat, ShieldCheck, Users, BookOpen, Key, LogIn, Church, Home } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { SignOutButton } from '@/components/shared/sign-out-button'
 import { ProfileCard } from '@/components/settings/profile-card'
@@ -38,7 +38,9 @@ export default async function SettingsPage() {
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
-  const [profileRes, membershipRes] = await Promise.all([
+  const db = createAdminClient()
+
+  const [profileRes, membershipRes, churchRes, acctRes] = await Promise.all([
     supabase
       .from('users')
       .select('display_name, role, created_at')
@@ -50,6 +52,16 @@ export default async function SettingsPage() {
       .eq('user_id', user.id)
       .limit(1)
       .maybeSingle(),
+    db
+      .from('system_configs')
+      .select('value')
+      .eq('key', 'church_name')
+      .maybeSingle(),
+    db
+      .from('accountability_group_members')
+      .select('group_id, accountability_groups(id, name)')
+      .eq('user_id', user.id)
+      .limit(5),
   ])
 
   const profile    = profileRes.data
@@ -57,7 +69,11 @@ export default async function SettingsPage() {
   const role       = profile?.role ?? 'user'
   const badge      = ROLE_BADGE[role] ?? DEFAULT_BADGE
   const joinedYear = profile?.created_at ? new Date(profile.created_at).getFullYear() : null
-  const fellowship = (membership?.fellowships as { name?: string } | null)?.name
+  const fellowship = (membership?.fellowships as { name?: string } | null)?.name ?? null
+  const churchName = (churchRes.data?.value as { name?: string } | null)?.name ?? null
+  const acctGroups = (acctRes.data ?? [])
+    .map(r => r.accountability_groups as { id: string; name: string } | null)
+    .filter((g): g is { id: string; name: string } => !!g?.id)
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -102,7 +118,9 @@ export default async function SettingsPage() {
           email={user.email ?? ''}
           badge={badge}
           joinedYear={joinedYear}
-          fellowship={fellowship ?? null}
+          churchName={churchName}
+          fellowship={fellowship}
+          acctGroups={acctGroups}
         />
 
         {/* ── 灵命推送通知 ─────────────────────────────── */}
