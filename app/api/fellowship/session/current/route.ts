@@ -21,13 +21,20 @@ export async function GET(req: NextRequest) {
   const isPrivileged = ['church_admin', 'super_admin'].includes(prof?.role ?? '')
 
   if (!isPrivileged) {
-    const { data: member } = await db
-      .from('fellowship_members')
-      .select('user_id')
-      .eq('fellowship_id', fellowship_id)
-      .eq('user_id', user.id)
-      .maybeSingle()
-    if (!member) return NextResponse.json({ error: 'not_member' }, { status: 403 })
+    // Allow: fellowship leader OR a member of the fellowship
+    const [{ data: member }, { data: asLeader }] = await Promise.all([
+      db.from('fellowship_members')
+        .select('user_id')
+        .eq('fellowship_id', fellowship_id)
+        .eq('user_id', user.id)
+        .maybeSingle(),
+      db.from('fellowships')
+        .select('id')
+        .eq('id', fellowship_id)
+        .eq('leader_id', user.id)
+        .maybeSingle(),
+    ])
+    if (!member && !asLeader) return NextResponse.json({ error: 'not_member' }, { status: 403 })
   }
 
   // Get current open session

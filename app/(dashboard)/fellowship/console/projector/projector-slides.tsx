@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 
-// Floating exit button shown in top-left on all projector slides
-function ExitButton() {
+// Floating exit button — returns to the specific fellowship's console page
+function ExitButton({ fellowshipId }: { fellowshipId: string }) {
   return (
     <a
-      href="/fellowship/console"
+      href={`/fellowship/console?id=${fellowshipId}`}
       className="absolute top-4 left-4 z-20 flex items-center gap-1.5 rounded-xl
                  bg-black/20 px-3 py-1.5 text-xs text-white/50
                  hover:bg-black/40 hover:text-white/90 transition-all backdrop-blur-sm"
@@ -78,7 +78,7 @@ export function ProjectorSlides({
   // If no active session: show regular slides
   if (!session) {
     return (<>
-      <ExitButton />
+      <ExitButton fellowshipId={fellowshipId} />
       <StaticSlides
         fellowshipName={fellowshipName}
         todayZh={todayZh}
@@ -95,7 +95,7 @@ export function ProjectorSlides({
 
   if (session.state === 'checkin') {
     return (<>
-      <ExitButton />
+      <ExitButton fellowshipId={fellowshipId} />
       <CheckinSlide
         session={session}
         checkins={checkins}
@@ -107,7 +107,7 @@ export function ProjectorSlides({
 
   // harvest state
   return (<>
-    <ExitButton />
+    <ExitButton fellowshipId={fellowshipId} />
     <HarvestSlide
       session={session}
       fellowshipId={fellowshipId}

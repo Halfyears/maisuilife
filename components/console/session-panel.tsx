@@ -21,7 +21,8 @@ interface Props {
 export function SessionPanel({ fellowshipId }: Props) {
   const [session, setSession] = useState<SessionState | null>(null)
   const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy]       = useState(false)
+  const [startErr, setStartErr] = useState<string | null>(null)
   const [expectedInput, setExpectedInput] = useState('')
 
   const refresh = useCallback(async () => {
@@ -47,11 +48,17 @@ export function SessionPanel({ fellowshipId }: Props) {
     const n = parseInt(expectedInput, 10)
     if (!n || n < 1) return
     setBusy(true)
-    await fetch('/api/fellowship/session/start', {
+    setStartErr(null)
+    const res = await fetch('/api/fellowship/session/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fellowship_id: fellowshipId, expected_count: n }),
     })
+    if (!res.ok) {
+      setStartErr('开启签到失败，请重试')
+      setBusy(false)
+      return
+    }
     await refresh()
     setBusy(false)
   }
@@ -139,6 +146,7 @@ export function SessionPanel({ fellowshipId }: Props) {
               开启签到
             </button>
           </div>
+          {startErr && <p className="text-xs text-red-500 px-1">{startErr}</p>}
         </div>
       )}
 
