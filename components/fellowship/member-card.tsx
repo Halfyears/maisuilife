@@ -69,6 +69,7 @@ export function MemberCard({ post, isUnlocked, fellowshipId }: MemberCardProps) 
           <div className="mt-3 rounded-lg bg-white/70 px-3 py-2.5">
             <p className="text-xs font-semibold text-amber-500 mb-1 tracking-wide">我今日的属灵回应</p>
             <p className="text-sm leading-relaxed text-stone-700">{post.summary}</p>
+            <p className="mt-2 text-[11px] text-amber-400/80 text-right">🔒 仅自己可见</p>
           </div>
         )}
 
