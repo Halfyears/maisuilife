@@ -99,7 +99,11 @@ export function StudyWorkbench({
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setGenError(data.error === 'ai_not_configured' ? 'AI 服务未配置' : '生成失败，请稍后重试')
+        setGenError(
+          data.error === 'ai_not_configured'   ? 'AI 服务未配置' :
+          data.error === 'ai_incomplete_output' ? 'AI 输出不完整，请重试' :
+          '生成失败，请稍后重试'
+        )
         return
       }
       const data: MeetingOutline = await res.json()

@@ -282,8 +282,9 @@ ${moodContext}`
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
   // Premium: full 3000-char sermon · Free: concise 600-800-char outline
+  // Free token budget: 中文约 1.5 token/字，所有字段合计约 1200-1800 字 → 需留足 3000 token
   const systemPrompt = tier === 'premium' ? buildSystemPrompt() : buildFreeSystemPrompt()
-  const maxTok       = tier === 'premium' ? 8000 : 2000
+  const maxTok       = tier === 'premium' ? 8000 : 3500
 
   const completion = await groq.chat.completions.create({
     messages: [
@@ -305,8 +306,16 @@ ${moodContext}`
   }
 
   let breakdown: string[] = Array.isArray(parsed.theological_breakdown)
-    ? (parsed.theological_breakdown as unknown[]).map(String)
+    ? (parsed.theological_breakdown as unknown[]).map(String).filter(Boolean)
     : []
+
+  // 安全兜底：若 breakdown 为空（token 截断或模型未输出），直接报错让前端重试
+  if (breakdown.length === 0) {
+    console.error('[outline] theological_breakdown missing or empty — likely token truncation', {
+      tier, rawLength: raw.length, parsedKeys: Object.keys(parsed),
+    })
+    return NextResponse.json({ error: 'ai_incomplete_output' }, { status: 500 })
+  }
 
   // ── 字数兜底：仅 premium 版触发（免费版不扩写）──────────────────────────
   if (tier === 'premium') {
