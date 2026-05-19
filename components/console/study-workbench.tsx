@@ -10,12 +10,13 @@
 import { useState, useTransition } from 'react'
 import {
   BookOpen, Sparkles, Loader2, Copy, Check,
-  ChevronDown, ChevronUp, Save, CheckCircle2, Monitor,
+  ChevronDown, ChevronUp, CheckCircle2, Monitor, Lock,
 } from 'lucide-react'
 import type { MeetingOutline } from '@/app/api/fellowship/outline/route'
 
 interface Props {
   fellowshipId:         string
+  userRole:             string
   initialTheme:         string | null
   initialScriptureRef:  string | null
   initialScriptureText: string | null
@@ -24,11 +25,13 @@ interface Props {
 
 export function StudyWorkbench({
   fellowshipId,
+  userRole,
   initialTheme,
   initialScriptureRef,
   initialScriptureText,
   moodWords,
 }: Props) {
+  const isSuperAdmin = userRole === 'super_admin'
   // ── AI generation state ──────────────────────────────────────────────────
   const [meetingType, setMeetingType] = useState<'theme' | 'scripture'>('theme')
   const [query, setQuery]             = useState('')
@@ -154,8 +157,20 @@ export function StudyWorkbench({
           <BookOpen className="h-4 w-4 text-amber-600" />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-bold text-stone-900">备课工作台</h3>
-          <p className="text-[11px] text-stone-400">AI 生成讲章大纲 · 一键同步到投屏</p>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-stone-900">备课工作台</h3>
+            {isSuperAdmin && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 border border-violet-200
+                               px-2 py-0.5 text-[10px] font-bold text-violet-700">
+                ⚡ 超管测试
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-stone-400">
+            {isSuperAdmin
+              ? 'AI 完整讲章（3000字）· 一键同步到投屏'
+              : 'AI 讲章纲要 · 一键同步到投屏'}
+          </p>
         </div>
         {/* Current projector state badge */}
         {hasCurrentPlan && (
@@ -234,7 +249,9 @@ export function StudyWorkbench({
               </div>
             ))}
             <p className="text-center text-xs text-stone-400 animate-pulse pt-1">
-              AI 研读经文、编织讲章，约需 20-40 秒…
+              {isSuperAdmin
+                ? 'AI 研读经文、编织完整讲章，约需 20-40 秒…'
+                : 'AI 生成讲章纲要，约需 10-20 秒…'}
             </p>
           </div>
         )}
@@ -280,9 +297,15 @@ export function StudyWorkbench({
             <div className="rounded-xl border border-stone-100 bg-stone-50 px-4 py-3.5">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-bold text-stone-700">③ 讲道阐述 · 30–45 分钟</p>
-                <span className="text-[10px] text-stone-400 tabular-nums">
-                  合计 {outline.ai_sermon_lecture.theological_breakdown.reduce((s, t) => s + t.length, 0)} 字
-                </span>
+                <div className="flex items-center gap-2">
+                  {outline.tier === 'premium' && (
+                    <span className="text-[10px] text-violet-600 bg-violet-50 border border-violet-200
+                                     px-2 py-0.5 rounded-full font-bold">⚡ 完整版</span>
+                  )}
+                  <span className="text-[10px] text-stone-400 tabular-nums">
+                    合计 {outline.ai_sermon_lecture.theological_breakdown.reduce((s, t) => s + t.length, 0)} 字
+                  </span>
+                </div>
               </div>
               <div className="space-y-2">
                 {outline.ai_sermon_lecture.theological_breakdown.map((section, i) => {
@@ -309,6 +332,23 @@ export function StudyWorkbench({
                   )
                 })}
               </div>
+
+              {/* Free tier upsell — shown only when outline is free */}
+              {outline.tier === 'free' && (
+                <div className="mt-3 rounded-xl border border-dashed border-stone-300 bg-white px-4 py-4 text-center">
+                  <div className="flex justify-center mb-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100">
+                      <Lock className="h-4 w-4 text-stone-400" />
+                    </div>
+                  </div>
+                  <p className="text-sm font-bold text-stone-700">完整讲章（3000字）</p>
+                  <p className="mt-1 text-xs text-stone-400 leading-relaxed">
+                    三维结构 · 总分总骨架 · 含具体场景、神学阐述和行动呼召<br />
+                    可直接宣讲，适合 30–45 分钟聚会带领
+                  </p>
+                  <p className="mt-3 text-[10px] text-stone-300">即将推出付费版 · 敬请期待</p>
+                </div>
+              )}
             </div>
 
             {/* Application questions */}

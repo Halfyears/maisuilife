@@ -209,6 +209,7 @@ export default async function ConsolePage({
         {/* ── 备课工作台（AI备课 + 投屏同步）── */}
         <StudyWorkbench
           fellowshipId={fellowship.id}
+          userRole={profile.role}
           initialTheme={sessionPlan?.theme ?? null}
           initialScriptureRef={sessionPlan?.scripture_ref ?? null}
           initialScriptureText={sessionPlan?.scripture_text ?? null}
