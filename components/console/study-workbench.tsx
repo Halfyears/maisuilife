@@ -354,7 +354,9 @@ export function StudyWorkbench({
               <p className="text-sm text-stone-700 leading-relaxed italic whitespace-pre-line">
                 {outline.ai_sermon_lecture.scripture_text_full}
               </p>
-              <p className="mt-2 text-[10px] text-amber-600/70">⚠ 请对照实体圣经核实经文</p>
+              <p className="mt-2 text-[10px] text-amber-600/70">
+                ⚠ AI 仅节选核心经文 · 完整章节请参阅实体圣经
+              </p>
             </div>
 
             {/* Theological breakdown */}
