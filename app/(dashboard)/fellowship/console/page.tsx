@@ -5,10 +5,9 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { InsightCard } from '@/components/console/insight-card'
 import { PastoralBoard } from '@/components/console/pastoral-board'
 import { SpatialToggle } from '@/components/console/spatial-toggle'
-import { ThemePlanner } from '@/components/console/theme-planner'
+import { StudyWorkbench } from '@/components/console/study-workbench'
 import { MusicPlanner } from '@/components/console/music-planner'
 import { SessionPanel } from '@/components/console/session-panel'
-import { OutlineGenerator } from '@/components/console/outline-generator'
 import type { InsightResponse } from '@/app/api/fellowship/insight/route'
 import type { PastoralListResponse } from '@/app/api/pastoral/list/route'
 import type { MusicSlot } from '@/app/api/fellowship/music/route'
@@ -207,11 +206,8 @@ export default async function ConsolePage({
           fellowshipId={fellowship.id}
         />
 
-        {/* ── AI 备课助手 ──────────────────── */}
-        <OutlineGenerator fellowshipId={fellowship.id} />
-
-        {/* ── Theme & Scripture Planner ────── */}
-        <ThemePlanner
+        {/* ── 备课工作台（AI备课 + 投屏同步）── */}
+        <StudyWorkbench
           fellowshipId={fellowship.id}
           initialTheme={sessionPlan?.theme ?? null}
           initialScriptureRef={sessionPlan?.scripture_ref ?? null}
