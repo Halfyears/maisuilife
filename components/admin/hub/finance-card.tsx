@@ -1,13 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { DollarSign, Pencil, Save, X, Loader2 } from 'lucide-react'
+import { DollarSign, Pencil, Save, X, Loader2, RefreshCw, Sparkles } from 'lucide-react'
 
 interface SystemConfig {
   id: string; key: string; value: Record<string, unknown>; updated_at: string
 }
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+interface Appeal {
+  title: string
+  body:  string
+  pages: string[]
+}
+
 const PAGE_OPTIONS = [
   { key: 'daily',          label: '今日内室'  },
   { key: 'fellowship',     label: '麦穗团契'  },
@@ -17,11 +22,11 @@ const PAGE_OPTIONS = [
 ]
 const CURRENCY_OPTIONS = ['USD', 'CNY', 'HKD', 'TWD', 'SGD']
 const PAYMENT_FIELDS = [
+  { key: 'zelle',      label: 'Zelle'    },
+  { key: 'venmo',      label: 'Venmo'    },
+  { key: 'paypal',     label: 'PayPal'   },
   { key: 'wechat_pay', label: '微信支付' },
   { key: 'alipay',     label: '支付宝'   },
-  { key: 'paypal',     label: 'PayPal'   },
-  { key: 'venmo',      label: 'Venmo'    },
-  { key: 'zelle',      label: 'Zelle'    },
 ]
 
 function pageLabel(key: string) {
@@ -36,33 +41,150 @@ async function patchConfig(key: string, value: Record<string, unknown>) {
   if (!res.ok) throw new Error()
 }
 
+// ── Appeal card editor ────────────────────────────────────────────────────────
+function AppealCard({
+  appeal, index, onChange,
+}: {
+  appeal: Appeal
+  index:  number
+  onChange: (a: Appeal) => void
+}) {
+  const [editing, setEditing] = useState(false)
+
+  function togglePage(key: string) {
+    const next = appeal.pages.includes(key)
+      ? appeal.pages.filter(p => p !== key)
+      : [...appeal.pages, key]
+    onChange({ ...appeal, pages: next })
+  }
+
+  return (
+    <div className="rounded-xl border border-stone-100 bg-white p-3.5 space-y-2">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold text-amber-600 mb-1">#{index + 1}</p>
+          {editing ? (
+            <input
+              value={appeal.title}
+              onChange={e => onChange({ ...appeal, title: e.target.value })}
+              className={inp}
+              placeholder="标题"
+            />
+          ) : (
+            <p className="text-xs font-bold text-stone-800 leading-snug">
+              {appeal.title || <span className="text-stone-400">（未填标题）</span>}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={() => setEditing(e => !e)}
+          className="shrink-0 rounded-lg border border-stone-200 p-1.5 text-stone-400 hover:bg-stone-100 transition-colors"
+        >
+          {editing ? <X className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
+        </button>
+      </div>
+
+      {editing ? (
+        <textarea
+          value={appeal.body}
+          onChange={e => onChange({ ...appeal, body: e.target.value })}
+          rows={3}
+          className={`${inp} resize-none`}
+          placeholder="奉献呼召文字…"
+        />
+      ) : (
+        <p className="text-xs text-stone-500 leading-relaxed line-clamp-3">
+          {appeal.body || <span className="text-stone-300">（未填内容）</span>}
+        </p>
+      )}
+
+      {/* Page assignment */}
+      <div>
+        <p className="text-[10px] text-stone-400 mb-1.5">指定页面</p>
+        <div className="flex flex-wrap gap-1.5">
+          {PAGE_OPTIONS.map(p => (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => togglePage(p.key)}
+              className={[
+                'rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-colors',
+                appeal.pages.includes(p.key)
+                  ? 'bg-amber-500 border-amber-500 text-white'
+                  : 'border-stone-200 text-stone-500 hover:bg-stone-100',
+              ].join(' ')}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Donation Settings ─────────────────────────────────────────────────────────
 function DonationSection({ cfg }: { cfg: SystemConfig }) {
   const v = cfg.value
-  const [open,    setOpen]    = useState(false)
-  const [saving,  setSaving]  = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
-  const [title,   setTitle]   = useState(String(v.title    ?? '感恩奉献'))
-  const [desc,    setDesc]    = useState(String(v.description ?? ''))
-  const [amounts, setAmounts] = useState(
-    Array.isArray(v.amounts) ? (v.amounts as number[]).join(', ') : '20, 50, 100, 200'
+
+  const defaultAppeals: Appeal[] = Array.isArray(v.appeals)
+    ? (v.appeals as Appeal[]).map(a => ({
+        title: String(a.title ?? ''),
+        body:  String(a.body  ?? ''),
+        pages: Array.isArray(a.pages) ? a.pages as string[] : [],
+      }))
+    : [
+        { title: '', body: '', pages: ['daily']         },
+        { title: '', body: '', pages: ['fellowship']    },
+        { title: '', body: '', pages: ['growth']        },
+      ]
+
+  const [open,     setOpen]     = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [genning,  setGenning]  = useState(false)
+  const [error,    setError]    = useState<string | null>(null)
+  const [appeals,  setAppeals]  = useState<Appeal[]>(defaultAppeals)
+  const [amounts,  setAmounts]  = useState(
+    Array.isArray(v.amounts) ? (v.amounts as number[]).join(', ') : '10, 20, 50'
   )
-  const [defAmt,   setDefAmt]   = useState(String(v.default_amount ?? 50))
   const [currency, setCurrency] = useState(String(v.currency ?? 'USD'))
   const [showOn,   setShowOn]   = useState<string[]>(
     Array.isArray(v.show_on) ? v.show_on as string[] : []
   )
 
-  const amtsArr   = amounts.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n) && n > 0)
-  const pagesText = showOn.length ? showOn.map(pageLabel).join('、') : '未设置显示页面'
+  const amtsArr    = amounts.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n) && n > 0)
+  const pagesText  = showOn.length ? showOn.map(pageLabel).join('、') : '未设置显示页面'
+  const hasAppeals = appeals.some(a => a.title)
+
+  async function generate() {
+    setGenning(true); setError(null)
+    try {
+      const res = await fetch('/api/admin/donation/generate', { method: 'POST' })
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      const gen: { title: string; body: string }[] = data.appeals ?? []
+      setAppeals(prev =>
+        prev.map((a, i) => gen[i] ? { ...a, title: gen[i].title, body: gen[i].body } : a)
+      )
+    } catch {
+      setError('AI 生成失败，请重试')
+    } finally {
+      setGenning(false)
+    }
+  }
 
   async function save() {
     setSaving(true); setError(null)
     try {
       await patchConfig(cfg.key, {
-        title: title.trim(), description: desc.trim(),
-        amounts: amtsArr, default_amount: Number(defAmt) || 50,
-        currency, show_on: showOn,
+        appeals: appeals.map(a => ({
+          title: a.title.trim(),
+          body:  a.body.trim(),
+          pages: a.pages,
+        })),
+        amounts: amtsArr,
+        currency,
+        show_on: showOn,
       })
       setOpen(false)
     } catch { setError('保存失败，请重试') }
@@ -71,14 +193,26 @@ function DonationSection({ cfg }: { cfg: SystemConfig }) {
 
   return (
     <div className="space-y-2">
-      {/* ── 文字展示 ── */}
+      {/* Summary row */}
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1 flex-1 min-w-0">
-          <p className="text-sm font-bold text-stone-900">{title || '（未命名）'}</p>
-          {desc && <p className="text-xs text-stone-500 leading-relaxed">{desc}</p>}
+          {hasAppeals ? (
+            appeals.filter(a => a.title).map((a, i) => (
+              <div key={i} className="flex items-baseline gap-1.5">
+                <span className="text-[10px] text-amber-500 font-bold shrink-0">#{i + 1}</span>
+                <p className="text-xs font-medium text-stone-700 truncate">{a.title}</p>
+                {a.pages.length > 0 && (
+                  <span className="text-[10px] text-stone-400 shrink-0">
+                    ({a.pages.map(pageLabel).join('/')})
+                  </span>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="text-xs text-stone-400">暂无奉献呼召文字</p>
+          )}
           <p className="text-xs text-stone-500">
-            金额选项：{amtsArr.length ? amtsArr.map(a => `${currency} ${a}`).join(' · ') : '未设置'}
-            {defAmt && ` · 默认 ${currency} ${defAmt}`}
+            金额：{amtsArr.length ? amtsArr.map(a => `${currency} ${a}`).join(' · ') : '未设置'}
           </p>
           <p className="text-xs text-stone-400">显示于：{pagesText}</p>
         </div>
@@ -89,49 +223,81 @@ function DonationSection({ cfg }: { cfg: SystemConfig }) {
         </button>
       </div>
 
-      {/* ── 编辑面板 ── */}
+      {/* Edit panel */}
       {open && (
-        <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-4 space-y-3">
-          <Row label="奉献标题">
-            <input value={title} onChange={e => setTitle(e.target.value)} className={inp} />
-          </Row>
-          <Row label="说明文字">
-            <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2}
-              className={`${inp} resize-none`} />
-          </Row>
+        <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-4 space-y-4">
+
+          {/* Appeals header + generate button */}
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold text-stone-500 uppercase tracking-wide">
+              奉献呼召短文（共3条）
+            </p>
+            <button
+              onClick={generate}
+              disabled={genning}
+              className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white
+                         px-3 py-1.5 text-xs font-bold text-amber-700
+                         hover:bg-amber-50 disabled:opacity-50 transition-colors"
+            >
+              {genning
+                ? <Loader2 className="h-3 w-3 animate-spin" />
+                : hasAppeals
+                  ? <RefreshCw  className="h-3 w-3" />
+                  : <Sparkles   className="h-3 w-3" />
+              }
+              {genning ? '生成中…' : hasAppeals ? '刷新重新生成' : 'AI 自动生成'}
+            </button>
+          </div>
+
+          {/* 3 appeal cards */}
+          <div className="space-y-2.5">
+            {appeals.map((a, i) => (
+              <AppealCard
+                key={i}
+                index={i}
+                appeal={a}
+                onChange={updated => setAppeals(prev => prev.map((x, j) => j === i ? updated : x))}
+              />
+            ))}
+          </div>
+
+          {/* Amounts */}
           <div className="grid grid-cols-2 gap-3">
             <Row label="金额选项（逗号分隔）">
               <input value={amounts} onChange={e => setAmounts(e.target.value)}
-                placeholder="20, 50, 100, 200" className={inp} />
+                placeholder="10, 20, 50" className={inp} />
             </Row>
-            <Row label="默认金额">
-              <input type="number" value={defAmt} onChange={e => setDefAmt(e.target.value)} className={inp} />
+            <Row label="货币">
+              <div className="flex flex-wrap gap-1.5">
+                {CURRENCY_OPTIONS.map(c => (
+                  <button key={c} type="button" onClick={() => setCurrency(c)}
+                    className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors
+                      ${currency === c ? 'bg-amber-500 border-amber-500 text-white' : 'border-stone-200 text-stone-500 hover:bg-stone-100'}`}>
+                    {c}
+                  </button>
+                ))}
+              </div>
             </Row>
           </div>
-          <Row label="货币">
-            <div className="flex flex-wrap gap-1.5">
-              {CURRENCY_OPTIONS.map(c => (
-                <button key={c} type="button" onClick={() => setCurrency(c)}
-                  className={`rounded-lg border px-3 py-1 text-xs font-medium transition-colors
-                    ${currency === c ? 'bg-amber-500 border-amber-500 text-white' : 'border-stone-200 text-stone-500 hover:bg-stone-100'}`}>
-                  {c}
-                </button>
-              ))}
-            </div>
-          </Row>
-          <Row label="显示页面">
+
+          {/* show_on */}
+          <Row label="整体显示页面（全局开关）">
             <div className="flex flex-wrap gap-2">
               {PAGE_OPTIONS.map(p => (
                 <label key={p.key} className="flex items-center gap-1.5 cursor-pointer">
                   <input type="checkbox" checked={showOn.includes(p.key)}
-                    onChange={() => setShowOn(prev => prev.includes(p.key) ? prev.filter(x => x !== p.key) : [...prev, p.key])}
+                    onChange={() => setShowOn(prev =>
+                      prev.includes(p.key) ? prev.filter(x => x !== p.key) : [...prev, p.key]
+                    )}
                     className="rounded border-stone-300 accent-amber-500" />
                   <span className="text-xs text-stone-600">{p.label}</span>
                 </label>
               ))}
             </div>
           </Row>
+
           {error && <p className="text-xs text-red-600">{error}</p>}
+
           <div className="flex items-center gap-2 pt-1">
             {saving
               ? <Loader2 className="h-4 w-4 animate-spin text-stone-400" />
@@ -188,9 +354,6 @@ function PaymentSection({ cfg }: { cfg: SystemConfig }) {
               ? configured.map(f => f.label).join(' · ') + ' 已配置'
               : '暂未配置收款链接'}
           </p>
-          {draft.label && (
-            <p className="text-xs text-stone-400 mt-0.5">按钮文字：{draft.label}</p>
-          )}
         </div>
         <button onClick={() => setOpen(o => !o)}
           className="shrink-0 flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1
@@ -201,11 +364,11 @@ function PaymentSection({ cfg }: { cfg: SystemConfig }) {
 
       {open && (
         <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-4 space-y-3">
-          {[...PAYMENT_FIELDS, { key: 'label', label: '按钮文字' }].map(f => (
+          {PAYMENT_FIELDS.map(f => (
             <Row key={f.key} label={f.label}>
               <input value={draft[f.key] ?? ''}
                 onChange={e => setDraft(d => ({ ...d, [f.key]: e.target.value }))}
-                placeholder={f.key === 'label' ? '感恩奉献' : 'https://…'}
+                placeholder="https://…"
                 className={inp} />
             </Row>
           ))}
@@ -232,7 +395,7 @@ function PaymentSection({ cfg }: { cfg: SystemConfig }) {
   )
 }
 
-// ── Global Notice Section ────────────────────────────────────────────────────
+// ── Global Notice ─────────────────────────────────────────────────────────────
 const NOTICE_TYPES = [
   { value: 'info',    label: '📢 普通通知' },
   { value: 'warning', label: '⚠️ 警告提示' },
@@ -325,7 +488,7 @@ function GlobalNoticeSection({ cfg }: { cfg: SystemConfig }) {
   )
 }
 
-// ── Generic raw config (fallback for unknown keys) ────────────────────────────
+// ── Generic raw config ────────────────────────────────────────────────────────
 const CN_LABELS: Record<string, string> = {
   cost_rates: 'AI 费率参考（每次对齐成本，USD）',
 }
@@ -381,7 +544,7 @@ function RawSection({ cfg }: { cfg: SystemConfig }) {
   )
 }
 
-// ── Layout helpers ────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const inp = 'w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent'
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -394,7 +557,6 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-// Keys with dedicated UIs elsewhere — excluded from this card
 const EXCLUDED = ['ai_circuit_breaker', 'church_name']
 
 export function FinanceCard({ configs }: { configs: SystemConfig[] }) {
