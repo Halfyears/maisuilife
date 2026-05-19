@@ -55,19 +55,18 @@ export function MemberCard({ post, isUnlocked, fellowshipId }: MemberCardProps) 
           </span>
           <div className="flex-1 min-w-0">
             <p className="truncate text-sm font-medium text-stone-800">
-              {post.layer2_label || '我'}
-              <span className="ml-1.5 text-xs text-amber-600 font-normal">（我）</span>
+              {post.layer2_label || '同行者'}
             </p>
             <p className="text-xs text-amber-700/70">
-              {post.is_silent ? '我今日静默同行' : `我今日的心境：${post.status_tag}`}
+              {post.is_silent ? '今日静默同行' : `今日心境：${post.status_tag}`}
             </p>
           </div>
         </div>
 
-        {/* 我的 AI 属灵回应摘要 */}
+        {/* AI 属灵回应摘要 */}
         {!post.is_silent && post.summary && (
           <div className="mt-3 rounded-lg bg-white/70 px-3 py-2.5">
-            <p className="text-xs font-semibold text-amber-500 mb-1 tracking-wide">我今日的属灵回应</p>
+            <p className="text-xs font-semibold text-amber-500 mb-1 tracking-wide">今日属灵回应</p>
             <p className="text-sm leading-relaxed text-stone-700">{post.summary}</p>
             <p className="mt-2 text-[11px] text-amber-400/80 text-right">🔒 仅自己可见</p>
           </div>
