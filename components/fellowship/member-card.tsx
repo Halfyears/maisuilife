@@ -41,88 +41,128 @@ export function MemberCard({ post, isUnlocked, fellowshipId }: MemberCardProps) 
     })
   }, [post.alignment_id])
 
-  const summaryVisible = isUnlocked && post.summary && !post.is_silent
+  if (post.is_self) {
+    // ── 自己的卡片：始终可见，内容称"我" ──────────────────────
+    return (
+      <article className="rounded-2xl border border-amber-200 bg-gradient-to-br
+                          from-amber-50/80 to-orange-50/40 px-4 py-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-base"
+            aria-label={post.status_tag}
+          >
+            {statusMeta?.emoji ?? '🌿'}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-sm font-medium text-stone-800">
+              {post.layer2_label || '我'}
+              <span className="ml-1.5 text-xs text-amber-600 font-normal">（我）</span>
+            </p>
+            <p className="text-xs text-amber-700/70">
+              {post.is_silent ? '我今日静默同行' : `我今日的心境：${post.status_tag}`}
+            </p>
+          </div>
+        </div>
+
+        {/* 我的 AI 属灵回应摘要 */}
+        {!post.is_silent && post.summary && (
+          <div className="mt-3 rounded-lg bg-white/70 px-3 py-2.5">
+            <p className="text-xs font-semibold text-amber-500 mb-1 tracking-wide">我今日的属灵回应</p>
+            <p className="text-sm leading-relaxed text-stone-700">{post.summary}</p>
+          </div>
+        )}
+
+        {/* 无摘要时只展示情绪标签 */}
+        {!post.is_silent && !post.summary && (
+          <div className="mt-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
+              {statusMeta?.emoji ?? '🌿'} {post.status_tag}
+            </span>
+          </div>
+        )}
+
+        {/* 互动按钮（自己不对自己互动） */}
+      </article>
+    )
+  }
+
+  // ── 他人的卡片 ──────────────────────────────────────────────
+  // 解锁后只显示情绪 emoji + status_tag，不展示任何 summary 内容
+  const locked = !isUnlocked
 
   return (
     <article className={cn(
       'rounded-2xl border bg-card px-4 py-4 transition-shadow',
-      post.is_self
-        ? 'border-gold-300 bg-gold-400/5 shadow-sm'
-        : 'border-border',
+      locked ? 'border-border opacity-80' : 'border-border',
     )}>
       {/* ── Header row ──────────────────────────── */}
       <div className="flex items-center gap-2">
-        {/* Status emoji */}
         <span
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-oat-200 text-base"
-          aria-label={post.status_tag}
+          className={cn(
+            'flex h-8 w-8 items-center justify-center rounded-full bg-oat-200 text-base',
+            locked && 'opacity-40',
+          )}
+          aria-label={locked ? '未解锁' : post.status_tag}
         >
-          {statusMeta?.emoji ?? '🌿'}
+          {locked ? '🔒' : (statusMeta?.emoji ?? '🌿')}
         </span>
 
-        {/* Layer-2 pseudonym */}
         <div className="flex-1 min-w-0">
           <p className="truncate text-sm font-medium text-foreground">
             {post.layer2_label || '同行者'}
-            {post.is_self && (
-              <span className="ml-1.5 text-xs text-gold-600">(你)</span>
-            )}
           </p>
           <p className="text-xs text-muted-foreground">
-            {post.is_silent ? '静默同行' : post.status_tag}
+            {locked
+              ? '完成内室祷告后可见'
+              : (post.is_silent ? '静默同行' : post.status_tag)
+            }
           </p>
         </div>
 
-        {/* Lock badge — only show when content is gated */}
-        {!isUnlocked && !post.is_self && (
-          <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
+        {locked && (
+          <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40" aria-hidden />
         )}
       </div>
 
-      {/* ── Summary content ──────────────────────── */}
-      {!post.is_silent && (
-        <div className="relative mt-3 overflow-hidden rounded-lg bg-muted/50 px-3 py-2.5">
-          {/* Placeholder text always rendered (for consistent height) */}
-          <p className={cn(
-            'text-sm leading-relaxed text-foreground/80',
-            !summaryVisible && 'text-transparent select-none',
-          )}>
-            {summaryVisible
-              ? post.summary
-              : '心声正在等待被看见，先把自己的心放下吧。'
-            }
-          </p>
-
-          {/* Blur overlay + lock icon */}
-          {!summaryVisible && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 rounded-lg backdrop-blur-md">
-              <Lock className="h-4 w-4 text-muted-foreground/60" />
-              <Link
-                href="/daily"
-                className="text-xs font-medium text-amber-600 underline underline-offset-2 hover:text-amber-700 transition-colors"
-              >
-                前往内室记录后解锁
-              </Link>
-            </div>
-          )}
+      {/* 解锁后：只显示情绪标签，不显示任何 summary ──────────── */}
+      {!locked && !post.is_silent && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border
+                           bg-muted/40 px-3 py-1 text-xs font-medium text-foreground/80">
+            {statusMeta?.emoji ?? '🌿'} {post.status_tag}
+          </span>
         </div>
       )}
 
-      {/* ── Reaction buttons ─────────────────────── */}
-      <div className="mt-3 flex items-center gap-3">
-        <ReactionButton
-          label="🙏 记念"
-          count={nian}
-          active={pulsing === 'nian'}
-          onClick={() => handleReact('nian')}
-        />
-        <ReactionButton
-          label="Amen"
-          count={amen}
-          active={pulsing === 'amen'}
-          onClick={() => handleReact('amen')}
-        />
-      </div>
+      {/* 未解锁：琥珀色提示 ─────────────────────────────────── */}
+      {locked && (
+        <div className="mt-3 rounded-lg border border-amber-100/60 bg-amber-50/50 px-3 py-2 text-center">
+          <Link
+            href="/daily"
+            className="text-xs font-medium text-amber-600 underline underline-offset-2 hover:text-amber-700 transition-colors"
+          >
+            前往内室祷告，解锁今日团契心声
+          </Link>
+        </div>
+      )}
+
+      {/* ── 互动按钮（仅解锁后可用）────────────────────────── */}
+      {!locked && (
+        <div className="mt-3 flex items-center gap-3">
+          <ReactionButton
+            label="🙏 记念"
+            count={nian}
+            active={pulsing === 'nian'}
+            onClick={() => handleReact('nian')}
+          />
+          <ReactionButton
+            label="Amen"
+            count={amen}
+            active={pulsing === 'amen'}
+            onClick={() => handleReact('amen')}
+          />
+        </div>
+      )}
     </article>
   )
 }

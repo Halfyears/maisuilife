@@ -103,8 +103,11 @@ export default async function FellowshipPage() {
       )
 
       const posts: FellowshipPost[] = (alignments ?? []).map(row => {
+        const isSelf = row.user_id === user.id
+        // Only decrypt the viewer's own summary — other members' summaries are
+        // never sent to the client (they see emoji + status_tag only).
         let summary: string | null = null
-        if (viewerHasSubmitted && row.ai_summary_enc && !row.is_silent) {
+        if (isSelf && row.ai_summary_enc && !row.is_silent) {
           try {
             const hex = row.ai_summary_enc.replace(/^\\x/, '')
             const buf = Buffer.from(hex, 'hex')
@@ -118,7 +121,7 @@ export default async function FellowshipPage() {
           layer2_label: labelByUserId[row.user_id] ?? '同行者',
           status_tag:   row.status_tag,
           is_silent:    row.is_silent,
-          is_self:      row.user_id === user.id,
+          is_self:      isSelf,
           react_nian:   row.react_nian,
           react_amen:   row.react_amen,
           summary,
