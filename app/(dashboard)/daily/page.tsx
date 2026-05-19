@@ -6,6 +6,8 @@ import { todayLocal } from '@/lib/date'
 import { DailyForm } from '@/components/daily/daily-form'
 import { PastoralNotification } from '@/components/shared/pastoral-notification'
 import { BottomNav } from '@/components/shared/bottom-nav'
+import { GlobalNotice } from '@/components/shared/global-notice'
+import { DonationWidget } from '@/components/shared/donation-widget'
 
 export const metadata = { title: '今日内室 — 麦穗喜乐' }
 export const revalidate = 0
@@ -84,14 +86,14 @@ export default async function DailyPage() {
         </div>
       </header>
 
+      <GlobalNotice />
+
       {/* ── Scrollable content ─────────────────────────── */}
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-md px-4 pt-6 pb-32">
+        <div className="mx-auto max-w-md px-4 pt-6 pb-32 space-y-5">
 
           {pastoralRes.data && (
-            <div className="mb-5">
-              <PastoralNotification requestId={pastoralRes.data.id} leaderName={leaderName} />
-            </div>
+            <PastoralNotification requestId={pastoralRes.data.id} leaderName={leaderName} />
           )}
 
           {existing ? (
@@ -99,6 +101,8 @@ export default async function DailyPage() {
           ) : (
             <DailyForm fellowshipId={fellowshipId} />
           )}
+
+          <DonationWidget pageKey="daily" />
         </div>
       </main>
 

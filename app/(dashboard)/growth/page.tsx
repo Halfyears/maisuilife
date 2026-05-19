@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { BarChart2, Sprout, BookOpen, CalendarDays, Home } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
+import { GlobalNotice } from '@/components/shared/global-notice'
+import { DonationWidget } from '@/components/shared/donation-widget'
 
 export const metadata = { title: '灵命成长 — 麦穗喜乐' }
 export const revalidate = 0
@@ -140,6 +142,8 @@ export default async function GrowthPage() {
           </Link>
         </div>
       </header>
+
+      <GlobalNotice />
 
       <main className="flex-1 mx-auto w-full max-w-md px-4 pt-6 pb-32 space-y-5">
 
@@ -292,6 +296,8 @@ export default async function GrowthPage() {
             </div>
           </div>
         </div>
+
+        <DonationWidget pageKey="growth" />
 
       </main>
 

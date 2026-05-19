@@ -7,6 +7,8 @@ import { decrypt } from '@/lib/crypto'
 import { FellowshipView } from '@/components/fellowship/fellowship-view'
 import { PrayerSection } from '@/components/fellowship/prayer-section'
 import { BottomNav } from '@/components/shared/bottom-nav'
+import { GlobalNotice } from '@/components/shared/global-notice'
+import { DonationWidget } from '@/components/shared/donation-widget'
 import type { FellowshipPost, FellowshipPostsResponse } from '@/app/api/fellowship/posts/route'
 import type { PrayerRequestItem } from '@/app/api/prayer/route'
 
@@ -213,6 +215,8 @@ export default async function FellowshipPage() {
         </div>
       </header>
 
+      <GlobalNotice />
+
       <main className="flex-1 mx-auto w-full max-w-md px-4 pt-5 pb-32">
         {membership && (
           <p className="mb-4 text-xs font-medium text-stone-400">
@@ -247,6 +251,8 @@ export default async function FellowshipPage() {
             initialRequests={prayerRequests}
           />
         )}
+
+        <DonationWidget pageKey="fellowship" />
       </main>
 
       <BottomNav />

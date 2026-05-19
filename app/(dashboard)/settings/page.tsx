@@ -6,6 +6,8 @@ import { BottomNav } from '@/components/shared/bottom-nav'
 import { SignOutButton } from '@/components/shared/sign-out-button'
 import { ProfileCard } from '@/components/settings/profile-card'
 import { PushSubscribeButton } from '@/components/shared/push-subscribe-button'
+import { GlobalNotice } from '@/components/shared/global-notice'
+import { DonationWidget } from '@/components/shared/donation-widget'
 
 export const metadata = { title: '设置中心 — 麦穗喜乐 MaisuiJoy' }
 export const revalidate = 0
@@ -76,6 +78,8 @@ export default async function SettingsPage() {
         </div>
       </header>
 
+      <GlobalNotice />
+
       <main className="flex-1 mx-auto w-full max-w-md px-4 pt-6 pb-32 space-y-4">
 
         {/* ── 品牌标识条 ──────────────────────────────────── */}
@@ -106,6 +110,8 @@ export default async function SettingsPage() {
 
         {/* ── 角色专属管理中枢 ─────────────────────────── */}
         <RolePanel role={role} fellowship={fellowship} />
+
+        <DonationWidget pageKey="settings" />
 
         {/* ── 安全退出 ────────────────────────────────────── */}
         <SignOutButton />

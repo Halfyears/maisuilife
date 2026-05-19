@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { Target, Plus, LogIn } from 'lucide-react'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
+import { GlobalNotice } from '@/components/shared/global-notice'
+import { DonationWidget } from '@/components/shared/donation-widget'
 import { todayCSTString, getWeekStartCST, getScheduledDates } from '@/lib/accountability'
 import type { AccountabilityGroup, AccountabilityCheckin } from '@/types'
 
@@ -72,6 +74,8 @@ export default async function AccountabilityIndexPage() {
           </Link>
         </div>
       </header>
+
+      <GlobalNotice />
 
       <main className="flex-1 mx-auto w-full max-w-md px-4 pt-5 pb-32 space-y-3">
 
@@ -145,6 +149,8 @@ export default async function AccountabilityIndexPage() {
             )
           })
         )}
+
+        <DonationWidget pageKey="accountability" />
       </main>
 
       <BottomNav />
