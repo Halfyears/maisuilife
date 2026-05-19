@@ -205,17 +205,17 @@ export async function POST(req: NextRequest) {
       from_cache:      true,
       cache_use_count: newCount,
     }
-    // Atomic increment (fire-and-forget)
-    db.rpc('increment_shared_use_count', { p_id: cached.id })
-      .then(({ error: e }) => { if (e) console.error('[outline] use_count increment failed', e.message) })
 
-    // Save to fellowship history (fire-and-forget)
-    db.from('fellowship_outlines').insert({
-      fellowship_id, created_by: user.id,
-      meeting_type, input_query, tier,
-      outline:      cachedOutline as unknown as Record<string, unknown>,
-      generated_at: cachedOutline.generated_at,
-    }).then(({ error: e }) => { if (e) console.error('[outline] fellowship history save failed', e.message) })
+    // Await both writes before returning — serverless functions terminate after response
+    await Promise.allSettled([
+      db.rpc('increment_shared_use_count', { p_id: cached.id }),
+      db.from('fellowship_outlines').insert({
+        fellowship_id, created_by: user.id,
+        meeting_type, input_query, tier,
+        outline:      cachedOutline as unknown as Record<string, unknown>,
+        generated_at: cachedOutline.generated_at,
+      }),
+    ])
 
     return NextResponse.json(cachedOutline)
   }
@@ -378,31 +378,31 @@ ${breakdown.map((s, i) => `[${i}] ${sectionLabels[i]}（当前${s.length}字）�
     generated_at: new Date().toISOString(),
   }
 
-  // ── Save to shared cache (insert only — keep the first version if already exists) ─
-  db.from('shared_outlines').upsert({
-    meeting_type,
-    input_query,
-    query_normalized: queryNormalized,
-    tier,
-    outline:          outline as unknown as Record<string, unknown>,
-    use_count:        1,
-    generated_at:     outline.generated_at,
-    last_used_at:     outline.generated_at,
-  }, { onConflict: 'meeting_type,query_normalized,tier', ignoreDuplicates: true })
-  .then(({ error: e }) => { if (e) console.error('[outline] shared cache save failed', e.message) })
+  // ── Await both writes before returning — serverless terminates after response ──
+  await Promise.allSettled([
+    // Shared cache: keep first version if already exists (ignoreDuplicates)
+    db.from('shared_outlines').upsert({
+      meeting_type,
+      input_query,
+      query_normalized: queryNormalized,
+      tier,
+      outline:          outline as unknown as Record<string, unknown>,
+      use_count:        1,
+      generated_at:     outline.generated_at,
+      last_used_at:     outline.generated_at,
+    }, { onConflict: 'meeting_type,query_normalized,tier', ignoreDuplicates: true }),
 
-  // ── Save to fellowship history ───────────────────────────────────────────
-  db.from('fellowship_outlines').insert({
-    fellowship_id,
-    created_by:   user.id,
-    meeting_type,
-    input_query,
-    tier,
-    outline:      outline as unknown as Record<string, unknown>,
-    generated_at: outline.generated_at,
-  }).then(({ error: saveErr }) => {
-    if (saveErr) console.error('[outline] fellowship history save failed', saveErr.message)
-  })
+    // Fellowship history
+    db.from('fellowship_outlines').insert({
+      fellowship_id,
+      created_by:   user.id,
+      meeting_type,
+      input_query,
+      tier,
+      outline:      outline as unknown as Record<string, unknown>,
+      generated_at: outline.generated_at,
+    }),
+  ])
 
   return NextResponse.json(outline)
 }
