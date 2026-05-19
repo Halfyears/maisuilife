@@ -1,18 +1,20 @@
 'use client'
 
 /**
- * 备课工作台 — 合并 AI备课 + 本周备课（投屏同步）
+ * 备课工作台 — AI备课 + 投屏同步 + 历史记录
  *
- * 流程：输入主题/经文 → AI 生成大纲 → 一键同步主题+经文到投屏
- * 取代原来独立的 OutlineGenerator + ThemePlanner，消除重复录入。
+ * 流程：输入主题/经文 → AI 生成大纲 → 一键同步到投屏
+ * 历史记录：每次生成自动保存，可一键恢复
  */
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import {
   BookOpen, Sparkles, Loader2, Copy, Check,
   ChevronDown, ChevronUp, CheckCircle2, Monitor, Lock,
+  History, RotateCcw, Trash2, AlertCircle,
 } from 'lucide-react'
 import type { MeetingOutline } from '@/app/api/fellowship/outline/route'
+import type { OutlineRecord } from '@/app/api/fellowship/outlines/route'
 
 interface Props {
   fellowshipId:         string
@@ -32,6 +34,7 @@ export function StudyWorkbench({
   moodWords,
 }: Props) {
   const isSuperAdmin = userRole === 'super_admin'
+
   // ── AI generation state ──────────────────────────────────────────────────
   const [meetingType, setMeetingType] = useState<'theme' | 'scripture'>('theme')
   const [query, setQuery]             = useState('')
@@ -41,19 +44,42 @@ export function StudyWorkbench({
   const [copied, setCopied]           = useState(false)
   const [expanded, setExpanded]       = useState<Record<number, boolean>>({})
 
-  // ── Projector sync state (pre-filled from current session-plan) ──────────
+  // ── Projector sync state ─────────────────────────────────────────────────
   const [syncTheme,   setSyncTheme]   = useState(initialTheme         ?? '')
   const [syncRef,     setSyncRef]     = useState(initialScriptureRef  ?? '')
   const [syncText,    setSyncText]    = useState(initialScriptureText ?? '')
   const [isSaving,    startSave]      = useTransition()
   const [saved,       setSaved]       = useState(false)
+  const [isClearing,  startClear]     = useTransition()
+  const [cleared,     setCleared]     = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
 
-  // ── Current projector state (what's live on projector right now) ─────────
+  // ── History state ────────────────────────────────────────────────────────
+  const [history,        setHistory]        = useState<OutlineRecord[]>([])
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const [historyOpen,    setHistoryOpen]    = useState(false)
+
+  // Current projector badge
   const hasCurrentPlan = !!(initialTheme || initialScriptureRef)
 
-  // ────────────────────────────────────────────────────────────────────────
-  // AI generation
-  // ────────────────────────────────────────────────────────────────────────
+  // ── Load history on mount ────────────────────────────────────────────────
+  useEffect(() => {
+    fetch(`/api/fellowship/outlines?fellowship_id=${fellowshipId}&limit=8`)
+      .then(r => r.ok ? r.json() : [])
+      .then((records: OutlineRecord[]) => setHistory(records))
+      .catch(() => {})
+      .finally(() => setHistoryLoading(false))
+  }, [fellowshipId])
+
+  // Refresh history after new generation
+  function refreshHistory() {
+    fetch(`/api/fellowship/outlines?fellowship_id=${fellowshipId}&limit=8`)
+      .then(r => r.ok ? r.json() : [])
+      .then((records: OutlineRecord[]) => setHistory(records))
+      .catch(() => {})
+  }
+
+  // ── AI generation ────────────────────────────────────────────────────────
   async function generate() {
     if (!query.trim() || loading) return
     setLoading(true)
@@ -82,8 +108,10 @@ export function StudyWorkbench({
       setSyncTheme(query.trim())
       setSyncRef(data.ai_sermon_lecture.scripture_ref || syncRef)
       setSyncText(data.ai_sermon_lecture.scripture_text_full || syncText)
-      // Expand all sections by default
+      // Expand all sections
       setExpanded({ 0: true, 1: true, 2: true, 3: true, 4: true })
+      // Refresh history list
+      refreshHistory()
     } catch {
       setGenError('网络错误，请重试')
     } finally {
@@ -91,9 +119,22 @@ export function StudyWorkbench({
     }
   }
 
-  // ────────────────────────────────────────────────────────────────────────
-  // Projector sync (save to session-plan)
-  // ────────────────────────────────────────────────────────────────────────
+  // ── Restore from history ─────────────────────────────────────────────────
+  function restoreFromHistory(record: OutlineRecord) {
+    setOutline(record.outline)
+    setQuery(record.input_query)
+    setMeetingType(record.meeting_type)
+    setSyncTheme(record.input_query)
+    setSyncRef(record.outline.ai_sermon_lecture.scripture_ref || '')
+    setSyncText(record.outline.ai_sermon_lecture.scripture_text_full || '')
+    setExpanded({ 0: true, 1: true, 2: true, 3: true, 4: true })
+    setSaved(false)
+    setHistoryOpen(false)
+    // Scroll to top of section
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // ── Projector sync ───────────────────────────────────────────────────────
   function handleSave() {
     setSaved(false)
     startSave(async () => {
@@ -112,9 +153,30 @@ export function StudyWorkbench({
     })
   }
 
-  // ────────────────────────────────────────────────────────────────────────
-  // Copy full outline
-  // ────────────────────────────────────────────────────────────────────────
+  // ── Clear projector ──────────────────────────────────────────────────────
+  function handleClearProjector() {
+    if (!confirmClear) {
+      setConfirmClear(true)
+      setTimeout(() => setConfirmClear(false), 3000)
+      return
+    }
+    setConfirmClear(false)
+    setCleared(false)
+    startClear(async () => {
+      await fetch('/api/fellowship/session-plan', {
+        method:  'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fellowship_id: fellowshipId }),
+      })
+      setSyncTheme('')
+      setSyncRef('')
+      setSyncText('')
+      setCleared(true)
+      setTimeout(() => setCleared(false), 3000)
+    })
+  }
+
+  // ── Copy full outline text ───────────────────────────────────────────────
   function buildFullText(): string {
     if (!outline) return ''
     const { ai_member_insight: ins, ai_sermon_lecture: ser } = outline
@@ -146,12 +208,10 @@ export function StudyWorkbench({
   }
 
   // ────────────────────────────────────────────────────────────────────────
-  // Render
-  // ────────────────────────────────────────────────────────────────────────
   return (
     <div className="rounded-2xl border border-stone-100 bg-white/90 shadow-md shadow-amber-900/5">
 
-      {/* ── Header ───────────────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 px-5 pt-5 pb-4 border-b border-stone-50">
         <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50">
           <BookOpen className="h-4 w-4 text-amber-600" />
@@ -176,7 +236,7 @@ export function StudyWorkbench({
         {hasCurrentPlan && (
           <div className="flex items-center gap-1.5 rounded-lg bg-stone-50 border border-stone-100 px-2.5 py-1">
             <Monitor className="h-3 w-3 text-stone-400" />
-            <span className="text-[10px] text-stone-400 max-w-[100px] truncate">
+            <span className="text-[10px] text-stone-400 max-w-[90px] truncate">
               {initialTheme || initialScriptureRef}
             </span>
           </div>
@@ -185,7 +245,7 @@ export function StudyWorkbench({
 
       <div className="px-5 py-4 space-y-5">
 
-        {/* ── Step 1: Input ───────────────────────────────────── */}
+        {/* ── Step 1: Input ──────────────────────────────────────── */}
         <div className="space-y-3">
           <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">① 输入本周主题</p>
 
@@ -238,7 +298,7 @@ export function StudyWorkbench({
           {genError && <p className="text-xs text-red-500">{genError}</p>}
         </div>
 
-        {/* ── Loading skeleton ────────────────────────────────── */}
+        {/* ── Loading skeleton ─────────────────────────────────────── */}
         {loading && (
           <div className="space-y-3 py-2">
             {[80, 60, 100, 90, 75].map((w, i) => (
@@ -256,7 +316,7 @@ export function StudyWorkbench({
           </div>
         )}
 
-        {/* ── Step 2: Outline result ──────────────────────────── */}
+        {/* ── Step 2: Outline result ─────────────────────────────── */}
         {outline && !loading && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -287,13 +347,13 @@ export function StudyWorkbench({
                   </span>
                 )}
               </div>
-              <p className="text-sm text-stone-700 leading-relaxed italic">
+              <p className="text-sm text-stone-700 leading-relaxed italic whitespace-pre-line">
                 {outline.ai_sermon_lecture.scripture_text_full}
               </p>
               <p className="mt-2 text-[10px] text-amber-600/70">⚠ 请对照实体圣经核实经文</p>
             </div>
 
-            {/* Theological breakdown — collapsible */}
+            {/* Theological breakdown */}
             <div className="rounded-xl border border-stone-100 bg-stone-50 px-4 py-3.5">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-bold text-stone-700">③ 讲道阐述 · 30–45 分钟</p>
@@ -333,7 +393,7 @@ export function StudyWorkbench({
                 })}
               </div>
 
-              {/* Free tier upsell — shown only when outline is free */}
+              {/* Free tier upsell */}
               {outline.tier === 'free' && (
                 <div className="mt-3 rounded-xl border border-dashed border-stone-300 bg-white px-4 py-4 text-center">
                   <div className="flex justify-center mb-2">
@@ -367,8 +427,7 @@ export function StudyWorkbench({
           </div>
         )}
 
-        {/* ── Step 3: Sync to projector ───────────────────────── */}
-        {/* Show always (allows manual update even without AI generation) */}
+        {/* ── Step 3: Sync to projector ──────────────────────────── */}
         <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-4 space-y-3">
           <div className="flex items-center gap-2">
             <Monitor className="h-3.5 w-3.5 text-stone-500" />
@@ -376,7 +435,8 @@ export function StudyWorkbench({
               ③ 同步到投屏
             </p>
             {outline && (
-              <span className="ml-auto text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+              <span className="ml-auto text-[10px] text-amber-600 bg-amber-50 border border-amber-200
+                               px-2 py-0.5 rounded-full">
                 已从大纲自动填入
               </span>
             )}
@@ -436,18 +496,117 @@ export function StudyWorkbench({
           >
             {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
             {saved    && <CheckCircle2 className="h-4 w-4" />}
-            <Monitor className="h-4 w-4" />
+            {!isSaving && !saved && <Monitor className="h-4 w-4" />}
             {saved ? '已同步到投屏 ✓' : '同步到投屏'}
           </button>
+
+          {/* Clear projector button */}
+          <button
+            onClick={handleClearProjector}
+            disabled={isClearing}
+            className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 text-xs
+                        transition-all border ${
+              cleared
+                ? 'border-stone-200 bg-white text-stone-400'
+                : confirmClear
+                  ? 'border-red-300 bg-red-50 text-red-600 font-bold'
+                  : 'border-stone-200 bg-white text-stone-400 hover:border-red-200 hover:text-red-500'
+            }`}
+          >
+            {isClearing
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : cleared
+                ? <CheckCircle2 className="h-3.5 w-3.5" />
+                : confirmClear
+                  ? <AlertCircle className="h-3.5 w-3.5" />
+                  : <Trash2 className="h-3.5 w-3.5" />}
+            {cleared
+              ? '投屏已清空'
+              : confirmClear
+                ? '再次点击确认清空投屏'
+                : '清空投屏内容'}
+          </button>
+
           <p className="text-[10px] text-stone-400 text-center">
-            保存后投屏幻灯片立即更新，刷新投屏页即可看到
+            同步后投屏立即更新 · 聚会结束后请清空投屏
           </p>
+        </div>
+
+        {/* ── History Panel ───────────────────────────────────────── */}
+        <div className="rounded-xl border border-stone-100 overflow-hidden">
+          <button
+            onClick={() => setHistoryOpen(o => !o)}
+            className="flex w-full items-center justify-between px-4 py-3
+                       bg-stone-50 hover:bg-stone-100 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <History className="h-3.5 w-3.5 text-stone-400" />
+              <span className="text-xs font-bold text-stone-500">历史备课记录</span>
+              {!historyLoading && history.length > 0 && (
+                <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[10px] text-stone-500 tabular-nums">
+                  {history.length}
+                </span>
+              )}
+            </div>
+            {historyOpen
+              ? <ChevronUp className="h-3.5 w-3.5 text-stone-400" />
+              : <ChevronDown className="h-3.5 w-3.5 text-stone-400" />}
+          </button>
+
+          {historyOpen && (
+            <div className="divide-y divide-stone-50 bg-white">
+              {historyLoading && (
+                <div className="px-4 py-6 text-center">
+                  <Loader2 className="h-4 w-4 animate-spin text-stone-300 mx-auto" />
+                </div>
+              )}
+              {!historyLoading && history.length === 0 && (
+                <div className="px-4 py-6 text-center text-xs text-stone-300">
+                  暂无历史记录 · 生成大纲后自动保存
+                </div>
+              )}
+              {!historyLoading && history.map(record => (
+                <div key={record.id}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-stone-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs">{record.meeting_type === 'theme' ? '📖' : '📜'}</span>
+                      <span className="text-xs font-medium text-stone-700 truncate">{record.input_query}</span>
+                      {record.tier === 'premium' && (
+                        <span className="shrink-0 text-[9px] text-violet-600 bg-violet-50 border border-violet-200
+                                         px-1.5 py-0.5 rounded-full font-bold">⚡</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-stone-400">
+                      {new Date(record.generated_at).toLocaleString('zh-CN', {
+                        month: 'numeric', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })}
+                      <span className="mx-1">·</span>
+                      {record.outline.ai_sermon_lecture.theological_breakdown.reduce((s, t) => s + t.length, 0)} 字
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => restoreFromHistory(record)}
+                    className="shrink-0 ml-3 flex items-center gap-1 rounded-lg border border-stone-200
+                               bg-white px-2.5 py-1.5 text-[10px] font-medium text-stone-500
+                               hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    恢复
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
     </div>
   )
 }
+
+// ── Helper ────────────────────────────────────────────────────────────────────
 
 function SubBlock({ label, children }: { label: string; children: string }) {
   return (
