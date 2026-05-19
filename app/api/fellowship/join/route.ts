@@ -6,11 +6,12 @@
  * as a member. Returns 409 if the user is already in any fellowship.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
+  // Auth: verify user session via cookie-based client
   const supabase = createClient()
   const { data: { user }, error: authErr } = await supabase.auth.getUser()
   if (authErr || !user) {
@@ -23,7 +24,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'missing_code' }, { status: 400 })
   }
 
-  const db = createServiceClient()
+  // Use admin client (no user JWT) so RLS is truly bypassed for all DB ops below
+  const db = createAdminClient()
 
   // ── 1. Check if user is already a member ──────────────
   const { data: existing } = await db
@@ -38,11 +40,16 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 2. Look up fellowship by invite_code ───────────────
-  const { data: fellowship } = await db
+  const { data: fellowship, error: lookupErr } = await db
     .from('fellowships')
     .select('id, name, status')
     .eq('invite_code', inviteCode)
     .maybeSingle()
+
+  if (lookupErr) {
+    console.error('[fellowship/join] lookup error:', lookupErr.message)
+    return NextResponse.json({ error: 'join_failed' }, { status: 500 })
+  }
 
   if (!fellowship) {
     return NextResponse.json({ error: 'invalid_code' }, { status: 404 })
@@ -57,7 +64,7 @@ export async function POST(req: NextRequest) {
     .from('users')
     .select('display_name')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   // ── 4. Insert membership ───────────────────────────────
   const { error: insertErr } = await db
@@ -70,7 +77,7 @@ export async function POST(req: NextRequest) {
     })
 
   if (insertErr) {
-    console.error('[fellowship/join]', insertErr.message)
+    console.error('[fellowship/join] insert error:', insertErr.message)
     return NextResponse.json({ error: 'join_failed' }, { status: 500 })
   }
 
