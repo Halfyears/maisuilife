@@ -149,18 +149,23 @@ export async function POST(req: NextRequest) {
       console.error('[align] spiritual_log insert error:', logErr.code, logErr.message)
     }
 
-    // ── 7b. Increment fellowship wheat_count on first daily submission ───
+    // ── 7b. Increment wheat counters on first daily submission ──────────
+    let contributedWheat = false
     if (isFirstSubmission && !dbError) {
       try {
-        const db = createAdminClient()
-        const { data: membership } = await db
+        const adminDb = createAdminClient()
+        const { data: membership } = await adminDb
           .from('fellowship_members')
           .select('fellowship_id')
           .eq('user_id', user.id)
           .limit(1)
           .maybeSingle()
         if (membership?.fellowship_id) {
-          await db.rpc('increment_wheat_count', { p_fellowship_id: membership.fellowship_id })
+          await Promise.allSettled([
+            adminDb.rpc('increment_wheat_count',  { p_fellowship_id: membership.fellowship_id }),
+            adminDb.rpc('increment_vault_wheat',  { p_fellowship_id: membership.fellowship_id }),
+          ])
+          contributedWheat = true
         }
       } catch {
         // wheat increment is non-critical; don't fail the request
@@ -181,10 +186,11 @@ export async function POST(req: NextRequest) {
 
     // ── 9. Return only what the UI needs ─────────────────────────────────
     return NextResponse.json({
-      alignmentId: alignment?.id ?? '',
-      comfort:     aiResponse.comfort,
-      verse:       aiResponse.verse,
-      verse_ref:   aiResponse.verse_ref,
+      alignmentId:       alignment?.id ?? '',
+      comfort:           aiResponse.comfort,
+      verse:             aiResponse.verse,
+      verse_ref:         aiResponse.verse_ref,
+      contributed_wheat: contributedWheat,
     })
 
   } catch (err) {

@@ -13,10 +13,11 @@ interface DailyFormProps {
 }
 
 interface AIResult {
-  alignmentId: string
-  comfort:     string
-  verse:       string
-  verse_ref:   string
+  alignmentId:       string
+  comfort:           string
+  verse:             string
+  verse_ref:         string
+  contributed_wheat: boolean
 }
 
 function getFallbackVerse(tags: StatusTagValue[]): { verse: string; verse_ref: string } {
@@ -117,6 +118,19 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
             </div>
           </div>
         </div>
+
+        {/* 麦穗贡献通知 */}
+        {aiResult.contributed_wheat && (
+          <div className="flex items-center gap-3 rounded-2xl border border-amber-200/80
+                          bg-gradient-to-r from-amber-50 to-yellow-50/60
+                          px-5 py-4 shadow-sm
+                          animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
+            <span className="text-2xl" style={{ animation: 'bounce 1s ease 2' }}>🌾</span>
+            <p className="text-sm font-medium text-amber-700">
+              你已默默为团契粮仓贡献了 1 颗麦穗
+            </p>
+          </div>
+        )}
 
         {/* 静默提示 */}
         <p className="text-center text-xs text-stone-300 pb-4 leading-relaxed">

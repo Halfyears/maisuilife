@@ -305,6 +305,7 @@ function HarvestSlide({
   async function handleAmen() {
     setBurst(true)
     setTimeout(() => setBurst(false), 600)
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(40)
     const newCount = amen + 1
     setAmen(newCount)
     await fetch('/api/fellowship/session/amen', {

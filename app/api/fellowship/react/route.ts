@@ -65,20 +65,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  // ── Atomic increment via RPC ──────────────────────────
-  const { data: updated, error: rpcErr } = await db
-    .rpc('increment_reaction', {
-      p_alignment_id:   alignmentId,
-      p_reaction_type:  reaction,
-    })
-    .single()
+  // ── Atomic increment + interaction record (parallel, non-blocking) ──
+  const [rpcResult] = await Promise.allSettled([
+    db
+      .rpc('increment_reaction', {
+        p_alignment_id:  alignmentId,
+        p_reaction_type: reaction,
+      })
+      .single(),
+    db
+      .from('member_spiritual_interactions')
+      .insert({
+        alignment_id:  alignmentId,
+        interactor_id: user.id,
+        action_type:   reaction,
+      }),
+  ])
 
-  if (rpcErr || !updated) {
-    // alignment may have been purged by midnight job between checks
-    console.error('[react] rpc error:', rpcErr?.code)
+  if (rpcResult.status === 'rejected' || !rpcResult.value?.data) {
+    console.error('[react] rpc error:', rpcResult.status === 'fulfilled' ? rpcResult.value?.error?.code : 'rejected')
     return NextResponse.json({ error: 'update_failed' }, { status: 409 })
   }
 
+  const updated = rpcResult.value.data
   return NextResponse.json({
     react_nian: updated.react_nian,
     react_amen: updated.react_amen,
