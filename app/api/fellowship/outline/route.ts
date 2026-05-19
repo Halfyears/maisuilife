@@ -33,7 +33,9 @@ export interface MeetingOutline {
     theological_breakdown:  string[]
     application_questions:  string[]
   }
-  generated_at: string
+  generated_at:    string
+  from_cache?:     boolean   // true = 从共享库命中，未消耗 token
+  cache_use_count?: number   // 跨团契调用次数（含本次）
 }
 
 function buildSystemPrompt(): string {
@@ -184,6 +186,40 @@ export async function POST(req: NextRequest) {
   // Future: check fellowship/user subscription here
   const tier: 'free' | 'premium' = role === 'super_admin' ? 'premium' : 'free'
 
+  // ── Shared cache lookup (cross-fellowship, zero-token fast path) ─────────
+  const queryNormalized = input_query.trim().toLowerCase().replace(/\s+/g, ' ')
+
+  const { data: cached } = await db
+    .from('shared_outlines')
+    .select('id, outline, use_count')
+    .eq('meeting_type', meeting_type)
+    .eq('query_normalized', queryNormalized)
+    .eq('tier', tier)
+    .maybeSingle()
+
+  if (cached) {
+    const newCount = (cached.use_count as number) + 1
+    const cachedOutline: MeetingOutline = {
+      ...(cached.outline as MeetingOutline),
+      generated_at:    new Date().toISOString(),
+      from_cache:      true,
+      cache_use_count: newCount,
+    }
+    // Atomic increment (fire-and-forget)
+    db.rpc('increment_shared_use_count', { p_id: cached.id })
+      .then(({ error: e }) => { if (e) console.error('[outline] use_count increment failed', e.message) })
+
+    // Save to fellowship history (fire-and-forget)
+    db.from('fellowship_outlines').insert({
+      fellowship_id, created_by: user.id,
+      meeting_type, input_query, tier,
+      outline:      cachedOutline as unknown as Record<string, unknown>,
+      generated_at: cachedOutline.generated_at,
+    }).then(({ error: e }) => { if (e) console.error('[outline] fellowship history save failed', e.message) })
+
+    return NextResponse.json(cachedOutline)
+  }
+
   // ── Fetch anonymous member mood context (last 7 days) ──────────────────
   const { data: members } = await db
     .from('fellowship_members').select('user_id').eq('fellowship_id', fellowship_id)
@@ -326,7 +362,20 @@ ${breakdown.map((s, i) => `[${i}] ${sectionLabels[i]}（当前${s.length}字）�
     generated_at: new Date().toISOString(),
   }
 
-  // ── Persist to fellowship_outlines (fire-and-forget style, don't block response) ──
+  // ── Save to shared cache (insert only — keep the first version if already exists) ─
+  db.from('shared_outlines').upsert({
+    meeting_type,
+    input_query,
+    query_normalized: queryNormalized,
+    tier,
+    outline:          outline as unknown as Record<string, unknown>,
+    use_count:        1,
+    generated_at:     outline.generated_at,
+    last_used_at:     outline.generated_at,
+  }, { onConflict: 'meeting_type,query_normalized,tier', ignoreDuplicates: true })
+  .then(({ error: e }) => { if (e) console.error('[outline] shared cache save failed', e.message) })
+
+  // ── Save to fellowship history ───────────────────────────────────────────
   db.from('fellowship_outlines').insert({
     fellowship_id,
     created_by:   user.id,
@@ -336,7 +385,7 @@ ${breakdown.map((s, i) => `[${i}] ${sectionLabels[i]}（当前${s.length}字）�
     outline:      outline as unknown as Record<string, unknown>,
     generated_at: outline.generated_at,
   }).then(({ error: saveErr }) => {
-    if (saveErr) console.error('[outline] save history failed', saveErr.message)
+    if (saveErr) console.error('[outline] fellowship history save failed', saveErr.message)
   })
 
   return NextResponse.json(outline)
