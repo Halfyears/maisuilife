@@ -8,6 +8,7 @@ import { SpatialToggle } from '@/components/console/spatial-toggle'
 import { ThemePlanner } from '@/components/console/theme-planner'
 import { MusicPlanner } from '@/components/console/music-planner'
 import { SessionPanel } from '@/components/console/session-panel'
+import { OutlineGenerator } from '@/components/console/outline-generator'
 import type { InsightResponse } from '@/app/api/fellowship/insight/route'
 import type { PastoralListResponse } from '@/app/api/pastoral/list/route'
 import type { MusicSlot } from '@/app/api/fellowship/music/route'
@@ -205,6 +206,9 @@ export default async function ConsolePage({
           requests={pastoralData.requests}
           fellowshipId={fellowship.id}
         />
+
+        {/* ── AI 备课助手 ──────────────────── */}
+        <OutlineGenerator fellowshipId={fellowship.id} />
 
         {/* ── Theme & Scripture Planner ────── */}
         <ThemePlanner
