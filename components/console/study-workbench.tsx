@@ -11,7 +11,7 @@ import { useState, useTransition, useEffect } from 'react'
 import {
   BookOpen, Sparkles, Loader2, Copy, Check,
   ChevronDown, ChevronUp, CheckCircle2, Monitor, Lock,
-  History, RotateCcw, Trash2, AlertCircle, Zap,
+  History, RotateCcw, Trash2, AlertCircle,
 } from 'lucide-react'
 import type { MeetingOutline } from '@/app/api/fellowship/outline/route'
 import type { OutlineRecord } from '@/app/api/fellowship/outlines/route'
@@ -310,8 +310,8 @@ export function StudyWorkbench({
             ))}
             <p className="text-center text-xs text-stone-400 animate-pulse pt-1">
               {isSuperAdmin
-                ? '查询共享备课库 · 如无缓存则 AI 编织完整讲章，约需 20-40 秒…'
-                : '查询共享备课库 · 如无缓存则 AI 生成纲要，约需 10-20 秒…'}
+                ? 'AI 研读经文、编织完整讲章，约需 20-40 秒…'
+                : 'AI 生成讲章纲要，约需 10-20 秒…'}
             </p>
           </div>
         )}
@@ -329,21 +329,6 @@ export function StudyWorkbench({
                 {copied ? '已复制' : '复制全文'}
               </button>
             </div>
-
-            {/* Cache hit banner */}
-            {outline.from_cache && (
-              <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                  <Zap className="h-3.5 w-3.5 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-emerald-700">从共享备课库调用</p>
-                  <p className="text-[10px] text-emerald-600 leading-relaxed">
-                    已有 <span className="font-bold">{outline.cache_use_count}</span> 个团契使用过此主题 · 节省 AI 额度
-                  </p>
-                </div>
-              </div>
-            )}
 
             {/* Member insight */}
             <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5 space-y-3">
@@ -599,9 +584,6 @@ export function StudyWorkbench({
                       })}
                       <span className="mx-1">·</span>
                       {record.outline.ai_sermon_lecture.theological_breakdown.reduce((s, t) => s + t.length, 0)} 字
-                      {record.outline.from_cache && (
-                        <span className="ml-1 text-emerald-500">· 共享库</span>
-                      )}
                     </p>
                   </div>
                   <button
