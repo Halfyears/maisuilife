@@ -8,8 +8,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Groq from 'groq-sdk'
 
-export const runtime   = 'nodejs'
-export const maxDuration = 60
+export const runtime     = 'nodejs'
+export const maxDuration = 120   // two Groq calls worst case
 
 interface OutlineRequest {
   fellowship_id: string
@@ -63,11 +63,23 @@ theological_breakdown 数组必须包含以下 5 个元素，按顺序输出：
 每个论点必须有小标题，格式如：「论点一：[标题]」
 
 ═══════════════════════════════════════════
-【钢印三：精准时控，3000-4500 字】
+【钢印三：精准字数，每段硬性下限】
 ═══════════════════════════════════════════
-theological_breakdown 五段合计总字数必须在 3000-4500 字之间。
-（正常普通话宣讲语速约 100 字/分钟，3000字=30分钟，4500字=45分钟）
-宁可在细节处展开，也不要缩水。每段都要充实饱满。
+普通话宣讲语速约 100 字/分钟。五段合计必须达到 3000-4500 字。
+以下是每段的硬性最低字数，达不到就是任务失败：
+  引言：最少 500 字
+  论点一：最少 700 字
+  论点二：最少 700 字
+  论点三：最少 700 字
+  结论呼召：最少 400 字
+  ─────────────────────────
+  五段合计：最少 3000 字
+
+如何写满字数：
+• 每处圣经引用后，用 2-3 句话展开解释这句话的神学含义
+• 每个现实场景要有细节：写出人物、情境、心理活动，而不只是一句概括
+• 每个属灵解法要有操作步骤：具体到这周能做什么，而不只是"要信靠神"
+• 段落之间要有过渡句，讲章有连贯的叙事节奏
 
 ═══════════════════════════════════════════
 【输出格式要求】
@@ -78,11 +90,11 @@ theological_breakdown 五段合计总字数必须在 3000-4500 字之间。
   "bible_framework": "200字以内，用圣经神学语言对该主题/经文进行属灵定性，点明核心属灵张力",
   "scripture_text_full": "和合本圣经原文段落，主题模式下选最相关的核心经段，经文模式下输出指定章节全文",
   "theological_breakdown": [
-    "引言段（约500字）：真实场景开场，提出核心张力",
-    "论点一：[标题]（约700字）：三维结构展开",
-    "论点二：[标题]（约700字）：三维结构展开",
-    "论点三：[标题]（约700字）：三维结构展开",
-    "结论呼召（约400字）：总结+行动呼召+祷告收尾"
+    "【引言 · 最少500字】真实生活场景开场 → 引出核心属灵张力 → 预告三大论点",
+    "【论点一：标题 · 最少700字】圣经经文原文 → 神学解释2-3句 → 具体职场/家庭场景细节 → 属灵解法+本周可执行行动",
+    "【论点二：标题 · 最少700字】圣经经文原文 → 神学解释2-3句 → 具体职场/家庭场景细节 → 属灵解法+本周可执行行动",
+    "【论点三：标题 · 最少700字】圣经经文原文 → 神学解释2-3句 → 具体职场/家庭场景细节 → 属灵解法+本周可执行行动",
+    "【结论呼召 · 最少400字】三点总结 → 具体委身行动 → 祷告感收尾"
   ],
   "application_questions": [
     "第一个震撼问题（直接戳到现实痛点，让人无法回避）",
@@ -177,10 +189,11 @@ ${typeHint}
 【团契本周内室状态（匿名统计）】
 ${moodContext}
 
-请严格按照系统指令中的三条钢印要求生成完整备课大纲。
-theological_breakdown 五段合计必须达到 3000-4500 字，不得缩水。`
+重要提醒：theological_breakdown 五段合计必须达到 3000 字以上。
+每段的硬性下限：引言≥500字，三个论点各≥700字，结论≥400字。
+用具体细节、场景描写、操作步骤来填满字数，绝不允许概括性带过。`
 
-  // ── Call Groq ───────────────────────────────────────────────────────────
+  // ── Call Groq (主调用，8000 token 上限) ────────────────────────────────
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
   const completion = await groq.chat.completions.create({
@@ -190,7 +203,7 @@ theological_breakdown 五段合计必须达到 3000-4500 字，不得缩水。`
     ],
     model:           'llama-3.3-70b-versatile',
     temperature:     0.75,
-    max_tokens:      6000,
+    max_tokens:      8000,   // 8000 token ≈ 最多约 7000+ 汉字输出空间
     response_format: { type: 'json_object' },
   })
 
@@ -202,6 +215,51 @@ theological_breakdown 五段合计必须达到 3000-4500 字，不得缩水。`
     return NextResponse.json({ error: 'ai_parse_error' }, { status: 500 })
   }
 
+  let breakdown: string[] = Array.isArray(parsed.theological_breakdown)
+    ? (parsed.theological_breakdown as unknown[]).map(String)
+    : []
+
+  // ── 字数兜底：若讲道阐述不足 2500 字，触发专项扩写 ─────────────────────
+  const totalChars = breakdown.reduce((s, t) => s + t.length, 0)
+  if (totalChars < 2500 && breakdown.length === 5) {
+    console.warn(`[outline] sermon too short (${totalChars} chars), triggering expansion`)
+
+    const sectionLabels = ['引言（目标≥500字）', '论点一（目标≥700字）', '论点二（目标≥700字）', '论点三（目标≥700字）', '结论呼召（目标≥400字）']
+    const expandPrompt = `以下是你刚生成的讲章各段，字数严重不足（合计仅${totalChars}字，目标3000字）。
+请对每一段进行大幅扩写，加入更多圣经解释、具体生活场景细节、和属灵操作步骤。
+必须以 JSON 数组格式输出，只输出 theological_breakdown 数组，共 5 个字符串元素。
+
+当前各段：
+${breakdown.map((s, i) => `[${i}] ${sectionLabels[i]}（当前${s.length}字）：${s.slice(0, 80)}…`).join('\n')}
+
+请重写并大幅扩展每段。格式：{"theological_breakdown": ["扩写后的引言", "扩写后的论点一", "扩写后的论点二", "扩写后的论点三", "扩写后的结论"]}`
+
+    try {
+      const expansion = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: buildSystemPrompt() },
+          { role: 'user',   content: userPrompt },
+          { role: 'assistant', content: raw },
+          { role: 'user',   content: expandPrompt },
+        ],
+        model:           'llama-3.3-70b-versatile',
+        temperature:     0.7,
+        max_tokens:      8000,
+        response_format: { type: 'json_object' },
+      })
+      const raw2 = expansion.choices[0]?.message?.content ?? '{}'
+      const parsed2 = JSON.parse(raw2) as Record<string, unknown>
+      if (Array.isArray(parsed2.theological_breakdown)) {
+        const expanded = (parsed2.theological_breakdown as unknown[]).map(String)
+        const expandedTotal = expanded.reduce((s, t) => s + t.length, 0)
+        if (expandedTotal > totalChars) breakdown = expanded   // only replace if actually longer
+      }
+    } catch (e) {
+      console.error('[outline] expansion call failed', e)
+      // fall through with original breakdown
+    }
+  }
+
   const outline: MeetingOutline = {
     meeting_type,
     input_query,
@@ -211,9 +269,7 @@ theological_breakdown 五段合计必须达到 3000-4500 字，不得缩水。`
     },
     ai_sermon_lecture: {
       scripture_text_full:   String(parsed.scripture_text_full ?? ''),
-      theological_breakdown: Array.isArray(parsed.theological_breakdown)
-        ? (parsed.theological_breakdown as unknown[]).map(String)
-        : [],
+      theological_breakdown: breakdown,
       application_questions: Array.isArray(parsed.application_questions)
         ? (parsed.application_questions as unknown[]).map(String).slice(0, 3)
         : [],
