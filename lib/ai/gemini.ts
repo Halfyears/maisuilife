@@ -178,3 +178,63 @@ ${versesText}`
     summary:   (parsed.summary  ?? '').slice(0, AI_SUMMARY_MAX_CHARS),
   }
 }
+
+export interface HarvestScripture {
+  verse: string
+  ref:   string
+}
+
+export async function generateHarvestScriptures(moodWords: string[]): Promise<HarvestScripture[]> {
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error('GROQ_API_KEY is not configured')
+  }
+
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+
+  const moodHint = moodWords.length > 0
+    ? `本次聚会的弟兄姐妹近期心境关键词：${moodWords.slice(0, 10).join('、')}`
+    : '无特定心境关键词'
+
+  const versesText = SCRIPTURE_BANK.map(s => `【${s.mood}】${s.text} ——《${s.ref}》`).join('\n')
+
+  const prompt = `你是一位充满智慧的讲道预备助手。当前是麦穗喜乐 App 的团契聚会丰收环节。
+${moodHint}
+
+请从以下和合本经文库中选出 3 节最适合在今日聚会丰收环节分享的经文。
+选择原则：呼应心境关键词；彼此不重复；适合在聚会中同声宣读、相互建立。
+
+【经文库】
+${versesText}
+
+请以 JSON 数组输出，格式如下（不得添加其他字段）：
+[
+  {"verse": "经文原文（一字不改）", "ref": "书卷 章:节"},
+  {"verse": "经文原文（一字不改）", "ref": "书卷 章:节"},
+  {"verse": "经文原文（一字不改）", "ref": "书卷 章:节"}
+]`
+
+  const completion = await groq.chat.completions.create({
+    messages: [{ role: 'user', content: prompt }],
+    model:           'llama-3.3-70b-versatile',
+    temperature:     0.7,
+    max_tokens:      600,
+    response_format: { type: 'json_object' },
+  })
+
+  const raw = completion.choices[0]?.message?.content ?? '[]'
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    throw new Error('invalid JSON from AI')
+  }
+
+  const arr = Array.isArray(parsed) ? parsed : (parsed as { scriptures?: unknown[] }).scriptures ?? []
+  const results: HarvestScripture[] = (arr as { verse?: string; ref?: string }[])
+    .slice(0, 3)
+    .map(item => ({ verse: String(item.verse ?? ''), ref: String(item.ref ?? '') }))
+    .filter(item => item.verse && item.ref)
+
+  if (results.length === 0) throw new Error('no valid scriptures returned')
+  return results
+}

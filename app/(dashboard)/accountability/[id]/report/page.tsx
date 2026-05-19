@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Award, Target, TrendingUp } from 'lucide-react'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { todayCSTString, DAY_LABEL, consecutiveDays } from '@/lib/accountability'
+import { DAY_LABEL, consecutiveDays } from '@/lib/accountability'
+import { todayLocal } from '@/lib/date'
 import type { AccountabilityGroup, AccountabilityCheckin } from '@/types'
 
 export const revalidate = 0
@@ -40,7 +41,7 @@ export default async function AccountabilityReportPage({ params }: { params: { i
   const members = (membersRes.data ?? []) as { user_id: string; display_name: string }[]
   const allCheckins = (allCheckinsRes.data ?? []) as AccountabilityCheckin[]
 
-  const today    = todayCSTString()
+  const today    = todayLocal()
   const isEnded  = !!group.end_date && group.end_date < today
   const isFinal  = isEnded
 

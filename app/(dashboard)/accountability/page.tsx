@@ -5,7 +5,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { GlobalNotice } from '@/components/shared/global-notice'
 import { DonationWidget } from '@/components/shared/donation-widget'
-import { todayCSTString, getWeekStartCST, getScheduledDates } from '@/lib/accountability'
+import { getWeekStart, getScheduledDates } from '@/lib/accountability'
+import { todayLocal } from '@/lib/date'
 import type { AccountabilityGroup, AccountabilityCheckin } from '@/types'
 
 export const metadata = { title: '同行小组 — 麦穗喜乐' }
@@ -18,8 +19,8 @@ export default async function AccountabilityIndexPage() {
   if (!user) redirect('/login')
 
   const db = createAdminClient()
-  const today     = todayCSTString()
-  const weekStart = getWeekStartCST()
+  const today     = todayLocal()
+  const weekStart = getWeekStart(today)
 
   // Fetch all groups the user belongs to
   const { data: memberships } = await db

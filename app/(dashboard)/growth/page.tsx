@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { BarChart2, Sprout, BookOpen, CalendarDays, Home } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { todayLocal, offsetDate } from '@/lib/date'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { GlobalNotice } from '@/components/shared/global-notice'
 import { DonationWidget } from '@/components/shared/donation-widget'
@@ -29,16 +30,10 @@ function formatDateCN(dateStr: string): string {
   return `${month}月${day}日 · 星期${days[d.getDay()]}`
 }
 
-function localDateCN(offsetDays = 0): string {
-  const ms = Date.now() + 8 * 3600_000 + offsetDays * 86_400_000
-  return new Date(ms).toISOString().slice(0, 10)
-}
-
-function computeStreak(dates: string[]): number {
+function computeStreak(dates: string[], today: string): number {
   if (dates.length === 0) return 0
   const sorted    = [...new Set(dates)].sort((a, b) => b.localeCompare(a))
-  const today     = localDateCN(0)
-  const yesterday = localDateCN(-1)
+  const yesterday = offsetDate(today, -1)
   if (sorted[0] !== today && sorted[0] !== yesterday) return 0
   let streak = 1
   for (let i = 0; i < sorted.length - 1; i++) {
@@ -55,12 +50,16 @@ export default async function GrowthPage() {
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
+  const today    = todayLocal()
+  const ninetyAgo = offsetDate(today, -90)
+  const thirtyAgo = offsetDate(today, -30)
+
   // ── Stats: from daily_alignments (full history for streak/total) ───────
   const { data: alignments } = await supabase
     .from('daily_alignments')
     .select('date, status_tag, is_urgent')
     .eq('user_id', user.id)
-    .gte('date', localDateCN(-90))
+    .gte('date', ninetyAgo)
     .order('date', { ascending: false })
 
   // ── Rich data: from spiritual_logs (AI comfort + verse per submission) ──
@@ -70,7 +69,7 @@ export default async function GrowthPage() {
     .from('spiritual_logs')
     .select('id, mood, ai_comfort, bible_verse, bible_ref, client_date, created_at')
     .eq('user_id', user.id)
-    .gte('client_date', localDateCN(-90))
+    .gte('client_date', ninetyAgo)
     .order('client_date', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(60)
@@ -79,9 +78,9 @@ export default async function GrowthPage() {
   const logEntries = logs ?? []
 
   const total  = records.length
-  const streak = computeStreak(records.map(r => r.date))
+  const streak = computeStreak(records.map(r => r.date), today)
 
-  const recent30 = records.filter(r => r.date >= localDateCN(-30))
+  const recent30 = records.filter(r => r.date >= thirtyAgo)
 
   // 心境计数（支持多选标签）
   const tagCounts: Record<string, number> = {}

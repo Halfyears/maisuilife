@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Copy, Check, ChevronRight } from 'lucide-react'
+import { Copy, Check, ChevronRight, Loader2 } from 'lucide-react'
 
 export interface PaymentConfig {
   zelle_account?:  string
@@ -58,12 +58,13 @@ export function DonationInteractive({ appeal, usdAmounts, cnyAmounts, payment }:
   const hasCNY = !!(payment.wechat_qr_url || payment.alipay_qr_url)
   const hasBoth = hasUSD && hasCNY
 
-  const [step,    setStep]    = useState<Step>(hasBoth ? 'currency' : 'amount')
-  const [curr,    setCurr]    = useState<Currency>(hasBoth ? 'USD' : hasCNY ? 'CNY' : 'USD')
-  const [amount,  setAmount]  = useState<number | null>(null)
-  const [custom,  setCustom]  = useState('')
-  const [showCus, setShowCus] = useState(false)
-  const [method,  setMethod]  = useState<string | null>(null)
+  const [step,       setStep]       = useState<Step>(hasBoth ? 'currency' : 'amount')
+  const [curr,       setCurr]       = useState<Currency>(hasBoth ? 'USD' : hasCNY ? 'CNY' : 'USD')
+  const [amount,     setAmount]     = useState<number | null>(null)
+  const [custom,     setCustom]     = useState('')
+  const [showCus,    setShowCus]    = useState(false)
+  const [method,     setMethod]     = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const amounts = curr === 'CNY' ? cnyAmounts : usdAmounts
   const symbol  = curr === 'CNY' ? '¥' : '$'
@@ -103,6 +104,19 @@ export function DonationInteractive({ appeal, usdAmounts, cnyAmounts, payment }:
   function reset() {
     setStep(hasBoth ? 'currency' : 'amount')
     setAmount(null); setCustom(''); setShowCus(false); setMethod(null)
+  }
+
+  async function submitProof() {
+    if (!method || !amount) return
+    setSubmitting(true)
+    try {
+      await fetch('/api/payment/submit-proof', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: method, amount, currency: curr }),
+      })
+    } catch { /* silent — proof submission is best-effort */ }
+    finally { setSubmitting(false); setStep('done') }
   }
 
   const m = [...USD_METHODS, ...CNY_METHODS].find(x => x.key === method)
@@ -280,11 +294,13 @@ export function DonationInteractive({ appeal, usdAmounts, cnyAmounts, payment }:
           </>
         )}
 
-        <button onClick={() => setStep('done')}
-          className="w-full rounded-xl border border-stone-100 bg-stone-50 py-2
+        <button onClick={submitProof} disabled={submitting}
+          className="flex items-center justify-center gap-1.5 w-full rounded-xl border border-stone-100 bg-stone-50 py-2
                      text-[11px] font-semibold text-stone-500
-                     hover:bg-stone-100 transition-colors active:scale-[0.98]">
-          完成，感谢支持 ✓
+                     hover:bg-stone-100 transition-colors active:scale-[0.98] disabled:opacity-60">
+          {submitting
+            ? <><Loader2 className="h-3 w-3 animate-spin" />提交中…</>
+            : '完成，感谢支持 ✓'}
         </button>
       </div>
     </Widget>

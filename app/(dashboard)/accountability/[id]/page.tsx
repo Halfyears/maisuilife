@@ -2,12 +2,13 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CalendarCheck, CalendarPlus, FileText, Settings } from 'lucide-react'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { todayLocal, offsetDate } from '@/lib/date'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { CheckinButton } from '@/components/accountability/checkin-button'
 import { CopyCodeButton, CopyLinkButton } from '@/components/accountability/copy-code-button'
 import { MemberProgressList } from '@/components/accountability/member-progress-list'
 import {
-  todayCSTString, getWeekStartCST, getScheduledDates,
+  getWeekStart, getScheduledDates,
   buildMemberProgress, DAY_LABEL, goalCategoryLabel,
 } from '@/lib/accountability'
 import type { AccountabilityGroup, AccountabilityCheckin } from '@/types'
@@ -50,9 +51,9 @@ export default async function AccountabilityGroupPage({
   const memberIds = members.map(m => m.user_id)
 
   // Date bounds
-  const today     = todayCSTString()
-  const weekStart = getWeekStartCST()
-  const sixtyAgo  = new Date(Date.now() + 8 * 3_600_000 - 60 * 86_400_000).toISOString().slice(0, 10)
+  const today     = todayLocal()
+  const weekStart = getWeekStart(today)
+  const sixtyAgo  = offsetDate(today, -60)
 
   const scheduleDays: number[] = Array.isArray(group.schedule_days_of_week)
     ? group.schedule_days_of_week as number[]

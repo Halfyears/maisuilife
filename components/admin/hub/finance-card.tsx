@@ -488,6 +488,77 @@ function GlobalNoticeSection({ cfg }: { cfg: SystemConfig }) {
   )
 }
 
+// ── Daily Scripture ───────────────────────────────────────────────────────────
+function ScriptureSection({ cfg }: { cfg?: SystemConfig }) {
+  const v = cfg?.value as { verse?: string; ref?: string } | undefined
+  const [open,   setOpen]   = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState<string | null>(null)
+  const [verse,  setVerse]  = useState(v?.verse ?? '')
+  const [ref,    setRef]    = useState(v?.ref   ?? '')
+
+  async function save() {
+    setSaving(true); setError(null)
+    try {
+      await patchConfig('daily_scripture', { verse: verse.trim(), ref: ref.trim() })
+      setOpen(false)
+    } catch { setError('保存失败') }
+    finally   { setSaving(false) }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          {verse ? (
+            <>
+              <p className="text-xs text-stone-700 italic leading-relaxed line-clamp-2">"{verse}"</p>
+              <p className="text-[11px] text-stone-400 mt-0.5">—— {ref || '未填来源'}</p>
+            </>
+          ) : (
+            <p className="text-xs text-stone-400">使用默认经文（彼前 5:7）</p>
+          )}
+        </div>
+        <button onClick={() => setOpen(o => !o)}
+          className="shrink-0 flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1
+                     text-xs text-stone-500 hover:bg-stone-100 transition-colors">
+          <Pencil className="h-3 w-3" />{open ? '收起' : '编辑'}
+        </button>
+      </div>
+      {open && (
+        <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-4 space-y-3">
+          <Row label="经文内容">
+            <textarea value={verse} onChange={e => setVerse(e.target.value)} rows={3}
+              placeholder="在这里输入今日经文正文…"
+              className={`${inp} resize-none`} />
+          </Row>
+          <Row label="出处（书卷 章:节）">
+            <input value={ref} onChange={e => setRef(e.target.value)}
+              placeholder="例：约翰福音 3:16" className={inp} />
+          </Row>
+          <p className="text-[10px] text-stone-400">留空则首页显示默认经文（彼前 5:7）</p>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-1">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin text-stone-400" /> : (
+              <>
+                <button onClick={save}
+                  className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5
+                             text-xs font-bold text-white hover:bg-amber-600 transition-colors">
+                  <Save className="h-3 w-3" />保存
+                </button>
+                <button onClick={() => { setOpen(false); setError(null) }}
+                  className="rounded-lg border border-stone-200 p-1.5 text-stone-400 hover:bg-stone-100 transition-colors">
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Generic raw config ────────────────────────────────────────────────────────
 const CN_LABELS: Record<string, string> = {
   cost_rates: 'AI 费率参考（每次对齐成本，USD）',
@@ -560,11 +631,12 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 const EXCLUDED = ['ai_circuit_breaker', 'church_name']
 
 export function FinanceCard({ configs }: { configs: SystemConfig[] }) {
-  const donationCfg = configs.find(c => c.key === 'donation_settings')
-  const paymentCfg  = configs.find(c => c.key === 'payment_links')
-  const noticeCfg   = configs.find(c => c.key === 'global_notice')
-  const otherCfgs   = configs.filter(c =>
-    !['donation_settings', 'payment_links', 'global_notice', ...EXCLUDED].includes(c.key)
+  const donationCfg  = configs.find(c => c.key === 'donation_settings')
+  const paymentCfg   = configs.find(c => c.key === 'payment_links')
+  const noticeCfg    = configs.find(c => c.key === 'global_notice')
+  const scriptureCfg = configs.find(c => c.key === 'daily_scripture')
+  const otherCfgs    = configs.filter(c =>
+    !['donation_settings', 'payment_links', 'global_notice', 'daily_scripture', ...EXCLUDED].includes(c.key)
   )
 
   return (
@@ -587,6 +659,11 @@ export function FinanceCard({ configs }: { configs: SystemConfig[] }) {
           <GlobalNoticeSection cfg={noticeCfg} />
         </div>
       )}
+
+      <div className={noticeCfg ? 'pt-2 border-t border-stone-100' : ''}>
+        <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">首页今日经文</p>
+        <ScriptureSection cfg={scriptureCfg} />
+      </div>
 
       {donationCfg && (
         <div className={noticeCfg ? 'pt-2 border-t border-stone-100' : ''}>

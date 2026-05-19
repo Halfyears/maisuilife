@@ -7,6 +7,7 @@ import { PastoralBoard } from '@/components/console/pastoral-board'
 import { SpatialToggle } from '@/components/console/spatial-toggle'
 import { ThemePlanner } from '@/components/console/theme-planner'
 import { MusicPlanner } from '@/components/console/music-planner'
+import { SessionPanel } from '@/components/console/session-panel'
 import type { InsightResponse } from '@/app/api/fellowship/insight/route'
 import type { PastoralListResponse } from '@/app/api/pastoral/list/route'
 import type { MusicSlot } from '@/app/api/fellowship/music/route'
@@ -175,9 +176,9 @@ export default async function ConsolePage({
             </p>
           </div>
 
-          {/* Projector link */}
+          {/* Projector link — include fellowship_id so privileged admins resolve correctly */}
           <Link
-            href="/fellowship/console/projector"
+            href={`/fellowship/console/projector?fellowship_id=${fellowship.id}`}
             target="_blank"
             className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-gold-300 hover:text-gold-700 hover:bg-gold-400/5 transition-colors"
           >
@@ -189,6 +190,9 @@ export default async function ConsolePage({
       </header>
 
       <div className="flex flex-col gap-6">
+        {/* ── Gathering Session ────────────── */}
+        <SessionPanel fellowshipId={fellowship.id} />
+
         {/* ── AI Insight ───────────────────── */}
         <InsightCard
           fellowshipId={fellowship.id}

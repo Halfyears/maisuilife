@@ -1,16 +1,21 @@
 import type { AccountabilityCheckin, MemberProgress } from '@/types'
 
+// Returns Monday of the week that contains `today` (YYYY-MM-DD).
+// Pure function — no timezone assumptions. Callers supply today from todayLocal().
+export function getWeekStart(today: string): string {
+  const d = new Date(today + 'T00:00:00Z')
+  const dow = d.getUTCDay() // 0=Sun…6=Sat
+  const diff = dow === 0 ? 6 : dow - 1
+  d.setUTCDate(d.getUTCDate() - diff)
+  return d.toISOString().slice(0, 10)
+}
+
+// Legacy aliases — kept so existing callers still compile during migration.
 export function todayCSTString(): string {
   return new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
 }
-
 export function getWeekStartCST(): string {
-  const now = new Date(Date.now() + 8 * 3_600_000)
-  const day = now.getUTCDay()
-  const diff = day === 0 ? 6 : day - 1
-  const monday = new Date(now)
-  monday.setUTCDate(now.getUTCDate() - diff)
-  return monday.toISOString().slice(0, 10)
+  return getWeekStart(todayCSTString())
 }
 
 // Returns dates from week start up to today that fall on scheduled days

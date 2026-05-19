@@ -20,7 +20,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient, createAdminClient } from '@/lib/supabase/server'
 import { generateAlignmentResponse } from '@/lib/ai/gemini'
 import { encrypt } from '@/lib/crypto'
 
@@ -100,7 +100,16 @@ export async function POST(req: NextRequest) {
       ? clientDate_raw
       : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date())
 
-    // ── 6. Persist to daily_alignments (upsert by user+date) ────────────
+    // ── 6. Check if first submission today (for wheat count) ────────────
+    const { data: existingAlignment } = await supabase
+      .from('daily_alignments')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('date', clientDate)
+      .maybeSingle()
+    const isFirstSubmission = !existingAlignment
+
+    // ── 6b. Persist to daily_alignments (upsert by user+date) ────────────
     const { data: alignment, error: dbError } = await supabase
       .from('daily_alignments')
       .upsert(
@@ -138,6 +147,24 @@ export async function POST(req: NextRequest) {
       })
     if (logErr) {
       console.error('[align] spiritual_log insert error:', logErr.code, logErr.message)
+    }
+
+    // ── 7b. Increment fellowship wheat_count on first daily submission ───
+    if (isFirstSubmission && !dbError) {
+      try {
+        const db = createAdminClient()
+        const { data: membership } = await db
+          .from('fellowship_members')
+          .select('fellowship_id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle()
+        if (membership?.fellowship_id) {
+          await db.rpc('increment_wheat_count', { p_fellowship_id: membership.fellowship_id })
+        }
+      } catch {
+        // wheat increment is non-critical; don't fail the request
+      }
     }
 
     // ── 8. If urgent, create anonymous urgent_flag via RPC ────────────────

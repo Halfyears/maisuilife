@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { todayLocal } from '@/lib/date'
 import { LocalDateChip } from '@/components/shared/local-date-display'
 import { BottomNav } from '@/components/shared/bottom-nav'
@@ -10,26 +10,34 @@ import { Wheat, BookOpen, ChevronRight } from 'lucide-react'
 export const metadata = { title: '首页' }
 export const revalidate = 0
 
+const DEFAULT_SCRIPTURE = {
+  verse: '你们要将一切的忧虑卸给神，因为他顾念你们。',
+  ref:   '彼得前书 5:7',
+}
+
 export default async function RootPage() {
   const supabase = createClient()
   const { data: authData } = await supabase.auth.getUser()
   const user = authData?.user ?? null
   if (!user) redirect('/login')
 
-  // 用户自身数据用 RLS 客户端读取，无需 service role
-  const { data: profile } = await supabase
-    .from('users')
-    .select('display_name')
-    .eq('id', user.id)
-    .single()
-
+  const db = createAdminClient()
   const today = todayLocal()
-  const { data: todayAlignment } = await supabase
-    .from('daily_alignments')
-    .select('status_tag')
-    .eq('user_id', user.id)
-    .eq('date', today)
-    .maybeSingle()
+
+  const [profileRes, alignmentRes, scriptureRes] = await Promise.all([
+    supabase.from('users').select('display_name').eq('id', user.id).single(),
+    supabase.from('daily_alignments').select('status_tag').eq('user_id', user.id).eq('date', today).maybeSingle(),
+    db.from('system_configs').select('value').eq('key', 'daily_scripture').maybeSingle(),
+  ])
+
+  const profile      = profileRes.data
+  const todayAlignment = alignmentRes.data
+
+  const scriptureVal = scriptureRes.data?.value as { verse?: string; ref?: string } | null
+  const scripture = {
+    verse: scriptureVal?.verse?.trim() || DEFAULT_SCRIPTURE.verse,
+    ref:   scriptureVal?.ref?.trim()   || DEFAULT_SCRIPTURE.ref,
+  }
 
   const firstName = profile?.display_name ?? '朋友'
 
@@ -136,16 +144,16 @@ export default async function RootPage() {
             </div>
           </Link>
 
-          {/* Card 3: Scripture of the day — decorative */}
+          {/* Card 3: Scripture of the day */}
           <div className="rounded-2xl border border-amber-100/60 bg-gradient-to-br from-amber-50/60 to-orange-50/40 p-5">
             <div className="flex items-start gap-3">
               <BookOpen className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-medium text-amber-600 mb-1.5">今日经文</p>
                 <p className="text-sm text-stone-700 leading-relaxed italic">
-                  "你们要将一切的忧虑卸给神，因为他顾念你们。"
+                  "{scripture.verse}"
                 </p>
-                <p className="mt-2 text-xs text-stone-400">— 彼得前书 5:7</p>
+                <p className="mt-2 text-xs text-stone-400">— {scripture.ref}</p>
               </div>
             </div>
           </div>

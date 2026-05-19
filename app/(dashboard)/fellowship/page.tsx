@@ -3,12 +3,14 @@ import Link from 'next/link'
 import { Settings2, Home } from 'lucide-react'
 import { FellowshipInviteCard } from '@/components/fellowship/copy-link-button'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { todayLocal } from '@/lib/date'
 import { decrypt } from '@/lib/crypto'
 import { FellowshipView } from '@/components/fellowship/fellowship-view'
 import { PrayerSection } from '@/components/fellowship/prayer-section'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { GlobalNotice } from '@/components/shared/global-notice'
 import { DonationWidget } from '@/components/shared/donation-widget'
+import { GatheringBanner } from '@/components/fellowship/gathering-banner'
 import type { FellowshipPost, FellowshipPostsResponse } from '@/app/api/fellowship/posts/route'
 import type { PrayerRequestItem } from '@/app/api/prayer/route'
 
@@ -71,8 +73,7 @@ export default async function FellowshipPage() {
     if (fellowship && members && members.length > 0) {
       const memberIds = (members as { user_id: string; layer2_label: string }[]).map(m => m.user_id)
 
-      // Use UTC+8 so the date matches what /api/align stores
-      const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+      const today = todayLocal()
 
       // Always include viewer's user_id even if they fall outside the member page limit
       const queryIds = memberIds.includes(user.id) ? memberIds : [...memberIds, user.id]
@@ -229,6 +230,11 @@ export default async function FellowshipPage() {
           <div className="mb-5">
             <FellowshipInviteCard code={fellowshipInviteCode} />
           </div>
+        )}
+
+        {/* ── Gathering session banner ──────────────── */}
+        {membership && (
+          <GatheringBanner fellowshipId={membership.fellowship_id} />
         )}
 
         {/* ── Unlock status banner ──────────────────── */}
