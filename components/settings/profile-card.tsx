@@ -109,14 +109,14 @@ export function ProfileCard({
       </InfoRow>
 
       {/* 所属教会 — 不可点击（暂无用户侧教会专属页） */}
-      <InfoRow icon={<Church className="h-4 w-4 text-stone-300" />} label="所属教会">
+      <InfoRow icon={<Church className="h-4 w-4 text-stone-300" />} label="教会">
         <span className="text-sm font-medium text-stone-700">
           {churchName ?? '—'}
         </span>
       </InfoRow>
 
       {/* 所属团契 — 可点击 */}
-      <InfoRow icon={<Users className="h-4 w-4 text-stone-300" />} label="所属团契">
+      <InfoRow icon={<Users className="h-4 w-4 text-stone-300" />} label="团契">
         {fellowship ? (
           <Link href="/fellowship"
             className="flex items-center gap-1 text-sm font-medium text-amber-700
@@ -135,7 +135,7 @@ export function ProfileCard({
       </InfoRow>
 
       {/* 所属同行 — 可点击 */}
-      <InfoRow icon={<Target className="h-4 w-4 text-stone-300" />} label="所属同行">
+      <InfoRow icon={<Target className="h-4 w-4 text-stone-300" />} label="同行小组">
         {acctGroups.length > 0 ? (
           <div className="flex flex-col gap-1">
             {acctGroups.map(g => (
