@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
     const statusTag   = typeof body.status_tag === 'string' ? body.status_tag : ''
     const isUrgent    = body.is_urgent === true
     const fellowshipId = typeof body.fellowship_id === 'string' ? body.fellowship_id.trim() || null : null
-    // client_ts: ISO string from the browser's clock (localized to user's timezone)
-    const clientTs    = typeof body.client_ts === 'string' ? body.client_ts : null
+    // client_date: YYYY-MM-DD in browser's local timezone (replaces client_ts)
+    const clientDate_raw = typeof body.client_date === 'string' ? body.client_date : null
 
     // 至少需要心境或文字其中之一
     if (!transcript && !statusTag) {
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     rawTranscript = transcript
 
-    // ── 3. AI: comfort + verse + summary via Gemini 1.5 Flash ───────────
+    // ── 3. AI: comfort + verse + summary via Groq ───────────────────────
     const aiResponse = await generateAlignmentResponse({
       transcript: rawTranscript,
       statusTag,
@@ -93,19 +93,12 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 5. Resolve client date ────────────────────────────────────────────
-    // Prefer the client-provided ISO timestamp (user's actual local clock).
-    // Fall back to UTC+8 server-side calculation if client_ts is absent or invalid.
-    let clientDate: string
-    if (clientTs) {
-      const parsed = new Date(clientTs)
-      // Apply UTC+8 offset so Chinese users who submit between 0:00–7:59 CST
-      // get the correct local date (not yesterday's UTC date).
-      clientDate = isNaN(parsed.getTime())
-        ? new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
-        : new Date(parsed.getTime() + 8 * 3_600_000).toISOString().slice(0, 10)
-    } else {
-      clientDate = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
-    }
+    // Trust the YYYY-MM-DD date the browser sends (already in local timezone).
+    // Fall back to LA time on the server if client_date is absent or malformed.
+    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+    const clientDate: string = (clientDate_raw && DATE_RE.test(clientDate_raw))
+      ? clientDate_raw
+      : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date())
 
     // ── 6. Persist to daily_alignments (upsert by user+date) ────────────
     const { data: alignment, error: dbError } = await supabase

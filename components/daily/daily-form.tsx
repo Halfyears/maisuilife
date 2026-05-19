@@ -60,7 +60,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
           is_urgent:     false,
           fellowship_id: fellowshipId ?? null,
           // Pass client's actual local clock so the server uses the correct date
-          client_ts:     new Date().toISOString(),
+          client_date:   new Intl.DateTimeFormat('en-CA').format(new Date()),
         }),
       })
       if (res.ok) {

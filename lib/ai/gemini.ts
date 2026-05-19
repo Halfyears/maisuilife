@@ -7,22 +7,47 @@
 import Groq from 'groq-sdk'
 import { SCRIPTURE_BANK, AI_SUMMARY_MAX_CHARS } from '@/lib/constants'
 
+// Patterns that indicate the AI is speaking as God (first-person divine voice)
+const FORBIDDEN_PATTERNS = [
+  /我(都|已|曾)?(听到|听见|看见|看到|知道|明白|了解|接住|托住|承接)/,
+  /孩子[，,、]*我/,
+  /我爱你[，,。]/,
+  /我在这里[，,。]/,
+  /我与你同在/,
+  /我没有离开/,
+  /我会[^，。！？]*你/,
+]
+
+export function containsForbiddenPattern(text: string): boolean {
+  return FORBIDDEN_PATTERNS.some(re => re.test(text))
+}
+
 function buildSystemInstruction(): string {
-  return `你是麦穗喜乐 App 的属灵同行者，如同一位充满慈爱的属灵长辈，温柔倾听、陪伴，并将用户的心声带到神面前。
+  return `═══════════════════════════════════════════════
+【第零条 — 最高优先级，输出前必须自检】
+你是「人」，不是神，绝对不能以第一人称充当神的声音说话。
+在输出任何文字之前，你必须逐句自查：comfort 字段中是否含有以下任何模式：
+  • "我听到了" / "我听见了" / "我都知道" / "我看见了" / "我接住了"
+  • "孩子，我……" / "我爱你" / "我在这里" / "我与你同在"
+  • 任何以【我】作主语、以神的视角说"我听/看/知/接"的句子
+若发现以上任何一种，必须立即重写该句，改用第三人称指称神（祂/神/主）。
+═══════════════════════════════════════════════
+
+你是麦穗喜乐 App 的属灵同行者，如同一位充满慈爱的属灵长辈，温柔倾听、陪伴，并将用户的心声带到神面前。
 
 ═══════════════════════════════════════════════
-绝对禁区 — 严禁代替神说话
+绝对禁区 — 严禁代替神说话（核心红线）
 ═══════════════════════════════════════════════
-你是人，不是神。绝对禁止用第一人称充当神的声音。
+❌ 一字不得出现（触发即整句重写）：
+  "我听到了" "我都听到了" "我听见了" "我看见了" "我都看在眼里"
+  "我已接住了你" "孩子，我……" "我爱你" "我在这里" "我与你同在"
+  任何以【我】充当神发言的句式，全部禁止。
 
-❌ 严禁的表达（冒充神的口吻）：
-  "孩子，我听到了……""我都看在眼里……""我已接住了你……"
-  （任何以"我"自居为神、以神视角说"我听见""我知道"的句式，一律禁止）
-
-✅ 正确口吻（同行者转述神的心意，用第三人称指称神）：
+✅ 唯一正确口吻（第三人称转述神的心意）：
   "你说的这些，祂都听见了……"
   "你的呼求，神没有一字遗漏……"
   "这份重担，主知道，祂不会让你一个人扛……"
+  "你带来的一切，祂都看见了……"
 
 ═══════════════════════════════════════════════
 铁律一 — 精准情感镜像：先逐字读取，再如实回映
@@ -33,9 +58,8 @@ function buildSystemInstruction(): string {
   用户写了"仓库设计的任务压着我，睡不着觉，压力好大……"
   → comfort 首句："仓库设计的重担、那些辗转难眠的夜晚——你说的这些，神没有一字遗漏，祂都听见了，也都知道……"
 
-❌ 严禁的错误示范（空洞企业体 AI 话术）：
+❌ 严禁空洞模板开头：
   "感谢你今天来到内室分享你的心声。神爱你，祂听见了你的祷告……"
-  （这种开头毫无针对性，像机器模板，不被允许！）
 
 绝不说教，绝不评判。只是温柔地陪伴、承接，给予最直接的情感确认。
 
@@ -119,8 +143,36 @@ ${versesText}`
   const raw    = completion.choices[0]?.message?.content ?? '{}'
   const parsed = JSON.parse(raw) as AlignmentAIResponse
 
+  const comfort = parsed.comfort ?? ''
+
+  // Server-side guard: if AI violated the "no speaking as God" rule, retry once
+  // with an explicit correction injected into the conversation.
+  if (containsForbiddenPattern(comfort)) {
+    console.warn('[gemini] forbidden pattern detected in comfort, retrying with correction')
+    const correction = await groq.chat.completions.create({
+      messages: [
+        { role: 'system',    content: buildSystemInstruction() },
+        { role: 'user',      content: userPrompt },
+        { role: 'assistant', content: raw },
+        { role: 'user',      content: '【系统警告】你的 comfort 字段违反了第零条规则——含有以第一人称充当神说话的句子（如"我听到了"）。请立即重写 comfort 字段，将所有"我听/看/知/接"改为以祂/神/主为主语的第三人称句式，其余字段保持不变。仅输出修正后的完整 JSON。' },
+      ],
+      model:           'llama-3.3-70b-versatile',
+      temperature:     0.5,
+      max_tokens:      1200,
+      response_format: { type: 'json_object' },
+    })
+    const raw2    = correction.choices[0]?.message?.content ?? raw
+    const parsed2 = JSON.parse(raw2) as AlignmentAIResponse
+    return {
+      comfort:   parsed2.comfort   ?? comfort,
+      verse:     parsed2.verse     ?? parsed.verse     ?? '',
+      verse_ref: parsed2.verse_ref ?? parsed.verse_ref ?? '',
+      summary:   ((parsed2.summary ?? parsed.summary ?? '')).slice(0, AI_SUMMARY_MAX_CHARS),
+    }
+  }
+
   return {
-    comfort:   parsed.comfort   ?? '',
+    comfort,
     verse:     parsed.verse     ?? '',
     verse_ref: parsed.verse_ref ?? '',
     summary:   (parsed.summary  ?? '').slice(0, AI_SUMMARY_MAX_CHARS),
