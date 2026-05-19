@@ -260,7 +260,8 @@ export async function POST(req: NextRequest) {
     ? `主题：「${input_query}」\n请自动选取最能支撑该主题的和合本核心经段（1-3节），放入 scripture_text_full。`
     : `经文段落：「${input_query}」\n请输出该段落的和合本完整原文于 scripture_text_full。`
 
-  const userPrompt = `【本次备课任务】
+  const userPrompt = tier === 'premium'
+    ? `【本次备课任务】
 类型：${typeLabel}
 ${typeHint}
 
@@ -270,6 +271,12 @@ ${moodContext}
 重要提醒：theological_breakdown 五段合计必须达到 3000 字以上。
 每段的硬性下限：引言≥500字，三个论点各≥700字，结论≥400字。
 用具体细节、场景描写、操作步骤来填满字数，绝不允许概括性带过。`
+    : `【本次备课任务】
+类型：${typeLabel}
+${typeHint}
+
+【团契本周内室状态（匿名统计）】
+${moodContext}`
 
   // ── Call Groq ──────────────────────────────────────────────────────────
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
