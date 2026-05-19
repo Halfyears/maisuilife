@@ -21,7 +21,6 @@ const PAGE_OPTIONS = [
   { key: 'settings',       label: '设置中心'  },
   { key: 'accountability', label: '同行小组'  },
 ]
-const CURRENCY_OPTIONS = ['USD', 'CNY', 'HKD', 'TWD', 'SGD']
 const PAYMENT_FIELDS = [
   { key: 'zelle_account',  label: 'Zelle 收款账号（邮箱或手机号）', placeholder: 'your@email.com 或 +1 xxx-xxx-xxxx' },
   { key: 'venmo_username', label: 'Venmo 用户名（不含 @）',         placeholder: 'your_venmo_username'              },
@@ -140,16 +139,20 @@ function DonationSection({ cfg }: { cfg: SystemConfig }) {
         { title: '', body: '', pages: ['growth']        },
       ]
 
-  const [open,     setOpen]     = useState(false)
-  const [saving,   setSaving]   = useState(false)
-  const [genning,  setGenning]  = useState(false)
-  const [error,    setError]    = useState<string | null>(null)
-  const [appeals,  setAppeals]  = useState<Appeal[]>(defaultAppeals)
-  const [amounts,  setAmounts]  = useState(
-    Array.isArray(v.amounts) ? (v.amounts as number[]).join(', ') : '10, 20, 50'
+  const [open,       setOpen]      = useState(false)
+  const [saving,     setSaving]    = useState(false)
+  const [genning,    setGenning]   = useState(false)
+  const [error,      setError]     = useState<string | null>(null)
+  const [appeals,    setAppeals]   = useState<Appeal[]>(defaultAppeals)
+  const [usdAmounts, setUsdAmounts] = useState(
+    Array.isArray(v.usd_amounts) ? (v.usd_amounts as number[]).join(', ')
+    : Array.isArray(v.amounts)   ? (v.amounts   as number[]).join(', ')
+    : '3, 5, 10'
   )
-  const [currency, setCurrency] = useState(String(v.currency ?? 'USD'))
-  const [showOn,   setShowOn]   = useState<string[]>(
+  const [cnyAmounts, setCnyAmounts] = useState(
+    Array.isArray(v.cny_amounts) ? (v.cny_amounts as number[]).join(', ') : '20, 35, 68'
+  )
+  const [showOn,     setShowOn]    = useState<string[]>(
     Array.isArray(v.show_on) ? v.show_on as string[] : []
   )
 
@@ -157,7 +160,6 @@ function DonationSection({ cfg }: { cfg: SystemConfig }) {
   function parseAmounts(raw: string) {
     return raw.split(/[,，]/).map(s => Number(s.trim())).filter(n => !isNaN(n) && n > 0)
   }
-  const amtsArr    = parseAmounts(amounts)
   const pagesText  = showOn.length ? showOn.map(pageLabel).join('、') : '未设置显示页面'
   const hasAppeals = appeals.some(a => a.title)
 
@@ -187,8 +189,8 @@ function DonationSection({ cfg }: { cfg: SystemConfig }) {
           body:  a.body.trim(),
           pages: a.pages,
         })),
-        amounts: parseAmounts(amounts),
-        currency,
+        usd_amounts: parseAmounts(usdAmounts),
+        cny_amounts: parseAmounts(cnyAmounts),
         show_on: showOn,
       })
       setOpen(false)
@@ -217,7 +219,8 @@ function DonationSection({ cfg }: { cfg: SystemConfig }) {
             <p className="text-xs text-stone-400">暂无奉献呼召文字</p>
           )}
           <p className="text-xs text-stone-500">
-            金额：{amtsArr.length ? amtsArr.map(a => `${currency} ${a}`).join(' · ') : '未设置'}
+            USD：{parseAmounts(usdAmounts).map(a => `$${a}`).join(' · ') || '未设置'} ·
+            CNY：{parseAmounts(cnyAmounts).map(a => `¥${a}`).join(' · ') || '未设置'}
           </p>
           <p className="text-xs text-stone-400">显示于：{pagesText}</p>
         </div>
@@ -268,20 +271,13 @@ function DonationSection({ cfg }: { cfg: SystemConfig }) {
 
           {/* Amounts */}
           <div className="grid grid-cols-2 gap-3">
-            <Row label="金额选项（逗号分隔）">
-              <input value={amounts} onChange={e => setAmounts(e.target.value)}
-                placeholder="10, 20, 50" className={inp} />
+            <Row label="美元金额（USD，逗号分隔）">
+              <input value={usdAmounts} onChange={e => setUsdAmounts(e.target.value)}
+                placeholder="3, 5, 10" className={inp} />
             </Row>
-            <Row label="货币">
-              <div className="flex flex-wrap gap-1.5">
-                {CURRENCY_OPTIONS.map(c => (
-                  <button key={c} type="button" onClick={() => setCurrency(c)}
-                    className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors
-                      ${currency === c ? 'bg-amber-500 border-amber-500 text-white' : 'border-stone-200 text-stone-500 hover:bg-stone-100'}`}>
-                    {c}
-                  </button>
-                ))}
-              </div>
+            <Row label="人民币金额（CNY，逗号分隔）">
+              <input value={cnyAmounts} onChange={e => setCnyAmounts(e.target.value)}
+                placeholder="20, 35, 68" className={inp} />
             </Row>
           </div>
 
@@ -594,7 +590,7 @@ export function FinanceCard({ configs }: { configs: SystemConfig[] }) {
 
       {donationCfg && (
         <div className={noticeCfg ? 'pt-2 border-t border-stone-100' : ''}>
-          <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">奉献设置</p>
+          <p className="text-xs font-semibold text-stone-400 uppercase tracking-wide mb-2">支持同工 · 请喝咖啡</p>
           <DonationSection cfg={donationCfg} />
         </div>
       )}
