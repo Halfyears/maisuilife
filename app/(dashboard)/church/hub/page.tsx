@@ -1,10 +1,11 @@
 import { redirect }           from 'next/navigation'
 import Link                    from 'next/link'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { Church, Home, Users, Settings, Clock, Wheat, PlusCircle } from 'lucide-react'
+import { Church, Home, Users, Settings, Clock, Wheat, PlusCircle, BookOpen } from 'lucide-react'
 import { ApproveButton }          from '@/components/church/hub/approve-button'
 import { RejectButton }           from '@/components/church/hub/reject-button'
 import { ChurchNameEditor }       from '@/components/church/hub/church-name-editor'
+import { ScriptureEditor }        from '@/components/church/hub/scripture-editor'
 import { FellowshipManageRow }    from '@/components/church/hub/fellowship-manage-row'
 import { UserRoleRow }            from '@/components/church/hub/user-role-row'
 import { CreateFellowshipForm }   from '@/components/church/hub/create-fellowship-form'
@@ -28,7 +29,7 @@ export default async function ChurchHubPage() {
   const actorRole = profile?.role ?? ''
   if (!ROLE_ALLOWED.includes(actorRole)) redirect('/')
 
-  const [fellowshipsRes, membersRes, usersRes, churchNameRes] = await Promise.all([
+  const [fellowshipsRes, membersRes, usersRes, churchNameRes, scriptureRes] = await Promise.all([
     db.from('fellowships')
       .select('id, name, status, invite_code, meeting_mode, created_at, leader_id')
       .order('created_at', { ascending: false }),
@@ -38,6 +39,7 @@ export default async function ChurchHubPage() {
       .order('created_at', { ascending: false })
       .limit(300),
     db.from('system_configs').select('value').eq('key', 'church_name').maybeSingle(),
+    db.from('system_configs').select('value').eq('key', 'daily_scripture').maybeSingle(),
   ])
 
   const fellowships = (fellowshipsRes.data ?? []) as {
@@ -51,6 +53,10 @@ export default async function ChurchHubPage() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const churchName: string = ((churchNameRes.data as any)?.value?.name) ?? ''
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scriptureVal = (scriptureRes.data as any)?.value as { verse?: string; ref?: string } | null
+  const scriptureVerse: string = scriptureVal?.verse?.trim() ?? ''
+  const scriptureRef:   string = scriptureVal?.ref?.trim()   ?? ''
 
   const memberCount: Record<string, number> = {}
   for (const m of members) memberCount[m.fellowship_id] = (memberCount[m.fellowship_id] ?? 0) + 1
@@ -109,6 +115,16 @@ export default async function ChurchHubPage() {
         <section className="rounded-2xl border border-stone-100 bg-white px-4 py-4 shadow-sm">
           <p className="text-xs font-semibold text-stone-500 mb-3">教会名称</p>
           <ChurchNameEditor initialName={churchName} />
+        </section>
+
+        {/* ── 今日经文 ─────────────────────────────────────────────── */}
+        <section className="rounded-2xl border border-stone-100 bg-white px-4 py-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen className="h-3.5 w-3.5 text-violet-400" />
+            <p className="text-xs font-semibold text-stone-500">今日经文</p>
+            <p className="text-xs text-stone-400 ml-auto">显示在所有用户首页</p>
+          </div>
+          <ScriptureEditor initialVerse={scriptureVerse} initialRef={scriptureRef} />
         </section>
 
         {/* ── 概览统计（带锚点链接）─────────────────────────────────── */}
