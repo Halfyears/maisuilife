@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Monitor, ExternalLink, Users } from 'lucide-react'
+import { Users } from 'lucide-react'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { InsightCard } from '@/components/console/insight-card'
 import { PastoralBoard } from '@/components/console/pastoral-board'
@@ -8,6 +8,7 @@ import { SpatialToggle } from '@/components/console/spatial-toggle'
 import { StudyWorkbench } from '@/components/console/study-workbench'
 import { MusicPlanner } from '@/components/console/music-planner'
 import { SessionPanel } from '@/components/console/session-panel'
+import { ProjectorLaunchCard } from '@/components/console/projector-launch-card'
 import type { InsightResponse } from '@/app/api/fellowship/insight/route'
 import type { PastoralListResponse } from '@/app/api/pastoral/list/route'
 import type { MusicSlot } from '@/app/api/fellowship/music/route'
@@ -47,15 +48,15 @@ export default async function ConsolePage({
   // group_leader → own fellowship
   // church_admin / super_admin + no ?id → show picker
   // church_admin / super_admin + ?id   → load that fellowship
-  let fellowship: { id: string; name: string; meeting_mode: string; yt_link: string | null } | null = null
+  let fellowship: { id: string; name: string; meeting_mode: string; yt_link: string | null; invite_code: string } | null = null
 
-  type FellowshipRow = { id: string; name: string; meeting_mode: string; yt_link: string | null }
+  type FellowshipRow = { id: string; name: string; meeting_mode: string; yt_link: string | null; invite_code: string }
   type PickerRow     = { id: string; name: string; users?: { display_name: string } | null }
 
   if (isPrivileged && searchParams.id) {
     const { data } = await db
       .from('fellowships')
-      .select('id, name, meeting_mode, yt_link')
+      .select('id, name, meeting_mode, yt_link, invite_code')
       .eq('id', searchParams.id)
       .single()
     fellowship = data as FellowshipRow | null
@@ -70,7 +71,7 @@ export default async function ConsolePage({
     // group_leader: own fellowship
     const { data } = await db
       .from('fellowships')
-      .select('id, name, meeting_mode, yt_link')
+      .select('id, name, meeting_mode, yt_link, invite_code')
       .eq('leader_id', user.id)
       .single()
     fellowship = data as FellowshipRow | null
@@ -176,20 +177,22 @@ export default async function ConsolePage({
             </p>
           </div>
 
-          {/* Projector link — include fellowship_id so privileged admins resolve correctly */}
           <Link
-            href={`/fellowship/console/projector?fellowship_id=${fellowship.id}`}
-            target="_blank"
+            href="/"
             className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-gold-300 hover:text-gold-700 hover:bg-gold-400/5 transition-colors"
           >
-            <Monitor className="h-3.5 w-3.5" />
-            投屏
-            <ExternalLink className="h-3 w-3 opacity-60" />
+            首页
           </Link>
         </div>
       </header>
 
       <div className="flex flex-col gap-6">
+        {/* ── Projector launch ─────────────── */}
+        <ProjectorLaunchCard
+          inviteCode={fellowship.invite_code}
+          fellowshipId={fellowship.id}
+        />
+
         {/* ── Gathering Session ────────────── */}
         <SessionPanel fellowshipId={fellowship.id} />
 
