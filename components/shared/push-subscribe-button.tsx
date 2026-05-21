@@ -101,7 +101,7 @@ export function PushSubscribeButton() {
         <BellOff className="h-4 w-4 shrink-0 text-stone-400" />
         <div className="text-left">
           <p className="font-semibold text-stone-700">灵命推送通知已开启</p>
-          <p className="text-xs text-stone-400">每周日 9:00 · 每月初 9:30 · 点击关闭</p>
+          <p className="text-xs text-stone-400">晨间内室 · 同行打卡 · 守望消息 · 点击关闭</p>
         </div>
       </button>
     )
@@ -119,7 +119,7 @@ export function PushSubscribeButton() {
       <Bell className="h-4 w-4 shrink-0 text-amber-500" />
       <div className="text-left">
         <p className="font-semibold">开启灵命成长推送</p>
-        <p className="text-xs text-amber-600/70">每周日 9:00 主日报告 · 每月初 9:30 月度报告</p>
+        <p className="text-xs text-amber-600/70">晨间内室 · 同行打卡提醒 · 守望互助消息</p>
       </div>
     </button>
   )
