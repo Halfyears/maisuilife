@@ -44,6 +44,7 @@ export interface AccountabilityGroup {
   goal_title:            string | null
   goal_description:      string | null
   goal_category:         string
+  group_type:            'daily' | 'vigil'
   organizer_id:          string
   invite_code:           string
   schedule_days_of_week: number[]
@@ -51,6 +52,13 @@ export interface AccountabilityGroup {
   start_date:            string | null
   end_date:              string | null
   created_at:            string
+}
+
+export interface VigilPresence {
+  user_id:       string
+  display_name:  string
+  note:          string | null
+  created_at:    string
 }
 
 export interface AccountabilityGroupMember {

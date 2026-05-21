@@ -1,0 +1,129 @@
+'use client'
+
+import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import type { VigilPresence } from '@/types'
+
+interface Props {
+  groupId:        string
+  myPresence:     VigilPresence | null
+  initialPresences: VigilPresence[]
+  memberCount:    number
+  myUserId:       string
+}
+
+export function VigilPanel({ groupId, myPresence, initialPresences, memberCount, myUserId }: Props) {
+  const [note,      setNote]      = useState(myPresence?.note ?? '')
+  const [loading,   setLoading]   = useState(false)
+  const [confirmed, setConfirmed] = useState(!!myPresence)
+  const [presences, setPresences] = useState<VigilPresence[]>(initialPresences)
+  const [error,     setError]     = useState<string | null>(null)
+
+  async function handlePresence() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/accountability/vigil', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ group_id: groupId, note: note.trim() || null }),
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setPresences(data.today_presences)
+      setConfirmed(true)
+    } catch {
+      setError('守望登记失败，请重试')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const watchingCount = presences.length
+
+  return (
+    <div className="space-y-4">
+
+      {/* ── 守望计数 ─────────────────────────────────── */}
+      <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-6 shadow-sm text-center">
+        <div
+          className={[
+            'mx-auto h-14 w-14 rounded-full flex items-center justify-center text-2xl mb-4 transition-all duration-700',
+            confirmed
+              ? 'bg-slate-100 shadow-inner ring-2 ring-slate-200'
+              : 'bg-stone-50',
+          ].join(' ')}
+          style={confirmed ? { animation: 'pulse 3s ease-in-out infinite' } : undefined}
+        >
+          🕯️
+        </div>
+        <p className="text-4xl font-black text-slate-800 leading-none">{watchingCount}</p>
+        <p className="text-xs text-stone-400 mt-1.5">
+          位肢体今日守望 · 共 {memberCount} 位同行
+        </p>
+      </div>
+
+      {/* ── 守望按钮 ─────────────────────────────────── */}
+      <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm space-y-3">
+        <textarea
+          value={note}
+          onChange={e => setNote(e.target.value.slice(0, 100))}
+          placeholder="留一句默默的祷告（可选，不超过 100 字）…"
+          rows={2}
+          className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5
+                     text-sm text-stone-700 placeholder-stone-300
+                     focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none"
+        />
+        {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+        <button
+          type="button"
+          onClick={handlePresence}
+          disabled={loading}
+          className={[
+            'w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-bold transition-all',
+            confirmed
+              ? 'border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+              : 'bg-slate-700 text-white hover:bg-slate-800 shadow-md shadow-slate-700/15',
+            'disabled:opacity-60',
+          ].join(' ')}
+        >
+          {loading
+            ? <Loader2 className="h-4 w-4 animate-spin" />
+            : confirmed
+              ? '✓ 今日已守望（点击更新祷告）'
+              : '🕯️ 今日守望'}
+        </button>
+        <p className="text-center text-[11px] text-stone-400 leading-relaxed">
+          每日可更新一次守望记录<br />
+          对方和其他肢体看不到你的名字，只看到人数
+        </p>
+      </div>
+
+      {/* ── 今日守望者列表（仅自己可见完整信息）──── */}
+      {presences.length > 0 && (
+        <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm">
+          <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">
+            今日守望肢体
+          </p>
+          <ul className="space-y-3">
+            {presences.map(p => (
+              <li key={p.user_id} className="flex items-start gap-3">
+                <span className="text-sm mt-0.5 shrink-0">
+                  {p.user_id === myUserId ? '🕯️' : '🌿'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-stone-700">
+                    {p.user_id === myUserId ? `${p.display_name}（你）` : p.display_name}
+                  </p>
+                  {p.note && (
+                    <p className="text-xs text-stone-400 mt-0.5 leading-relaxed">{p.note}</p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}

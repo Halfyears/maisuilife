@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Save, Target, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Save } from 'lucide-react'
 
 const DAY_OPTIONS = [
   { value: 1, label: '周一' }, { value: 2, label: '周二' }, { value: 3, label: '周三' },
@@ -30,6 +30,7 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
   const [time,  setTime]  = useState('')
   const [start, setStart] = useState('')
   const [end,   setEnd]   = useState('')
+  const [groupType, setGroupType] = useState<'daily' | 'vigil'>('daily')
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(false)
@@ -44,6 +45,7 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
           setName(g.name ?? '')
           setGoal(g.goal_title ?? '')
           setDesc(g.goal_description ?? '')
+          setGroupType(g.group_type === 'vigil' ? 'vigil' : 'daily')
           // If saved value is a preset, use it; otherwise it's a custom label
           const savedCat = g.goal_category ?? 'custom'
           if (PRESET_VALUES.has(savedCat)) {
@@ -111,8 +113,10 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
     <div className="flex min-h-dvh flex-col" style={{ backgroundColor: '#FBFBF9' }}>
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center gap-2.5 px-5 py-3.5">
-          <Target className="h-4 w-4 text-amber-500 shrink-0" />
-          <h1 className="text-sm font-bold text-stone-900 flex-1">小组设置</h1>
+          <span className="text-base shrink-0">{groupType === 'vigil' ? '🕯️' : '🌿'}</span>
+          <h1 className="text-sm font-bold text-stone-900 flex-1">
+            {groupType === 'vigil' ? '守望互助设置' : '同行小组设置'}
+          </h1>
           <Link
             href={`/accountability/${groupId}`}
             className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white
@@ -189,8 +193,8 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
           </div>
         </div>
 
-        {/* 约定时间 */}
-        <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-5 shadow-sm space-y-4">
+        {/* 约定时间（仅日常同行） */}
+        {groupType !== 'vigil' && <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-5 shadow-sm space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">约定打卡时间</p>
 
           <div>
@@ -226,7 +230,7 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
               <p className="mt-1 text-[11px] text-stone-400">留空表示不设截止日期</p>
             </div>
           </div>
-        </div>
+        </div>}
 
         {error && <p className="text-center text-xs text-red-600">{error}</p>}
         {saved && <p className="text-center text-xs text-green-600">✓ 设置已保存</p>}

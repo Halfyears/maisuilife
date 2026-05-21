@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
       goal_title:            body.goal_title?.trim().slice(0, 255) ?? null,
       goal_description:      body.goal_description?.trim() ?? null,
       goal_category:         body.goal_category ?? 'custom',
+      group_type:            body.group_type === 'vigil' ? 'vigil' : 'daily',
       schedule_days_of_week: body.schedule_days_of_week ?? [],
       schedule_time:         body.schedule_time ?? null,
       start_date:            body.start_date ?? null,

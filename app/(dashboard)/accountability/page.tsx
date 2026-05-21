@@ -32,6 +32,7 @@ export default async function AccountabilityIndexPage() {
 
   let groups: AccountabilityGroup[] = []
   let weekCheckins: AccountabilityCheckin[] = []
+  let myVigilToday: Set<string> = new Set()
 
   if (groupIds.length > 0) {
     const [groupsRes, checkinsRes] = await Promise.all([
@@ -48,6 +49,17 @@ export default async function AccountabilityIndexPage() {
     ])
     groups       = (groupsRes.data ?? []) as AccountabilityGroup[]
     weekCheckins = (checkinsRes.data ?? []) as AccountabilityCheckin[]
+
+    const vigilIds = groups.filter(g => g.group_type === 'vigil').map(g => g.id)
+    if (vigilIds.length > 0) {
+      const { data: vp } = await db
+        .from('accountability_vigil_presences')
+        .select('group_id')
+        .in('group_id', vigilIds)
+        .eq('user_id', user.id)
+        .eq('presence_date', today)
+      myVigilToday = new Set(((vp ?? []) as { group_id: string }[]).map(r => r.group_id))
+    }
   }
 
   return (
@@ -84,16 +96,57 @@ export default async function AccountabilityIndexPage() {
           <EmptyState />
         ) : (
           groups.map(g => {
-            const scheduled = getScheduledDates(
-              Array.isArray(g.schedule_days_of_week) ? g.schedule_days_of_week : [],
-              weekStart,
-              today,
-            )
-            const myCheckins = weekCheckins.filter(c => c.group_id === g.id)
-            const done = myCheckins.filter(c => c.status === 'done' && scheduled.includes(c.checkin_date)).length
-            const rate = scheduled.length > 0 ? Math.round((done / scheduled.length) * 100) : null
-            const todayChecked = myCheckins.some(c => c.checkin_date === today && c.status === 'done')
+            const isVigil     = g.group_type === 'vigil'
             const isOrganizer = g.organizer_id === user.id
+
+            if (isVigil) {
+              const watched = myVigilToday.has(g.id)
+              return (
+                <Link
+                  key={g.id}
+                  href={`/accountability/${g.id}`}
+                  className="block rounded-2xl border border-stone-100 bg-white/90 px-5 py-4
+                             shadow-sm hover:border-slate-200 transition-colors active:scale-[0.99]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm shrink-0">🕯️</span>
+                        <p className="text-sm font-bold text-stone-900">{g.name}</p>
+                        {isOrganizer && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                            召集人
+                          </span>
+                        )}
+                      </div>
+                      {g.goal_title && (
+                        <p className="text-xs text-stone-500 mt-0.5 truncate">{g.goal_title}</p>
+                      )}
+                      <p className="text-[11px] text-slate-400 mt-1.5 font-medium">守望互助</p>
+                    </div>
+                    {watched ? (
+                      <span className="shrink-0 text-[11px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-full">
+                        🕯️ 今日已守望
+                      </span>
+                    ) : (
+                      <span className="shrink-0 text-[11px] font-bold text-slate-400 bg-stone-50 px-2 py-1 rounded-full">
+                        守望
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              )
+            }
+
+            // Daily group
+            const scheduled    = getScheduledDates(
+              Array.isArray(g.schedule_days_of_week) ? g.schedule_days_of_week : [],
+              weekStart, today,
+            )
+            const myCheckins   = weekCheckins.filter(c => c.group_id === g.id)
+            const done         = myCheckins.filter(c => c.status === 'done' && scheduled.includes(c.checkin_date)).length
+            const rate         = scheduled.length > 0 ? Math.round((done / scheduled.length) * 100) : null
+            const todayChecked = myCheckins.some(c => c.checkin_date === today && c.status === 'done')
 
             return (
               <Link
@@ -139,7 +192,7 @@ export default async function AccountabilityIndexPage() {
                         className={[
                           'h-full rounded-full transition-all',
                           rate === 100 ? 'bg-green-400' :
-                          rate >= 50  ? 'bg-amber-400' : 'bg-stone-300',
+                          rate >= 50   ? 'bg-amber-400' : 'bg-stone-300',
                         ].join(' ')}
                         style={{ width: `${Math.max(rate, 2)}%` }}
                       />
