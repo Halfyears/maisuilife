@@ -13,6 +13,7 @@ import { DonationWidget } from '@/components/shared/donation-widget'
 import { GatheringBanner } from '@/components/fellowship/gathering-banner'
 import type { FellowshipPost, FellowshipPostsResponse } from '@/app/api/fellowship/posts/route'
 import type { PrayerRequestItem } from '@/app/api/prayer/route'
+import { goalCategoryLabel } from '@/lib/accountability'
 
 export const metadata = { title: '麦穗团契 — 麦穗喜乐' }
 
@@ -28,6 +29,16 @@ interface AlignmentRow {
   react_nian: number
   react_amen: number
   ai_summary_enc: string | null
+}
+
+interface VigilGroupCard {
+  id: string
+  name: string
+  goal_title: string | null
+  goal_category: string
+  invite_code: string
+  today_count: number
+  is_member: boolean
 }
 
 export default async function FellowshipPage() {
@@ -56,6 +67,7 @@ export default async function FellowshipPage() {
   // ── 3. Fetch posts directly (no HTTP self-call) ──────
   let postsData: FellowshipPostsResponse | null = null
   let fellowshipInviteCode: string | null = null
+  let vigilGroups: VigilGroupCard[] = []
 
   if (membership) {
     const db = createServiceClient()
@@ -70,8 +82,10 @@ export default async function FellowshipPage() {
       fellowshipInviteCode = (fellowship as { invite_code: string }).invite_code ?? null
     }
 
+    let memberIds: string[] = []
+
     if (fellowship && members && members.length > 0) {
-      const memberIds = (members as { user_id: string; layer2_label: string }[]).map(m => m.user_id)
+      memberIds = (members as { user_id: string; layer2_label: string }[]).map(m => m.user_id)
 
       const today = todayLocal()
 
@@ -136,6 +150,60 @@ export default async function FellowshipPage() {
         is_unlocked:     viewerHasSubmitted,
         is_leader:       (fellowship as { leader_id: string }).leader_id === user.id,
         posts,
+      }
+    }
+
+    // ── 3.5. Fetch vigil groups from fellowship members ──
+    if (memberIds.length > 0) {
+      try {
+        const today = todayLocal()
+        const { data: acctMemberships } = await db
+          .from('accountability_group_members')
+          .select('group_id')
+          .in('user_id', memberIds)
+
+        const vigilGroupIds = ((acctMemberships ?? []) as { group_id: string }[]).map(r => r.group_id)
+
+        if (vigilGroupIds.length > 0) {
+          const [vGroupsRes, presencesRes, myMembershipsRes] = await Promise.all([
+            db.from('accountability_groups')
+              .select('id, name, goal_title, goal_category, invite_code, organizer_id')
+              .in('id', vigilGroupIds)
+              .eq('group_type', 'vigil'),
+            db.from('accountability_vigil_presences')
+              .select('group_id')
+              .in('group_id', vigilGroupIds)
+              .eq('presence_date', today),
+            db.from('accountability_group_members')
+              .select('group_id')
+              .in('group_id', vigilGroupIds)
+              .eq('user_id', user.id),
+          ])
+
+          const presenceCount: Record<string, number> = {}
+          for (const p of ((presencesRes.data ?? []) as { group_id: string }[])) {
+            presenceCount[p.group_id] = (presenceCount[p.group_id] ?? 0) + 1
+          }
+
+          const myGroupSet = new Set(
+            ((myMembershipsRes.data ?? []) as { group_id: string }[]).map(m => m.group_id)
+          )
+
+          vigilGroups = ((vGroupsRes.data ?? []) as {
+            id: string; name: string; goal_title: string | null
+            goal_category: string; invite_code: string; organizer_id: string
+          }[]).map(g => ({
+            id:            g.id,
+            name:          g.name,
+            goal_title:    g.goal_title,
+            goal_category: g.goal_category,
+            invite_code:   g.invite_code,
+            today_count:   presenceCount[g.id] ?? 0,
+            is_member:     myGroupSet.has(g.id),
+          }))
+        }
+      } catch {
+        // vigil table may not exist if migration 021 hasn't been run yet
       }
     }
   }
@@ -253,6 +321,11 @@ export default async function FellowshipPage() {
         {/* ── Fellowship view ───────────────────────── */}
         {postsData && <FellowshipView data={postsData} />}
 
+        {/* ── 守望互助 ──────────────────────────────── */}
+        {membership && vigilGroups.length > 0 && (
+          <VigilGroupsSection groups={vigilGroups} />
+        )}
+
         {/* ── 代祷需求 ──────────────────────────────── */}
         {membership && (
           <PrayerSection
@@ -265,6 +338,77 @@ export default async function FellowshipPage() {
       </main>
 
       <BottomNav />
+    </div>
+  )
+}
+
+function VigilGroupsSection({ groups }: { groups: VigilGroupCard[] }) {
+  return (
+    <div className="mt-6 mb-5">
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="text-sm">🕯️</span>
+        <p className="text-sm font-bold text-stone-700">守望互助</p>
+        <span className="text-xs text-stone-400 ml-1">团契中正在被守望的肢体</span>
+      </div>
+      <div className="space-y-2.5">
+        {groups.map(g => (
+          <VigilCard key={g.id} group={g} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function VigilCard({ group }: { group: VigilGroupCard }) {
+  const catLabel  = goalCategoryLabel(group.goal_category)
+  const watchText = group.today_count > 0
+    ? `🕯️ 今日 ${group.today_count} 人守望`
+    : '🕯️ 守望中'
+
+  if (group.is_member) {
+    return (
+      <Link
+        href={`/accountability/${group.id}`}
+        className="block rounded-2xl border border-slate-100 bg-white/90 px-5 py-4
+                   shadow-sm hover:border-slate-200 transition-colors active:scale-[0.99]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] text-slate-400 mb-0.5">{catLabel}</p>
+            <p className="text-sm font-semibold text-stone-800">{group.name}</p>
+            {group.goal_title && (
+              <p className="text-xs text-stone-500 mt-0.5 truncate">{group.goal_title}</p>
+            )}
+          </div>
+          <span className="shrink-0 text-[11px] font-medium text-slate-500 bg-slate-50 px-2 py-1 rounded-full">
+            {watchText}
+          </span>
+        </div>
+      </Link>
+    )
+  }
+
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white/90 px-5 py-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] text-slate-400 mb-0.5">{catLabel}</p>
+          <p className="text-sm font-semibold text-stone-800">{group.name}</p>
+          {group.goal_title && (
+            <p className="text-xs text-stone-500 mt-0.5 truncate">{group.goal_title}</p>
+          )}
+        </div>
+        <Link
+          href={`/accountability/join?code=${group.invite_code}`}
+          className="shrink-0 text-[11px] font-bold text-slate-600 bg-slate-50
+                     px-2.5 py-1.5 rounded-full hover:bg-slate-100 transition-colors"
+        >
+          加入守望
+        </Link>
+      </div>
+      {group.today_count > 0 && (
+        <p className="text-[11px] text-slate-400 mt-2.5">{watchText}</p>
+      )}
     </div>
   )
 }
