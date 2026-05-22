@@ -174,40 +174,44 @@ export default async function AccountabilityGroupPage({
         {isVigil ? (
           <>
             {/* 守望情况卡片 */}
-            <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/90 to-blue-50/60 px-5 py-4">
-              {/* 类型标题行 */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm">🕊️</span>
-                  <p className="text-sm font-bold text-sky-700">守望相助</p>
+            <div className="rounded-2xl border border-violet-200/60 overflow-hidden shadow-sm"
+              style={{ background: 'linear-gradient(135deg, #fdf4ff 0%, #fff8ee 60%, #fef3e2 100%)' }}>
+              <div className="h-0.5 w-full" style={{ background: 'linear-gradient(90deg, #c084fc, #d4af37, #c084fc)' }} />
+              <div className="px-5 py-4">
+                {/* 类型标题行 */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">🕊️</span>
+                    <p className="text-sm font-bold text-violet-700">守望相助</p>
+                  </div>
+                  {isOrganizer && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      召集人
+                    </span>
+                  )}
                 </div>
-                {isOrganizer && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-600">
-                    召集人
-                  </span>
-                )}
-              </div>
-              {/* 内容区 */}
-              <div className="flex items-start gap-3">
-                <span className="text-base mt-0.5 shrink-0">{goalCategoryLabel(group.goal_category ?? '')}</span>
-                <div className="flex-1 min-w-0">
-                  {group.goal_title && (
-                    <p className="text-sm font-semibold text-stone-800">{group.goal_title}</p>
-                  )}
-                  {group.goal_description && (
-                    <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">{group.goal_description}</p>
-                  )}
-                  {scheduleDays.length > 0 && (
-                    <p className="text-[11px] text-sky-600 mt-1.5 font-medium">
-                      每周{scheduleDays.map(d => DAY_LABEL[d]).join('、')}同心守望
-                      {group.schedule_time && ` · ${group.schedule_time}`}
-                    </p>
-                  )}
-                  {(group.start_date || group.end_date) && (
-                    <p className="text-[11px] text-sky-400 mt-0.5">
-                      {group.start_date ?? '—'} 至 {group.end_date ?? '持续守望'}
-                    </p>
-                  )}
+                {/* 内容区 */}
+                <div className="flex items-start gap-3">
+                  <span className="text-base mt-0.5 shrink-0">{goalCategoryLabel(group.goal_category ?? '')}</span>
+                  <div className="flex-1 min-w-0">
+                    {group.goal_title && (
+                      <p className="text-sm font-semibold text-stone-800">{group.goal_title}</p>
+                    )}
+                    {group.goal_description && (
+                      <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">{group.goal_description}</p>
+                    )}
+                    {scheduleDays.length > 0 && (
+                      <p className="text-[11px] text-violet-600 mt-1.5 font-medium">
+                        每周{scheduleDays.map(d => DAY_LABEL[d]).join('、')}同心守望
+                        {group.schedule_time && ` · ${group.schedule_time}`}
+                      </p>
+                    )}
+                    {(group.start_date || group.end_date) && (
+                      <p className="text-[11px] text-amber-500 mt-0.5">
+                        {group.start_date ?? '—'} 至 {group.end_date ?? '持续守望'}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

@@ -105,16 +105,17 @@ export default async function AccountabilityIndexPage() {
                 <Link
                   key={g.id}
                   href={`/accountability/${g.id}`}
-                  className="block rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/60 to-blue-50/40 px-5 py-4
-                             shadow-sm hover:border-sky-200 hover:shadow-md hover:shadow-sky-100/50 transition-all active:scale-[0.99]"
+                  className="block rounded-2xl border border-violet-200/60 px-5 py-4
+                             shadow-sm hover:shadow-md hover:shadow-violet-200/60 transition-all active:scale-[0.99]"
+                  style={{ background: 'linear-gradient(135deg, #fdf4ff 0%, #fff8ee 70%, #fef3e2 100%)' }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm shrink-0">🕊️</span>
+                        <span className="text-base shrink-0">🕊️</span>
                         <p className="text-sm font-bold text-stone-900">{g.name}</p>
                         {isOrganizer && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-600">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
                             召集人
                           </span>
                         )}
@@ -122,14 +123,14 @@ export default async function AccountabilityIndexPage() {
                       {g.goal_title && (
                         <p className="text-xs text-stone-500 mt-0.5 truncate">{g.goal_title}</p>
                       )}
-                      <p className="text-[11px] text-sky-500 mt-1.5 font-medium">守望相助</p>
+                      <p className="text-[11px] text-violet-500 mt-1.5 font-semibold">守望相助</p>
                     </div>
                     {watched ? (
-                      <span className="shrink-0 text-[11px] font-bold text-sky-600 bg-sky-100 px-2 py-1 rounded-full">
+                      <span className="shrink-0 text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
                         🕊️ 今日已守望
                       </span>
                     ) : (
-                      <span className="shrink-0 text-[11px] font-bold text-sky-400 bg-sky-50 px-2 py-1 rounded-full">
+                      <span className="shrink-0 text-[11px] font-bold text-violet-500 bg-violet-50 px-2 py-1 rounded-full border border-violet-100">
                         守望
                       </span>
                     )}

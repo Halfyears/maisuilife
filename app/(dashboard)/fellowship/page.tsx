@@ -348,8 +348,8 @@ function VigilGroupsSection({ groups }: { groups: VigilGroupCard[] }) {
   return (
     <div className="mt-6 mb-5">
       <div className="flex items-center gap-1.5 mb-3">
-        <span className="text-sm">🕊️</span>
-        <p className="text-sm font-bold text-stone-700">守望相助</p>
+        <span className="text-base">🕊️</span>
+        <p className="text-sm font-bold text-violet-700">守望相助</p>
         <span className="text-xs text-stone-400 ml-1">团契中正在被守望的肢体</span>
       </div>
       <div className="space-y-2.5">
@@ -371,18 +371,19 @@ function VigilCard({ group }: { group: VigilGroupCard }) {
     return (
       <Link
         href={`/accountability/${group.id}`}
-        className="block rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/60 to-blue-50/40 px-5 py-4
-                   shadow-sm hover:border-sky-200 hover:shadow-md hover:shadow-sky-100/50 transition-all active:scale-[0.99]"
+        className="block rounded-2xl border border-violet-200/60 px-5 py-4
+                   shadow-sm hover:shadow-md hover:shadow-violet-200/60 transition-all active:scale-[0.99]"
+        style={{ background: 'linear-gradient(135deg, #fdf4ff 0%, #fff8ee 70%, #fef3e2 100%)' }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-sky-400 mb-0.5">{catLabel}</p>
+            <p className="text-[11px] text-violet-400 mb-0.5 font-medium">{catLabel}</p>
             <p className="text-sm font-semibold text-stone-800">{group.name}</p>
             {group.goal_title && (
               <p className="text-xs text-stone-500 mt-0.5 truncate">{group.goal_title}</p>
             )}
           </div>
-          <span className="shrink-0 text-[11px] font-medium text-sky-600 bg-sky-50 px-2 py-1 rounded-full">
+          <span className="shrink-0 text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
             {watchText}
           </span>
         </div>
@@ -391,10 +392,11 @@ function VigilCard({ group }: { group: VigilGroupCard }) {
   }
 
   return (
-    <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/40 to-blue-50/30 px-5 py-4 shadow-sm">
+    <div className="rounded-2xl border border-violet-200/60 px-5 py-4 shadow-sm"
+      style={{ background: 'linear-gradient(135deg, #fdf4ff 0%, #fff8ee 70%, #fef3e2 100%)' }}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] text-sky-400 mb-0.5">{catLabel}</p>
+          <p className="text-[11px] text-violet-400 mb-0.5 font-medium">{catLabel}</p>
           <p className="text-sm font-semibold text-stone-800">{group.name}</p>
           {group.goal_title && (
             <p className="text-xs text-stone-500 mt-0.5 truncate">{group.goal_title}</p>
@@ -402,14 +404,14 @@ function VigilCard({ group }: { group: VigilGroupCard }) {
         </div>
         <Link
           href={`/accountability/join?code=${group.invite_code}`}
-          className="shrink-0 text-[11px] font-bold text-sky-600 bg-sky-50
-                     px-2.5 py-1.5 rounded-full hover:bg-sky-100 transition-colors"
+          className="shrink-0 text-[11px] font-bold text-violet-600 border border-violet-200
+                     bg-white px-2.5 py-1.5 rounded-full hover:bg-violet-50 transition-colors"
         >
           加入守望
         </Link>
       </div>
       {group.today_count > 0 && (
-        <p className="text-[11px] text-sky-500 mt-2.5">{watchText}</p>
+        <p className="text-[11px] text-violet-500 mt-2.5 font-medium">{watchText}</p>
       )}
     </div>
   )
