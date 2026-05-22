@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Save, Loader2 } from 'lucide-react'
+import { Save, Loader2, Trash2, UserX, UserCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -16,20 +16,25 @@ const CHURCH_ADMIN_ASSIGNABLE = ['user', 'group_leader', 'pastor']
 const SUPER_ADMIN_ASSIGNABLE  = ['user', 'group_leader', 'pastor', 'church_admin', 'super_admin']
 
 interface Props {
-  user: { id: string; display_name: string; role: string; created_at: string }
+  user: { id: string; display_name: string; role: string; created_at: string; is_active: boolean }
   actorRole: string
   fellowship?: string
 }
 
 export function UserRoleRow({ user: u, actorRole, fellowship }: Props) {
   const router = useRouter()
-  const [draft,   setDraft]   = useState(u.role)
-  const [saving,  setSaving]  = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [draft,      setDraft]      = useState(u.role)
+  const [saving,     setSaving]     = useState(false)
+  const [toggling,   setToggling]   = useState(false)
+  const [deleting,   setDeleting]   = useState(false)
+  const [error,      setError]      = useState<string | null>(null)
+  const [success,    setSuccess]    = useState(false)
+  const [isActive,   setIsActive]   = useState(u.is_active)
 
   const assignable = actorRole === 'super_admin' ? SUPER_ADMIN_ASSIGNABLE : CHURCH_ADMIN_ASSIGNABLE
   const changed = draft !== u.role
+  const canManage = ['church_admin', 'super_admin'].includes(actorRole)
+  const canDelete = actorRole === 'super_admin'
 
   async function save() {
     if (!changed) return
@@ -52,6 +57,34 @@ export function UserRoleRow({ user: u, actorRole, fellowship }: Props) {
       router.refresh()
     } catch { setError('保存失败'); setDraft(u.role) }
     finally   { setSaving(false) }
+  }
+
+  async function toggleActive() {
+    setToggling(true); setError(null)
+    const next = !isActive
+    try {
+      const res = await fetch('/api/church/update-user-status', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: u.id, is_active: next }),
+      })
+      if (!res.ok) { setError('操作失败'); return }
+      setIsActive(next); router.refresh()
+    } catch { setError('网络错误') }
+    finally   { setToggling(false) }
+  }
+
+  async function deleteUser() {
+    if (!confirm(`确认删除用户「${u.display_name || u.id}」？此操作不可恢复。`)) return
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/church/delete-user', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: u.id }),
+      })
+      if (!res.ok) { setError('删除失败'); return }
+      router.refresh()
+    } catch { setError('网络错误') }
+    finally   { setDeleting(false) }
   }
 
   const roleSelect = (
@@ -78,26 +111,64 @@ export function UserRoleRow({ user: u, actorRole, fellowship }: Props) {
     </div>
   )
 
+  const actionButtons = canManage && (
+    <div className="flex items-center gap-1.5 mt-1">
+      <button onClick={toggleActive} disabled={toggling}
+        className={[
+          'flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50',
+          isActive
+            ? 'border-stone-200 text-stone-500 hover:border-orange-300 hover:text-orange-600 hover:bg-orange-50'
+            : 'border-green-200 text-green-600 hover:bg-green-50 bg-green-50/50',
+        ].join(' ')}>
+        {toggling
+          ? <Loader2 className="h-3 w-3 animate-spin" />
+          : isActive ? <UserX className="h-3 w-3" /> : <UserCheck className="h-3 w-3" />}
+        {isActive ? '停用' : '激活'}
+      </button>
+      {canDelete && (
+        <button onClick={deleteUser} disabled={deleting}
+          className="flex items-center gap-1 rounded-lg border border-red-100 px-2 py-1
+                     text-xs text-red-400 hover:border-red-300 hover:text-red-600
+                     hover:bg-red-50 disabled:opacity-50 transition-colors">
+          {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+          删除
+        </button>
+      )}
+    </div>
+  )
+
   // ── Mobile card ───────────────────────────────────────────────────────────
   const mobileCard = (
-    <div className="px-4 py-3 space-y-2 md:hidden">
+    <div className={['px-4 py-3 space-y-2 md:hidden', !isActive ? 'opacity-60' : ''].join(' ')}>
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-stone-900 truncate">{u.display_name || '—'}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium text-stone-900 truncate">{u.display_name || '—'}</p>
+            {!isActive && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-400">已停用</span>}
+          </div>
           <p className="text-xs text-stone-400">{fellowship ?? '未入团契'} · {u.created_at.slice(0, 10)}</p>
         </div>
       </div>
       {roleSelect}
+      {actionButtons}
     </div>
   )
 
   // ── Desktop row ───────────────────────────────────────────────────────────
   const desktopRow = (
-    <tr className="border-b border-stone-50 hover:bg-stone-50/50 transition-colors hidden md:table-row">
-      <td className="px-4 py-2.5 font-medium text-stone-900 text-sm">{u.display_name || '—'}</td>
+    <tr className={['border-b border-stone-50 hover:bg-stone-50/50 transition-colors hidden md:table-row', !isActive ? 'opacity-60' : ''].join(' ')}>
+      <td className="px-4 py-2.5 font-medium text-stone-900 text-sm">
+        <div className="flex items-center gap-1.5">
+          {u.display_name || '—'}
+          {!isActive && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-400">已停用</span>}
+        </div>
+      </td>
       <td className="px-4 py-2.5 text-xs text-stone-400">{u.created_at.slice(0, 10)}</td>
       <td className="px-4 py-2.5 text-xs text-stone-500">{fellowship ?? '—'}</td>
-      <td className="px-4 py-2.5">{roleSelect}</td>
+      <td className="px-4 py-2.5">
+        {roleSelect}
+        {actionButtons}
+      </td>
     </tr>
   )
 

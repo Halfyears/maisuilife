@@ -9,6 +9,7 @@ import { ScriptureEditor }        from '@/components/church/hub/scripture-editor
 import { FellowshipManageRow }    from '@/components/church/hub/fellowship-manage-row'
 import { UserRoleRow }            from '@/components/church/hub/user-role-row'
 import { CreateFellowshipForm }   from '@/components/church/hub/create-fellowship-form'
+import { ChurchDangerZone }       from '@/components/church/hub/church-danger-zone'
 
 export const metadata  = { title: '教会管理中枢 — 麦穗喜乐' }
 export const revalidate = 0
@@ -29,17 +30,19 @@ export default async function ChurchHubPage() {
   const actorRole = profile?.role ?? ''
   if (!ROLE_ALLOWED.includes(actorRole)) redirect('/')
 
-  const [fellowshipsRes, membersRes, usersRes, churchNameRes, scriptureRes] = await Promise.all([
+  const [fellowshipsRes, membersRes, usersRes, churchNameRes, scriptureRes, churchRes] = await Promise.all([
     db.from('fellowships')
       .select('id, name, status, invite_code, meeting_mode, created_at, leader_id')
       .order('created_at', { ascending: false }),
     db.from('fellowship_members').select('fellowship_id, user_id'),
     db.from('users')
-      .select('id, display_name, role, created_at')
+      .select('id, display_name, role, created_at, is_active')
       .order('created_at', { ascending: false })
       .limit(300),
     db.from('system_configs').select('value').eq('key', 'church_name').maybeSingle(),
     db.from('system_configs').select('value').eq('key', 'daily_scripture').maybeSingle(),
+    db.from('church_members').select('church_id, churches(id, name, status)')
+      .eq('user_id', user.id).limit(1).maybeSingle(),
   ])
 
   const fellowships = (fellowshipsRes.data ?? []) as {
@@ -48,7 +51,7 @@ export default async function ChurchHubPage() {
   }[]
   const members  = (membersRes.data ?? []) as { fellowship_id: string; user_id: string }[]
   const allUsers = (usersRes.data ?? []) as {
-    id: string; display_name: string; role: string; created_at: string
+    id: string; display_name: string; role: string; created_at: string; is_active: boolean
   }[]
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,6 +60,8 @@ export default async function ChurchHubPage() {
   const scriptureVal = (scriptureRes.data as any)?.value as { verse?: string; ref?: string } | null
   const scriptureVerse: string = scriptureVal?.verse?.trim() ?? ''
   const scriptureRef:   string = scriptureVal?.ref?.trim()   ?? ''
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const churchRecord = (churchRes.data?.churches as any) as { id: string; name: string; status: string } | null
 
   const memberCount: Record<string, number> = {}
   for (const m of members) memberCount[m.fellowship_id] = (memberCount[m.fellowship_id] ?? 0) + 1
@@ -298,6 +303,11 @@ export default async function ChurchHubPage() {
             教会邀请码与团契邀请码各自独立。若需更换团契，须先联系管理员移除当前团契身份。
           </p>
         </div>
+
+        {/* ── 教会危险操作（super_admin only）─────────────────────────── */}
+        {actorRole === 'super_admin' && churchRecord && (
+          <ChurchDangerZone churchId={churchRecord.id} churchName={churchRecord.name} />
+        )}
 
       </main>
     </div>

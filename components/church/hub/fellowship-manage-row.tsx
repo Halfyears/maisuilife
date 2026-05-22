@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Save, X, Loader2, CheckCircle, Clock, XCircle, PauseCircle } from 'lucide-react'
+import { Pencil, Save, X, Loader2, CheckCircle, Clock, XCircle, PauseCircle, StopCircle, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export interface FellowshipUser {
@@ -11,7 +11,7 @@ export interface FellowshipUser {
 interface Props {
   fellowship: {
     id: string; name: string; status: string; invite_code: string;
-    leader_id: string; created_at: string
+    leader_id: string | null; created_at: string
   }
   memberCount: number
   allUsers: FellowshipUser[]
@@ -22,6 +22,7 @@ const STATUS_OPTIONS = [
   { value: 'pending',   label: '待审批', Icon: Clock,        color: 'text-orange-700 bg-orange-50' },
   { value: 'rejected',  label: '已拒绝', Icon: XCircle,      color: 'text-red-600 bg-red-50'       },
   { value: 'suspended', label: '已暂停', Icon: PauseCircle,  color: 'text-stone-600 bg-stone-100'  },
+  { value: 'ended',     label: '已结束', Icon: StopCircle,   color: 'text-stone-400 bg-stone-50'   },
 ]
 
 function StatusBadge({ status }: { status: string }) {
@@ -37,10 +38,11 @@ export function FellowshipManageRow({ fellowship, memberCount, allUsers }: Props
   const router = useRouter()
   const [editing,     setEditing]     = useState(false)
   const [draftName,   setDraftName]   = useState(fellowship.name)
-  const [draftLeader, setDraftLeader] = useState(fellowship.leader_id)
+  const [draftLeader, setDraftLeader] = useState(fellowship.leader_id ?? '')
   const [draftStatus, setDraftStatus] = useState(fellowship.status)
-  const [saving, setSaving] = useState(false)
-  const [error,  setError]  = useState<string | null>(null)
+  const [saving,    setSaving]    = useState(false)
+  const [deleting,  setDeleting]  = useState(false)
+  const [error,     setError]     = useState<string | null>(null)
 
   const leaderName = allUsers.find(u => u.id === fellowship.leader_id)?.display_name ?? '—'
   const eligibleLeaders = allUsers.filter(u =>
@@ -48,8 +50,21 @@ export function FellowshipManageRow({ fellowship, memberCount, allUsers }: Props
   )
 
   function startEdit() {
-    setDraftName(fellowship.name); setDraftLeader(fellowship.leader_id)
+    setDraftName(fellowship.name); setDraftLeader(fellowship.leader_id ?? '')
     setDraftStatus(fellowship.status); setEditing(true); setError(null)
+  }
+
+  async function deleteFellowship() {
+    if (!confirm(`确认删除团契「${fellowship.name}」？此操作不可恢复，所有成员记录将被清除。`)) return
+    setDeleting(true)
+    try {
+      await fetch('/api/church/delete-fellowship', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fellowship_id: fellowship.id }),
+      })
+      router.refresh()
+    } catch { setError('删除失败') }
+    finally   { setDeleting(false) }
   }
   function cancel() { setEditing(false); setError(null) }
 
@@ -120,12 +135,20 @@ export function FellowshipManageRow({ fellowship, memberCount, allUsers }: Props
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
             <StatusBadge status={fellowship.status} />
-            <button onClick={startEdit}
-              className="flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1
-                         text-xs text-stone-500 hover:border-violet-300 hover:text-violet-600
-                         hover:bg-violet-50 transition-colors">
-              <Pencil className="h-3 w-3" />编辑
-            </button>
+            <div className="flex gap-1.5">
+              <button onClick={startEdit}
+                className="flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1
+                           text-xs text-stone-500 hover:border-violet-300 hover:text-violet-600
+                           hover:bg-violet-50 transition-colors">
+                <Pencil className="h-3 w-3" />编辑
+              </button>
+              <button onClick={deleteFellowship} disabled={deleting}
+                className="flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1
+                           text-xs text-red-400 hover:border-red-300 hover:text-red-600
+                           hover:bg-red-50 disabled:opacity-50 transition-colors">
+                {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -179,12 +202,20 @@ export function FellowshipManageRow({ fellowship, memberCount, allUsers }: Props
       <td className="px-4 py-3"><StatusBadge status={fellowship.status} /></td>
       <td className="px-4 py-3 text-xs text-stone-400">{fellowship.created_at.slice(0, 10)}</td>
       <td className="px-4 py-3">
-        <button onClick={startEdit}
-          className="flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1
-                     text-xs text-stone-500 hover:border-violet-300 hover:text-violet-600
-                     hover:bg-violet-50 transition-colors">
-          <Pencil className="h-3 w-3" />编辑
-        </button>
+        <div className="flex gap-1.5">
+          <button onClick={startEdit}
+            className="flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1
+                       text-xs text-stone-500 hover:border-violet-300 hover:text-violet-600
+                       hover:bg-violet-50 transition-colors">
+            <Pencil className="h-3 w-3" />编辑
+          </button>
+          <button onClick={deleteFellowship} disabled={deleting}
+            className="flex items-center gap-1 rounded-lg border border-red-100 px-2.5 py-1
+                       text-xs text-red-400 hover:border-red-300 hover:text-red-600
+                       hover:bg-red-50 disabled:opacity-50 transition-colors">
+            {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+          </button>
+        </div>
       </td>
     </tr>
   )

@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   // ── 2. Look up fellowship by invite_code ───────────────
   const { data: fellowship, error: lookupErr } = await db
     .from('fellowships')
-    .select('id, name, status')
+    .select('id, name, status, church_id')
     .eq('invite_code', inviteCode)
     .maybeSingle()
 
@@ -79,6 +79,21 @@ export async function POST(req: NextRequest) {
   if (insertErr) {
     console.error('[fellowship/join] insert error:', insertErr.message)
     return NextResponse.json({ error: 'join_failed' }, { status: 500 })
+  }
+
+  // ── 5. Auto-join church if fellowship belongs to one ────
+  const churchId = (fellowship as { church_id?: string | null }).church_id
+  if (churchId) {
+    const { data: alreadyChurchMember } = await db
+      .from('church_members')
+      .select('church_id')
+      .eq('user_id', user.id)
+      .eq('church_id', churchId)
+      .maybeSingle()
+
+    if (!alreadyChurchMember) {
+      await db.from('church_members').insert({ church_id: churchId, user_id: user.id })
+    }
   }
 
   return NextResponse.json({ ok: true, fellowship_name: fellowship.name })

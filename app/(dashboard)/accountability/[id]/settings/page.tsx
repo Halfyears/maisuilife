@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Save } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, StopCircle, Trash2 } from 'lucide-react'
 
 const DAY_OPTIONS = [
   { value: 1, label: '周一' }, { value: 2, label: '周二' }, { value: 3, label: '周三' },
@@ -31,10 +31,12 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
   const [start, setStart] = useState('')
   const [end,   setEnd]   = useState('')
   const [groupType, setGroupType] = useState<'daily' | 'vigil'>('daily')
-  const [loading, setLoading] = useState(true)
-  const [saving,  setSaving]  = useState(false)
-  const [saved,   setSaved]   = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
+  const [loading,   setLoading]   = useState(true)
+  const [saving,    setSaving]    = useState(false)
+  const [saved,     setSaved]     = useState(false)
+  const [error,     setError]     = useState<string | null>(null)
+  const [ending,    setEnding]    = useState(false)
+  const [deleting,  setDeleting]  = useState(false)
 
   useEffect(() => {
     fetch(`/api/accountability/group?id=${groupId}`)
@@ -65,6 +67,29 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
 
   function toggleDay(d: number) {
     setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort((a, b) => a - b))
+  }
+
+  async function endGroup() {
+    if (!confirm('确认结束此小组？状态将变更为「已结束」，成员记录保留。')) return
+    setEnding(true)
+    try {
+      await fetch(`/api/accountability/groups/${groupId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ended' }),
+      })
+      router.push('/accountability')
+    } catch { setError('操作失败') }
+    finally   { setEnding(false) }
+  }
+
+  async function deleteGroup() {
+    if (!confirm('确认删除此小组？此操作不可恢复，所有记录将被清除。')) return
+    setDeleting(true)
+    try {
+      await fetch(`/api/accountability/groups/${groupId}`, { method: 'DELETE' })
+      router.push('/accountability')
+    } catch { setError('删除失败') }
+    finally   { setDeleting(false) }
   }
 
   async function save() {
@@ -247,6 +272,28 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
           className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-bold text-white shadow-md shadow-orange-500/20 hover:opacity-90 disabled:opacity-60 transition-opacity">
           {saving ? <><Loader2 className="h-4 w-4 animate-spin" />保存中…</> : <><Save className="h-4 w-4" />保存设置</>}
         </button>
+
+        {/* 危险操作 */}
+        <div className="rounded-2xl border border-red-100 bg-red-50/50 px-5 py-4 space-y-3">
+          <p className="text-xs font-semibold text-red-700">危险操作</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={endGroup} disabled={ending || deleting}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-orange-200
+                         bg-white py-2.5 text-xs font-bold text-orange-600
+                         hover:bg-orange-50 disabled:opacity-50 transition-colors">
+              {ending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <StopCircle className="h-3.5 w-3.5" />}
+              结束小组
+            </button>
+            <button type="button" onClick={deleteGroup} disabled={ending || deleting}
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-red-200
+                         bg-white py-2.5 text-xs font-bold text-red-600
+                         hover:bg-red-50 disabled:opacity-50 transition-colors">
+              {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              删除小组
+            </button>
+          </div>
+          <p className="text-[11px] text-red-400">结束后状态变更为「已结束」，数据保留；删除则彻底移除。</p>
+        </div>
       </main>
     </div>
   )
