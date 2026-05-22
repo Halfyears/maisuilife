@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LogIn, Church, Users, Target, Pencil, X, Check, Loader2, ChevronRight } from 'lucide-react'
@@ -20,19 +20,20 @@ export function ProfileCard({
   churchName, fellowship, acctGroups,
 }: ProfileCardProps) {
   const router = useRouter()
-  const [name,      setName]      = useState(initialName)
-  const [editing,   setEditing]   = useState(false)
-  const [draft,     setDraft]     = useState(initialName)
-  const [error,     setError]     = useState('')
-  const [isPending, startTransition] = useTransition()
+  const [name,    setName]    = useState(initialName)
+  const [editing, setEditing] = useState(false)
+  const [draft,   setDraft]   = useState(initialName)
+  const [error,   setError]   = useState('')
+  const [saving,  setSaving]  = useState(false)
 
   function startEdit()  { setDraft(name); setError(''); setEditing(true)  }
   function cancelEdit() { setEditing(false); setError('') }
 
-  function handleSave() {
+  async function handleSave() {
     if (!draft.trim()) { setError('姓名不能为空'); return }
     setError('')
-    startTransition(async () => {
+    setSaving(true)
+    try {
       const res = await fetch('/api/user/profile', {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -41,8 +42,10 @@ export function ProfileCard({
       if (!res.ok) { setError('保存失败，请稍后再试'); return }
       setName(draft.trim())
       setEditing(false)
-      window.location.reload()
-    })
+      router.refresh()
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -77,10 +80,10 @@ export function ProfileCard({
         <div className="flex items-center shrink-0">
           {editing ? (
             <>
-              <button type="button" onClick={handleSave} disabled={isPending}
+              <button type="button" onClick={handleSave} disabled={saving}
                 className="flex items-center justify-center h-8 w-8 rounded-xl bg-amber-500 text-white
                            hover:bg-amber-600 disabled:opacity-50 transition-colors">
-                {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
               </button>
               <button type="button" onClick={cancelEdit}
                 className="flex items-center justify-center h-8 w-8 rounded-xl border border-stone-200

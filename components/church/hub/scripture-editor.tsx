@@ -6,9 +6,10 @@ import { Pencil, Save, X, Loader2, BookOpen } from 'lucide-react'
 interface Props {
   initialVerse: string
   initialRef:   string
+  isAutoMode?:  boolean
 }
 
-export function ScriptureEditor({ initialVerse, initialRef }: Props) {
+export function ScriptureEditor({ initialVerse, initialRef, isAutoMode = false }: Props) {
   const [editing, setEditing]   = useState(false)
   const [verse,   setVerse]     = useState(initialVerse)
   const [ref,     setRef]       = useState(initialRef)
@@ -51,14 +52,26 @@ export function ScriptureEditor({ initialVerse, initialRef }: Props) {
           <p className="text-sm text-stone-700 leading-relaxed italic">「{verse || '未设置'}」</p>
           {ref && <p className="text-xs text-stone-400 mt-1 text-right">— {ref}</p>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {isAutoMode && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 border border-green-200
+                             px-2.5 py-0.5 text-[11px] font-medium text-green-700">
+              ✦ 自动每日更新
+            </span>
+          )}
+          {!isAutoMode && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 border border-violet-200
+                             px-2.5 py-0.5 text-[11px] font-medium text-violet-700">
+              ✎ 今日已手动设置
+            </span>
+          )}
           <button
             onClick={() => { setDraftV(verse); setDraftR(ref); setEditing(true) }}
             className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5
                        text-xs font-medium text-stone-500 hover:bg-stone-100 hover:text-violet-600 transition-colors"
           >
             <Pencil className="h-3 w-3" />
-            编辑今日经文
+            {isAutoMode ? '今日手动覆盖' : '重新编辑'}
           </button>
           {saved && <span className="text-xs text-green-600">✓ 已保存</span>}
         </div>

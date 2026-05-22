@@ -11,10 +11,12 @@ const DAY_OPTIONS = [
   { value: 7, label: '周日' },
 ]
 const PRESET_CATEGORIES = [
-  { value: 'prayer',        label: '🙏 祷告' },
-  { value: 'bible_reading', label: '📖 读经' },
+  { value: 'prayer',        label: '祷告',   emoji: '🙏' },
+  { value: 'bible_reading', label: '读经',   emoji: '📖' },
+  { value: 'worship',       label: '敬拜',   emoji: '🎵' },
+  { value: 'service',       label: '服事',   emoji: '🤝' },
 ]
-const PRESET_VALUES = new Set(['prayer', 'bible_reading'])
+const PRESET_VALUES = new Set(['prayer', 'bible_reading', 'worship', 'service'])
 
 export default function AccountabilitySettingsPage({ params }: { params: { id: string } }) {
   const router  = useRouter()
@@ -158,7 +160,17 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
 
         {/* 基本信息 */}
         <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-5 shadow-sm space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">小组信息</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">小组信息</p>
+            <span className={[
+              'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium',
+              groupType === 'vigil'
+                ? 'bg-violet-50 text-violet-700 border border-violet-200'
+                : 'bg-amber-50 text-amber-700 border border-amber-200',
+            ].join(' ')}>
+              {groupType === 'vigil' ? '🕊️ 守望相助' : '🌿 同行小组'}
+            </span>
+          </div>
 
           <div>
             <label className="text-xs font-medium text-stone-600 block mb-1.5">小组名称 <span className="text-red-400">*</span></label>
@@ -183,17 +195,23 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
             <div className="flex gap-2 flex-wrap items-center">
               {PRESET_CATEGORIES.map(opt => (
                 <button key={opt.value} type="button" onClick={() => { setCat(opt.value); setEditCustom(false) }}
-                  className={['rounded-xl border px-3 py-1.5 text-xs font-medium transition-all',
-                    cat === opt.value ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-stone-200 text-stone-500 hover:border-amber-200',
+                  className={[
+                    'rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all',
+                    cat === opt.value
+                      ? 'border-amber-400 bg-amber-50 text-amber-800'
+                      : 'border-stone-200 bg-white text-stone-600 hover:border-amber-300 hover:bg-amber-50/50',
                   ].join(' ')}>
-                  {opt.label}
+                  <span className="mr-1">{opt.emoji}</span>{opt.label}
                 </button>
               ))}
               <button type="button" onClick={() => { setCat('custom'); setEditCustom(true) }}
-                className={['rounded-xl border px-3 py-1.5 text-xs font-medium transition-all',
-                  cat === 'custom' ? 'border-amber-400 bg-amber-50 text-amber-800' : 'border-stone-200 text-stone-500 hover:border-amber-200',
+                className={[
+                  'rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all',
+                  cat === 'custom'
+                    ? 'border-amber-400 bg-amber-50 text-amber-800'
+                    : 'border-stone-200 bg-white text-stone-600 hover:border-amber-300 hover:bg-amber-50/50',
                 ].join(' ')}>
-                {cat === 'custom' && customCat.trim() ? `✨ ${customCat.trim()}` : '✨ 自定义'}
+                ✨ {cat === 'custom' && customCat.trim() ? customCat.trim() : '自定义'}
               </button>
             </div>
             {cat === 'custom' && editCustom && (

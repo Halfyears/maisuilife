@@ -26,10 +26,11 @@ export async function PATCH(req: NextRequest) {
   const ref   = typeof body.ref   === 'string' ? body.ref.trim()   : ''
   if (!verse || !ref) return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
 
+  const manual_date = new Date().toISOString().slice(0, 10)
   const { error } = await db
     .from('system_configs')
     .upsert(
-      { key: 'daily_scripture', value: { verse, ref }, updated_by: user.id },
+      { key: 'daily_scripture', value: { verse, ref, manual_date }, updated_by: user.id },
       { onConflict: 'key' },
     )
 

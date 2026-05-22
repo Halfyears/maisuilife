@@ -11,6 +11,7 @@ import { UserRoleRow }            from '@/components/church/hub/user-role-row'
 import { CreateFellowshipForm }   from '@/components/church/hub/create-fellowship-form'
 import { ChurchDangerZone }       from '@/components/church/hub/church-danger-zone'
 import { ContactInfoEditor }      from '@/components/church/hub/contact-info-editor'
+import { getAutoScripture }       from '@/lib/scripture-pool'
 
 export const metadata  = { title: '教会管理中枢 — 麦穗喜乐' }
 export const revalidate = 0
@@ -58,11 +59,26 @@ export default async function ChurchHubPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const churchName: string = ((churchNameRes.data as any)?.value?.name) ?? ''
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const scriptureVal = (scriptureRes.data as any)?.value as { verse?: string; ref?: string } | null
-  const scriptureVerse: string = scriptureVal?.verse?.trim() ?? ''
-  const scriptureRef:   string = scriptureVal?.ref?.trim()   ?? ''
+  const scriptureVal = (scriptureRes.data as any)?.value as { verse?: string; ref?: string; manual_date?: string } | null
+  const today = new Date().toISOString().slice(0, 10)
+  const isManualToday = scriptureVal?.manual_date === today
+  const autoScripture = getAutoScripture()
+  const scriptureVerse: string = isManualToday ? (scriptureVal?.verse?.trim() ?? '') : autoScripture.verse
+  const scriptureRef:   string = isManualToday ? (scriptureVal?.ref?.trim()   ?? '') : autoScripture.ref
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const churchRecord = (churchRes.data?.churches as any) as { id: string; name: string; status: string; contact_info: string } | null
+  let churchRecord = (churchRes.data?.churches as any) as { id: string; name: string; status: string; contact_info: string } | null
+  // Fallback: admin may not be in church_members — query churches directly
+  if (!churchRecord) {
+    const { data: fallbackChurch } = await db
+      .from('churches')
+      .select('id, name, status, contact_info')
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    churchRecord = (fallbackChurch as any) as { id: string; name: string; status: string; contact_info: string } | null
+  }
 
   const memberCount: Record<string, number> = {}
   for (const m of members) memberCount[m.fellowship_id] = (memberCount[m.fellowship_id] ?? 0) + 1
@@ -130,7 +146,7 @@ export default async function ChurchHubPage() {
             <p className="text-xs font-semibold text-stone-500">今日经文</p>
             <p className="text-xs text-stone-400 ml-auto">显示在所有用户首页</p>
           </div>
-          <ScriptureEditor initialVerse={scriptureVerse} initialRef={scriptureRef} />
+          <ScriptureEditor initialVerse={scriptureVerse} initialRef={scriptureRef} isAutoMode={!isManualToday} />
         </section>
 
         {/* ── 管理员联系方式 ────────────────────────────────────────── */}
