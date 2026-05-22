@@ -10,6 +10,7 @@ import { FellowshipManageRow }    from '@/components/church/hub/fellowship-manag
 import { UserRoleRow }            from '@/components/church/hub/user-role-row'
 import { CreateFellowshipForm }   from '@/components/church/hub/create-fellowship-form'
 import { ChurchDangerZone }       from '@/components/church/hub/church-danger-zone'
+import { ContactInfoEditor }      from '@/components/church/hub/contact-info-editor'
 
 export const metadata  = { title: '教会管理中枢 — 麦穗喜乐' }
 export const revalidate = 0
@@ -41,7 +42,7 @@ export default async function ChurchHubPage() {
       .limit(300),
     db.from('system_configs').select('value').eq('key', 'church_name').maybeSingle(),
     db.from('system_configs').select('value').eq('key', 'daily_scripture').maybeSingle(),
-    db.from('church_members').select('church_id, churches(id, name, status)')
+    db.from('church_members').select('church_id, churches(id, name, status, contact_info)')
       .eq('user_id', user.id).limit(1).maybeSingle(),
   ])
 
@@ -61,7 +62,7 @@ export default async function ChurchHubPage() {
   const scriptureVerse: string = scriptureVal?.verse?.trim() ?? ''
   const scriptureRef:   string = scriptureVal?.ref?.trim()   ?? ''
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const churchRecord = (churchRes.data?.churches as any) as { id: string; name: string; status: string } | null
+  const churchRecord = (churchRes.data?.churches as any) as { id: string; name: string; status: string; contact_info: string } | null
 
   const memberCount: Record<string, number> = {}
   for (const m of members) memberCount[m.fellowship_id] = (memberCount[m.fellowship_id] ?? 0) + 1
@@ -131,6 +132,18 @@ export default async function ChurchHubPage() {
           </div>
           <ScriptureEditor initialVerse={scriptureVerse} initialRef={scriptureRef} />
         </section>
+
+        {/* ── 管理员联系方式 ────────────────────────────────────────── */}
+        {churchRecord && (
+          <section className="rounded-2xl border border-stone-100 bg-white px-4 py-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-sm">📞</span>
+              <p className="text-xs font-semibold text-stone-500">管理员联系方式</p>
+              <p className="text-xs text-stone-400 ml-auto">成员可在此处联系管理员</p>
+            </div>
+            <ContactInfoEditor churchId={churchRecord.id} initialValue={churchRecord.contact_info ?? ''} />
+          </section>
+        )}
 
         {/* ── 概览统计（带锚点链接）─────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">

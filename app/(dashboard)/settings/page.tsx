@@ -54,7 +54,7 @@ export default async function SettingsPage() {
       .maybeSingle(),
     db
       .from('church_members')
-      .select('church_id, churches(name)')
+      .select('church_id, churches(name, contact_info)')
       .eq('user_id', user.id)
       .limit(1)
       .maybeSingle(),
@@ -72,7 +72,9 @@ export default async function SettingsPage() {
   const joinedYear = profile?.created_at ? new Date(profile.created_at).getFullYear() : null
   const fellowship = (membership?.fellowships as { name?: string } | null)?.name ?? null
   // Try church_members table first; fall back to system_configs for legacy single-tenant
-  const churchName = (churchMemberRes.data?.churches as { name?: string } | null)?.name ?? null
+  const churchData    = churchMemberRes.data?.churches as { name?: string; contact_info?: string } | null
+  const churchName    = churchData?.name ?? null
+  const contactInfo   = churchData?.contact_info?.trim() ?? null
   const acctGroups = (acctRes.data ?? [])
     .map(r => r.accountability_groups as { id: string; name: string } | null)
     .filter((g): g is { id: string; name: string } => !!g?.id)
@@ -124,6 +126,14 @@ export default async function SettingsPage() {
           fellowship={fellowship}
           acctGroups={acctGroups}
         />
+
+        {/* ── 管理员联系方式（有联系方式才显示）────────────── */}
+        {contactInfo && (
+          <div className="rounded-2xl border border-violet-100 bg-violet-50/50 px-4 py-3.5">
+            <p className="text-xs font-semibold text-violet-600 mb-1.5">📞 联系管理员</p>
+            <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">{contactInfo}</p>
+          </div>
+        )}
 
         {/* ── 灵命推送通知 ─────────────────────────────── */}
         <PushSubscribeButton />
