@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, ClipboardCopy, CheckCircle2, Plus, Search, UserCheck, X } from 'lucide-react'
+import { Loader2, ClipboardCopy, CheckCircle2, Plus, Search, UserCheck, X, Link2 } from 'lucide-react'
 
 interface Candidate {
   id:           string
@@ -78,7 +78,8 @@ export function CreateFellowshipForm() {
 
   async function copy() {
     if (!result) return
-    await navigator.clipboard.writeText(result.invite_code)
+    const link = `${window.location.origin}/fellowship/join?code=${result.invite_code}`
+    await navigator.clipboard.writeText(link)
     setCopied(true); setTimeout(() => setCopied(false), 2000)
   }
 
@@ -105,19 +106,20 @@ export function CreateFellowshipForm() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 rounded-lg border border-green-200 bg-white px-3 py-2 text-center">
-            <p className="text-[10px] text-stone-400">邀请码</p>
+        <div className="space-y-2">
+          <div className="rounded-lg border border-green-200 bg-white px-3 py-2 text-center">
+            <p className="text-[10px] text-stone-400">团契邀请码</p>
             <p className="text-xl font-black tracking-[0.2em] text-amber-600 font-mono mt-0.5">
               {result.invite_code}
             </p>
           </div>
           <button onClick={copy}
-            className="flex h-14 w-11 items-center justify-center rounded-lg border border-green-200 bg-white
-                       hover:bg-green-50 transition-colors">
+            className="flex w-full items-center justify-center gap-2 rounded-lg
+                       bg-violet-500 py-2.5 text-sm font-bold text-white
+                       hover:bg-violet-600 transition-colors">
             {copied
-              ? <CheckCircle2 className="h-4 w-4 text-green-500" />
-              : <ClipboardCopy className="h-4 w-4 text-stone-400" />}
+              ? <><CheckCircle2 className="h-4 w-4" />已复制</>
+              : <><Link2 className="h-4 w-4" />复制加入链接</>}
           </button>
         </div>
         <button onClick={() => { setResult(null); reset() }}

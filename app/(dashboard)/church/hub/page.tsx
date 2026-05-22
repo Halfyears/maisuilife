@@ -224,12 +224,12 @@ export default async function ChurchHubPage() {
           <div className="px-4 py-3 border-t border-stone-50 space-y-3">
             <CreateFellowshipForm />
             <div className="rounded-xl bg-amber-50 border border-amber-100 px-3 py-3 space-y-1.5">
-              <p className="text-xs font-semibold text-amber-800 mb-2">新建团契前请按以下步骤操作：</p>
+              <p className="text-xs font-semibold text-amber-800 mb-2">新建团契步骤：</p>
               {[
                 '确认未来组长已在本系统注册',
                 '在下方「成员管理」中将其角色改为「组长」',
-                '填写团契名称和组长注册邮箱，点击创建',
-                '系统自动生成邀请码，复制后转发给团契成员加入',
+                '填写团契名称，搜索并选择组长（可暂不指定），点击创建',
+                '点击「复制加入链接」，转发给团契成员，成员点击链接即可直接加入',
               ].map((step, i) => (
                 <div key={i} className="flex items-start gap-2 text-xs text-stone-600">
                   <span className="shrink-0 flex h-4 w-4 items-center justify-center rounded-full bg-amber-200 text-amber-800 font-bold text-[10px] mt-0.5">{i + 1}</span>
@@ -275,15 +275,27 @@ export default async function ChurchHubPage() {
         </section>
 
         {/* ── 加入说明 ─────────────────────────────────────────────────── */}
-        <div className="rounded-2xl border border-stone-100 bg-white/80 px-4 py-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="rounded-2xl border border-stone-100 bg-white/80 px-4 py-4 space-y-3">
+          <div className="flex items-center gap-2">
             <PlusCircle className="h-4 w-4 text-stone-400" />
-            <p className="text-xs font-semibold text-stone-500">新成员如何加入教会</p>
+            <p className="text-xs font-semibold text-stone-500">新成员如何加入教会与团契</p>
           </div>
-          <p className="text-xs text-stone-500 leading-relaxed">
-            新注册用户进入「设置中心 → 更换 / 申请加入团契」，输入团契邀请码即可加入。
-            每位用户仅限加入 <strong>1 个团契</strong>，加入团契即代表归属本教会。
-            若需更换团契，须先联系管理员移除当前团契身份。
+          <div className="space-y-2">
+            {[
+              { icon: '⛪', title: '第一步：加入教会', desc: '新注册用户进入「设置中心 → 搜索 / 加入教会」，可用教会邀请码加入，或搜索教会名称后点击加入。' },
+              { icon: '🌾', title: '第二步：加入团契', desc: '加入教会后，管理员可将成员分配至团契；或成员持团契加入链接（邀请码）自行加入。每位用户仅限加入 1 个团契。' },
+            ].map(item => (
+              <div key={item.title} className="flex items-start gap-2.5">
+                <span className="text-base shrink-0 mt-0.5">{item.icon}</span>
+                <div>
+                  <p className="text-xs font-semibold text-stone-700">{item.title}</p>
+                  <p className="text-xs text-stone-500 leading-relaxed mt-0.5">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-stone-400 leading-relaxed border-t border-stone-100 pt-2">
+            教会邀请码与团契邀请码各自独立。若需更换团契，须先联系管理员移除当前团契身份。
           </p>
         </div>
 
