@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, XCircle } from 'lucide-react'
 
-export function RejectButton({ fellowshipId, leaderId }: { fellowshipId: string; leaderId: string }) {
+export function RejectButton({ fellowshipId, leaderId }: { fellowshipId: string; leaderId: string | null }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 

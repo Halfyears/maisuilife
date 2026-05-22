@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Church, Search, Loader2, CheckCircle2 } from 'lucide-react'
 
@@ -13,8 +12,6 @@ interface ChurchResult {
 }
 
 export default function ChurchJoinPage() {
-  const router = useRouter()
-
   const [tab,     setTab]     = useState<'code' | 'search'>('code')
   const [code,    setCode]    = useState('')
   const [query,   setQuery]   = useState('')

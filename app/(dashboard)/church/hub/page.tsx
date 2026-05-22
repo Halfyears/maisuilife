@@ -44,7 +44,7 @@ export default async function ChurchHubPage() {
 
   const fellowships = (fellowshipsRes.data ?? []) as {
     id: string; name: string; status: string; invite_code: string;
-    meeting_mode: string; created_at: string; leader_id: string
+    meeting_mode: string; created_at: string; leader_id: string | null
   }[]
   const members  = (membersRes.data ?? []) as { fellowship_id: string; user_id: string }[]
   const allUsers = (usersRes.data ?? []) as {
@@ -161,7 +161,7 @@ export default async function ChurchHubPage() {
                   <div>
                     <p className="font-bold text-stone-900 text-sm">{f.name}</p>
                     <p className="text-xs text-stone-500 mt-0.5">
-                      组长：{userById[f.leader_id] ?? '未知'} · {f.meeting_mode} · {f.created_at.slice(0, 10)}
+                      组长：{f.leader_id ? (userById[f.leader_id] ?? '未知') : '暂无组长'} · {f.meeting_mode} · {f.created_at.slice(0, 10)}
                     </p>
                   </div>
                   <div className="flex gap-2">

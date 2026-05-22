@@ -90,9 +90,9 @@ BEGIN
     ALTER TABLE public.fellowships
       ADD COLUMN church_id UUID REFERENCES public.churches(id) ON DELETE SET NULL;
   ELSE
-    -- Column exists; change type to UUID if needed and re-add FK
-    ALTER TABLE public.fellowships
-      ALTER COLUMN church_id TYPE UUID USING NULL;
+    -- Column already exists (was FK to users — stale user IDs).
+    -- Null out old values so the new FK to churches is valid.
+    UPDATE public.fellowships SET church_id = NULL;
     ALTER TABLE public.fellowships
       ADD CONSTRAINT fellowships_church_id_fkey
         FOREIGN KEY (church_id) REFERENCES public.churches(id) ON DELETE SET NULL;

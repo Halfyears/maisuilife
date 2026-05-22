@@ -148,7 +148,7 @@ export default async function FellowshipPage() {
         fellowship_id:   fellowshipId,
         fellowship_name: fellowship.name,
         is_unlocked:     viewerHasSubmitted,
-        is_leader:       (fellowship as { leader_id: string }).leader_id === user.id,
+        is_leader:       (fellowship as { leader_id: string | null }).leader_id === user.id,
         posts,
       }
     }
