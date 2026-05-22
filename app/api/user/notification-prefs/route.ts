@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { BUILTIN_IDS, DEFAULT_ITEMS, normalizeLegacy } from '@/lib/notification-prefs'
 
 export const runtime = 'nodejs'
 
-const BUILTIN_IDS = new Set(['morning', 'checkin', 'vigil', 'sunday', 'monthly'])
 const FREQ_VALUES = ['daily', 'weekly', 'monthly', 'realtime'] as const
 
 const ItemSchema = z.object({
@@ -18,23 +18,6 @@ const ItemSchema = z.object({
 const PrefsSchema = z.object({
   items: z.array(ItemSchema).min(0).max(10),
 })
-
-export const DEFAULT_ITEMS = [
-  { id: 'morning', label: '晨间内室', enabled: true, time: '07:00', freq: 'daily'    as const },
-  { id: 'checkin', label: '同行打卡', enabled: true, time: '20:00', freq: 'daily'    as const },
-  { id: 'vigil',   label: '守望消息', enabled: true, time: '',      freq: 'realtime' as const },
-  { id: 'sunday',  label: '主日报告', enabled: true, time: '09:00', freq: 'weekly'   as const },
-  { id: 'monthly', label: '月度报告', enabled: true, time: '08:00', freq: 'monthly'  as const },
-]
-
-// Normalize legacy boolean-map or empty-object format → array
-export function normalizeLegacy(raw: unknown): typeof DEFAULT_ITEMS {
-  if (Array.isArray(raw) && raw.length > 0 &&
-      typeof raw[0] === 'object' && raw[0] !== null && 'id' in (raw[0] as object)) {
-    return raw as typeof DEFAULT_ITEMS
-  }
-  return DEFAULT_ITEMS
-}
 
 export async function GET() {
   const supabase = createClient()

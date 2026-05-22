@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Bell, BellOff, ChevronDown, ChevronUp, Plus, Trash2, Loader2 } from 'lucide-react'
+import { type Freq, type NotifItem, BUILTIN_IDS, DEFAULT_ITEMS, normalizeLegacy } from '@/lib/notification-prefs'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -11,17 +12,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 type SubState = 'loading' | 'unsupported' | 'denied' | 'subscribed' | 'unsubscribed'
-type Freq     = 'daily' | 'weekly' | 'monthly' | 'realtime'
-
-interface NotifItem {
-  id:      string
-  label:   string
-  enabled: boolean
-  time:    string   // 'HH:MM' or '' when realtime
-  freq:    Freq
-}
-
-const BUILTIN_IDS = new Set(['morning', 'checkin', 'vigil', 'sunday', 'monthly'])
 
 const FREQ_OPTIONS: { value: Freq; label: string }[] = [
   { value: 'daily',    label: '每日'   },
@@ -29,22 +19,6 @@ const FREQ_OPTIONS: { value: Freq; label: string }[] = [
   { value: 'monthly',  label: '每月'   },
   { value: 'realtime', label: '实时'   },
 ]
-
-const DEFAULT_ITEMS: NotifItem[] = [
-  { id: 'morning', label: '晨间内室', enabled: true, time: '07:00', freq: 'daily'    },
-  { id: 'checkin', label: '同行打卡', enabled: true, time: '20:00', freq: 'daily'    },
-  { id: 'vigil',   label: '守望消息', enabled: true, time: '',      freq: 'realtime' },
-  { id: 'sunday',  label: '主日报告', enabled: true, time: '09:00', freq: 'weekly'   },
-  { id: 'monthly', label: '月度报告', enabled: true, time: '08:00', freq: 'monthly'  },
-]
-
-function normalizeLegacy(raw: unknown): NotifItem[] {
-  if (Array.isArray(raw) && raw.length > 0 &&
-      typeof raw[0] === 'object' && raw[0] !== null && 'id' in (raw[0] as object)) {
-    return raw as NotifItem[]
-  }
-  return DEFAULT_ITEMS
-}
 
 function genId() {
   return 'custom_' + Math.random().toString(36).slice(2, 9)
@@ -59,6 +33,11 @@ export function PushSubscribeButton() {
   const [addLabel, setAddLabel] = useState('')
   const [addMode,  setAddMode]  = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Clean up pending save timer on unmount
+  useEffect(() => {
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
+  }, [])
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
