@@ -111,7 +111,7 @@ export default async function AccountabilityIndexPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm shrink-0">🕯️</span>
+                        <span className="text-sm shrink-0">🕊️</span>
                         <p className="text-sm font-bold text-stone-900">{g.name}</p>
                         {isOrganizer && (
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">
@@ -126,7 +126,7 @@ export default async function AccountabilityIndexPage() {
                     </div>
                     {watched ? (
                       <span className="shrink-0 text-[11px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-full">
-                        🕯️ 今日已守望
+                        🕊️ 今日已守望
                       </span>
                     ) : (
                       <span className="shrink-0 text-[11px] font-bold text-slate-400 bg-stone-50 px-2 py-1 rounded-full">

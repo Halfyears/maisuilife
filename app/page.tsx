@@ -283,11 +283,11 @@ export default async function RootPage() {
                   {vigilGroups.length > 0 && (
                     vigilWatchedCount < vigilGroups.length ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-                        🕯️ {vigilGroups.length} 个守望相助
+                        🕊️ {vigilGroups.length} 个守望相助
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                        🕯️ 今日已守望
+                        🕊️ 今日已守望
                       </span>
                     )
                   )}

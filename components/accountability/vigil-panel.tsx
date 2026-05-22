@@ -55,7 +55,7 @@ export function VigilPanel({ groupId, myPresence, initialPresences, memberCount,
           ].join(' ')}
           style={confirmed ? { animation: 'pulse 3s ease-in-out infinite' } : undefined}
         >
-          🕯️
+          🕊️
         </div>
         <p className="text-4xl font-black text-slate-800 leading-none">{watchingCount}</p>
         <p className="text-xs text-stone-400 mt-1.5">
@@ -91,7 +91,7 @@ export function VigilPanel({ groupId, myPresence, initialPresences, memberCount,
             ? <Loader2 className="h-4 w-4 animate-spin" />
             : confirmed
               ? '✓ 今日已守望（点击更新祷告）'
-              : '🕯️ 今日守望'}
+              : '🕊️ 今日守望'}
         </button>
         <p className="text-center text-[11px] text-stone-400 leading-relaxed">
           每日可更新一次守望记录<br />
@@ -109,7 +109,7 @@ export function VigilPanel({ groupId, myPresence, initialPresences, memberCount,
             {presences.map(p => (
               <li key={p.user_id} className="flex items-start gap-3">
                 <span className="text-sm mt-0.5 shrink-0">
-                  {p.user_id === myUserId ? '🕯️' : '🌿'}
+                  {p.user_id === myUserId ? '🕊️' : '🌿'}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-stone-700">

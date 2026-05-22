@@ -113,7 +113,7 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
     <div className="flex min-h-dvh flex-col" style={{ backgroundColor: '#FBFBF9' }}>
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center gap-2.5 px-5 py-3.5">
-          <span className="text-base shrink-0">{groupType === 'vigil' ? '🕯️' : '🌿'}</span>
+          <span className="text-base shrink-0">{groupType === 'vigil' ? '🕊️' : '🌿'}</span>
           <h1 className="text-sm font-bold text-stone-900 flex-1">
             {groupType === 'vigil' ? '守望相助设置' : '同行小组设置'}
           </h1>

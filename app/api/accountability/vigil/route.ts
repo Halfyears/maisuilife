@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         const groupName = group!.name
         for (const sub of subs) {
           sendPushNotification(sub, {
-            title: '🕯️ 有肢体正在为你守望',
+            title: '🕊️ 有肢体正在为你守望',
             body:  `「${groupName}」中有人点亮了守望之烛，愿你感受到同行者的陪伴。`,
             url:   `/accountability/${group_id}`,
           }).catch(() => {})

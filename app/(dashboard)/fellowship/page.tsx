@@ -346,7 +346,7 @@ function VigilGroupsSection({ groups }: { groups: VigilGroupCard[] }) {
   return (
     <div className="mt-6 mb-5">
       <div className="flex items-center gap-1.5 mb-3">
-        <span className="text-sm">🕯️</span>
+        <span className="text-sm">🕊️</span>
         <p className="text-sm font-bold text-stone-700">守望相助</p>
         <span className="text-xs text-stone-400 ml-1">团契中正在被守望的肢体</span>
       </div>
@@ -362,8 +362,8 @@ function VigilGroupsSection({ groups }: { groups: VigilGroupCard[] }) {
 function VigilCard({ group }: { group: VigilGroupCard }) {
   const catLabel  = goalCategoryLabel(group.goal_category)
   const watchText = group.today_count > 0
-    ? `🕯️ 今日 ${group.today_count} 人守望`
-    : '🕯️ 守望中'
+    ? `🕊️ 今日 ${group.today_count} 人守望`
+    : '🕊️ 守望中'
 
   if (group.is_member) {
     return (

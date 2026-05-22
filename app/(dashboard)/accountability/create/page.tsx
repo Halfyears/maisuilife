@@ -148,21 +148,21 @@ export default function CreateAccountabilityGroupPage() {
               type="button"
               onClick={() => pickType('vigil')}
               className="w-full text-left rounded-2xl border border-stone-100 bg-white/90 px-5 py-5
-                         shadow-sm hover:border-slate-300 hover:shadow-md transition-all active:scale-[0.99] group"
+                         shadow-sm hover:border-sky-200 hover:shadow-md transition-all active:scale-[0.99] group"
             >
               <div className="flex items-start gap-4">
-                <div className="h-11 w-11 rounded-xl bg-slate-50 flex items-center justify-center text-xl shrink-0">
-                  🕯️
+                <div className="h-11 w-11 rounded-xl bg-sky-50 flex items-center justify-center text-xl shrink-0">
+                  🕊️
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-stone-900 group-hover:text-slate-700 transition-colors">
+                  <p className="text-sm font-bold text-stone-900 group-hover:text-sky-700 transition-colors">
                     守望相助
                   </p>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    重病、ICU、丧亲、重大变故、家庭变故…<br />
-                    安静同在，让肢体知道有人在守望。
+                    疾病、家庭、事业、人生转折…<br />
+                    不独行，以祷告陪伴，彼此同在。
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-2 font-medium">无打卡 · 安静守望 · 微互动</p>
+                  <p className="text-[11px] text-sky-600 mt-2 font-medium">同心守望 · 彼此陪伴</p>
                 </div>
               </div>
             </button>
@@ -184,7 +184,7 @@ export default function CreateAccountabilityGroupPage() {
     <div className="flex min-h-dvh flex-col" style={{ backgroundColor: '#FBFBF9' }}>
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center gap-2.5 px-5 py-3.5">
-          <span className="text-base shrink-0">{isVigil ? '🕯️' : '🌿'}</span>
+          <span className="text-base shrink-0">{isVigil ? '🕊️' : '🌿'}</span>
           <h1 className="text-sm font-bold text-stone-900 flex-1">
             {isVigil ? '发起守望相助小组' : '发起日常同行小组'}
           </h1>
@@ -389,11 +389,11 @@ export default function CreateAccountabilityGroupPage() {
 
           {/* 守望相助说明 */}
           {isVigil && (
-            <div className="rounded-2xl border border-slate-100 bg-slate-50/60 px-5 py-4">
+            <div className="rounded-2xl border border-sky-100 bg-sky-50/50 px-5 py-4">
+              <p className="text-xs text-sky-700 leading-relaxed font-medium mb-1.5">🕊️ 守望相助没有打卡，但有更重要的事</p>
               <p className="text-xs text-slate-500 leading-relaxed">
-                🕯️ 守望相助小组没有打卡环节。<br />
-                肢体每天点击"今日守望"登记同在，彼此知道有人在默默守望。<br />
-                对方只会看到守望人数，不会看到具体名字。
+                肢体每天点击"今日守望"登记同在，让正在经历难处的弟兄姐妹知道有人在守望祷告。<br /><br />
+                守望人数对所有成员可见，名字彼此保护。召集人可在简述中写明具体情况，成员不需要说明原因，只需在场。
               </p>
             </div>
           )}
@@ -417,7 +417,7 @@ export default function CreateAccountabilityGroupPage() {
           >
             {saving
               ? <><Loader2 className="h-4 w-4 animate-spin" />创建中…</>
-              : isVigil ? '🕯️ 发起守望相助小组' : '🌿 发起日常同行小组'}
+              : isVigil ? '🕊️ 发起守望相助小组' : '🌿 发起日常同行小组'}
           </button>
 
           <p className="text-center text-xs text-stone-400 leading-relaxed">
