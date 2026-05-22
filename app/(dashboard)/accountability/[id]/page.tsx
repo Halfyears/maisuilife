@@ -55,28 +55,36 @@ export default async function AccountabilityGroupPage({
   const isOrganizer = group.organizer_id === user.id
   const isVigil     = group.group_type === 'vigil'
 
-  // ── Vigil track: fetch today's presences only ─────────────
+  // ── Vigil track: fetch today's presences + prayer log ─────
   let vigilPresences:  VigilPresence[] = []
   let myVigilPresence: VigilPresence | null = null
+  let initialPrayers:  { id: string; user_id: string; display_name: string; note: string | null; created_at: string }[] = []
 
   if (isVigil) {
-    const { data: vp } = await db
-      .from('accountability_vigil_presences')
-      .select('user_id, note, created_at')
-      .eq('group_id', groupId)
-      .eq('presence_date', today)
-      .order('created_at')
+    const [vpRes, prayersRes] = await Promise.all([
+      db.from('accountability_vigil_presences')
+        .select('user_id, note, created_at')
+        .eq('group_id', groupId)
+        .eq('presence_date', today)
+        .order('created_at'),
+      db.from('accountability_vigil_prayers')
+        .select('id, user_id, display_name, note, created_at')
+        .eq('group_id', groupId)
+        .order('created_at', { ascending: false })
+        .limit(50),
+    ])
 
     const nameMap: Record<string, string> = {}
     for (const m of members) nameMap[m.user_id] = m.display_name
 
-    vigilPresences = ((vp ?? []) as { user_id: string; note: string | null; created_at: string }[]).map(p => ({
+    vigilPresences = ((vpRes.data ?? []) as { user_id: string; note: string | null; created_at: string }[]).map(p => ({
       user_id:      p.user_id,
       display_name: nameMap[p.user_id] ?? '同行者',
       note:         p.note,
       created_at:   p.created_at,
     }))
     myVigilPresence = vigilPresences.find(p => p.user_id === user.id) ?? null
+    initialPrayers  = (prayersRes.data ?? []) as typeof initialPrayers
   }
 
   // ── Daily track: fetch checkins ────────────────────────────
@@ -221,6 +229,7 @@ export default async function AccountabilityGroupPage({
               groupId={groupId}
               myPresence={myVigilPresence}
               initialPresences={vigilPresences}
+              initialPrayers={initialPrayers}
               memberCount={members.length}
               myUserId={user.id}
             />

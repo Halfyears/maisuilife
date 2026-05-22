@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 
 // POST /api/accountability/vigil
 // Body: { group_id: string, note?: string }
-// Upserts a presence record for today, returns updated today_presences list.
+// Upserts a daily presence (for unique-person count) + inserts a prayer log entry.
 export async function POST(req: NextRequest) {
   const supabase = createClient()
   const { data: authData } = await supabase.auth.getUser()
@@ -33,10 +33,11 @@ export async function POST(req: NextRequest) {
   ])
   if (!member) return NextResponse.json({ error: 'not_member' }, { status: 403 })
 
-  const today = todayLocal()
-  const cleanNote = (note ?? '').trim().slice(0, 100) || null
+  const today     = todayLocal()
+  const cleanNote = (note ?? '').trim().slice(0, 200) || null
+  const displayName = member.display_name ?? '同行者'
 
-  // Check if this user already has a presence today (to send push only on first watch)
+  // Check if first watch today (for push notification logic)
   const { data: existingPresence } = await db
     .from('accountability_vigil_presences')
     .select('id')
@@ -46,20 +47,28 @@ export async function POST(req: NextRequest) {
     .maybeSingle()
   const isFirstWatch = !existingPresence
 
+  // Upsert daily presence (dedup count source)
   const { error: upsertErr } = await db
     .from('accountability_vigil_presences')
     .upsert(
       { group_id, user_id: user.id, presence_date: today, note: cleanNote },
       { onConflict: 'group_id,user_id,presence_date' },
     )
-
   if (upsertErr) {
     console.error('[vigil] upsert error:', upsertErr.message)
     return NextResponse.json({ error: 'db_error', message: upsertErr.message }, { status: 500 })
   }
 
-  // Return updated presences with display names
-  const [presencesRes, membersRes] = await Promise.all([
+  // Insert prayer log entry (persistent, one per submit)
+  await db.from('accountability_vigil_prayers').insert({
+    group_id,
+    user_id:      user.id,
+    display_name: displayName,
+    note:         cleanNote,
+  })
+
+  // Fetch updated presences (deduped today list) + recent prayer log in parallel
+  const [presencesRes, membersRes, prayersRes] = await Promise.all([
     db.from('accountability_vigil_presences')
       .select('user_id, note, created_at')
       .eq('group_id', group_id)
@@ -68,6 +77,11 @@ export async function POST(req: NextRequest) {
     db.from('accountability_group_members')
       .select('user_id, display_name')
       .eq('group_id', group_id),
+    db.from('accountability_vigil_prayers')
+      .select('id, user_id, display_name, note, created_at')
+      .eq('group_id', group_id)
+      .order('created_at', { ascending: false })
+      .limit(50),
   ])
 
   const nameMap: Record<string, string> = {}
@@ -80,6 +94,10 @@ export async function POST(req: NextRequest) {
     created_at:   p.created_at,
   }))
 
+  const prayers = (prayersRes.data ?? []) as {
+    id: string; user_id: string; display_name: string; note: string | null; created_at: string
+  }[]
+
   // Notify group organizer on first watch of the day (fire-and-forget)
   if (isFirstWatch && group?.organizer_id && group.organizer_id !== user.id) {
     db.from('push_subscriptions')
@@ -87,11 +105,10 @@ export async function POST(req: NextRequest) {
       .eq('user_id', group.organizer_id)
       .then(({ data: orgSubs }) => {
         const subs = (orgSubs ?? []) as PushSubscriptionRecord[]
-        const groupName = group!.name
         for (const sub of subs) {
           sendPushNotification(sub, {
             title: '🕊️ 有肢体正在为你守望',
-            body:  `「${groupName}」中有人点亮了守望之烛，愿你感受到同行者的陪伴。`,
+            body:  `「${group!.name}」中有人点亮了守望之烛，愿你感受到同行者的陪伴。`,
             url:   `/accountability/${group_id}`,
           }).catch(() => {})
         }
@@ -99,5 +116,5 @@ export async function POST(req: NextRequest) {
       .catch(() => {})
   }
 
-  return NextResponse.json({ ok: true, today_presences })
+  return NextResponse.json({ ok: true, today_presences, prayers })
 }
