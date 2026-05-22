@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { Bell, BellOff } from 'lucide-react'
@@ -119,7 +119,7 @@ export function PushSubscribeButton() {
       <Bell className="h-4 w-4 shrink-0 text-amber-500" />
       <div className="text-left">
         <p className="font-semibold">开启灵命成长推送</p>
-        <p className="text-xs text-amber-600/70">晨间内室 · 同行打卡提醒 · 守望互助消息</p>
+        <p className="text-xs text-amber-600/70">晨间内室 · 同行打卡提醒 · 守望相助消息</p>
       </div>
     </button>
   )

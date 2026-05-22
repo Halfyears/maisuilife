@@ -97,14 +97,17 @@ const CATEGORY_LABEL: Record<string, string> = {
   hiking:           '🌲 徒步',
   travel:           '✈️ 旅行',
   meditation:       '🤍 静修',
-  // Vigil track
-  vigil_illness:    '🕯️ 重病陪伴',
-  vigil_icu:        '🕯️ ICU守护',
-  vigil_career:     '🌿 事业重建',
-  vigil_life_change:'🌿 重大变故',
-  vigil_family:     '🌿 家庭变故',
-  vigil_grief:      '🕯️ 丧亲陪伴',
-  vigil_loss:       '🕯️ 生命失去',
+  // Vigil track (broad categories — details in goal_title)
+  vigil_health:     '🌿 健康陪伴',
+  vigil_family:     '🌿 家庭同行',
+  vigil_career:     '🌿 事业同行',
+  vigil_grief:      '🌿 哀恸同行',
+  vigil_transition: '🌿 人生转折',
+  // Legacy keys — kept so existing records still render
+  vigil_illness:    '🌿 健康陪伴',
+  vigil_icu:        '🌿 健康陪伴',
+  vigil_life_change:'🌿 人生转折',
+  vigil_loss:       '🌿 哀恸同行',
 }
 
 export function goalCategoryLabel(cat: string): string {
@@ -122,13 +125,11 @@ export const DAILY_PRESET_CATEGORIES = [
 ] as const
 
 export const VIGIL_PRESET_CATEGORIES = [
-  { value: 'vigil_illness',     label: '🕯️ 重病陪伴' },
-  { value: 'vigil_icu',         label: '🕯️ ICU守护'  },
-  { value: 'vigil_career',      label: '🌿 事业重建' },
-  { value: 'vigil_life_change', label: '🌿 重大变故' },
-  { value: 'vigil_family',      label: '🌿 家庭变故' },
-  { value: 'vigil_grief',       label: '🕯️ 丧亲陪伴' },
-  { value: 'vigil_loss',        label: '🕯️ 生命失去' },
+  { value: 'vigil_health',      label: '🌿 健康陪伴' },
+  { value: 'vigil_family',      label: '🌿 家庭同行' },
+  { value: 'vigil_career',      label: '🌿 事业同行' },
+  { value: 'vigil_grief',       label: '🌿 哀恸同行' },
+  { value: 'vigil_transition',  label: '🌿 人生转折' },
 ] as const
 
 const DAILY_PRESET_VALUES: Set<string> = new Set(DAILY_PRESET_CATEGORIES.map(c => c.value))

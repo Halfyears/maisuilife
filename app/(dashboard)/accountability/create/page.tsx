@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -143,7 +143,7 @@ export default function CreateAccountabilityGroupPage() {
               </div>
             </button>
 
-            {/* 守望互助 */}
+            {/* 守望相助 */}
             <button
               type="button"
               onClick={() => pickType('vigil')}
@@ -156,7 +156,7 @@ export default function CreateAccountabilityGroupPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-stone-900 group-hover:text-slate-700 transition-colors">
-                    守望互助
+                    守望相助
                   </p>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
                     重病、ICU、丧亲、重大变故、家庭变故…<br />
@@ -186,7 +186,7 @@ export default function CreateAccountabilityGroupPage() {
         <div className="mx-auto flex max-w-md items-center gap-2.5 px-5 py-3.5">
           <span className="text-base shrink-0">{isVigil ? '🕯️' : '🌿'}</span>
           <h1 className="text-sm font-bold text-stone-900 flex-1">
-            {isVigil ? '发起守望互助小组' : '发起日常同行小组'}
+            {isVigil ? '发起守望相助小组' : '发起日常同行小组'}
           </h1>
           <button
             type="button"
@@ -383,11 +383,11 @@ export default function CreateAccountabilityGroupPage() {
             </div>
           )}
 
-          {/* 守望互助说明 */}
+          {/* 守望相助说明 */}
           {isVigil && (
             <div className="rounded-2xl border border-slate-100 bg-slate-50/60 px-5 py-4">
               <p className="text-xs text-slate-500 leading-relaxed">
-                🕯️ 守望互助小组没有打卡环节。<br />
+                🕯️ 守望相助小组没有打卡环节。<br />
                 肢体每天点击"今日守望"登记同在，彼此知道有人在默默守望。<br />
                 对方只会看到守望人数，不会看到具体名字。
               </p>
@@ -413,7 +413,7 @@ export default function CreateAccountabilityGroupPage() {
           >
             {saving
               ? <><Loader2 className="h-4 w-4 animate-spin" />创建中…</>
-              : isVigil ? '🕯️ 发起守望互助小组' : '🌿 发起日常同行小组'}
+              : isVigil ? '🕯️ 发起守望相助小组' : '🌿 发起日常同行小组'}
           </button>
 
           <p className="text-center text-xs text-stone-400 leading-relaxed">

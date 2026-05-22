@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+﻿import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Target, Plus, LogIn } from 'lucide-react'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
@@ -122,7 +122,7 @@ export default async function AccountabilityIndexPage() {
                       {g.goal_title && (
                         <p className="text-xs text-stone-500 mt-0.5 truncate">{g.goal_title}</p>
                       )}
-                      <p className="text-[11px] text-slate-400 mt-1.5 font-medium">守望互助</p>
+                      <p className="text-[11px] text-slate-400 mt-1.5 font-medium">守望相助</p>
                     </div>
                     {watched ? (
                       <span className="shrink-0 text-[11px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded-full">

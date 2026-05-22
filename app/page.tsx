@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ChevronRight, BookOpen, Wheat } from 'lucide-react'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
@@ -283,7 +283,7 @@ export default async function RootPage() {
                   {vigilGroups.length > 0 && (
                     vigilWatchedCount < vigilGroups.length ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-                        🕯️ {vigilGroups.length} 个守望互助
+                        🕯️ {vigilGroups.length} 个守望相助
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">

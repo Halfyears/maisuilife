@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+﻿import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Settings2, Home } from 'lucide-react'
 import { FellowshipInviteCard } from '@/components/fellowship/copy-link-button'
@@ -321,7 +321,7 @@ export default async function FellowshipPage() {
         {/* ── Fellowship view ───────────────────────── */}
         {postsData && <FellowshipView data={postsData} />}
 
-        {/* ── 守望互助 ──────────────────────────────── */}
+        {/* ── 守望相助 ──────────────────────────────── */}
         {membership && vigilGroups.length > 0 && (
           <VigilGroupsSection groups={vigilGroups} />
         )}
@@ -347,7 +347,7 @@ function VigilGroupsSection({ groups }: { groups: VigilGroupCard[] }) {
     <div className="mt-6 mb-5">
       <div className="flex items-center gap-1.5 mb-3">
         <span className="text-sm">🕯️</span>
-        <p className="text-sm font-bold text-stone-700">守望互助</p>
+        <p className="text-sm font-bold text-stone-700">守望相助</p>
         <span className="text-xs text-stone-400 ml-1">团契中正在被守望的肢体</span>
       </div>
       <div className="space-y-2.5">

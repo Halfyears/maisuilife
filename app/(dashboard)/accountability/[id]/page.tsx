@@ -131,7 +131,7 @@ export default async function AccountabilityGroupPage({
         <div className="mx-auto flex max-w-md items-center gap-2 px-5 py-3.5">
           <div className="flex-1 min-w-0">
             <p className="text-[10px] font-medium uppercase tracking-widest text-stone-400 leading-none">
-              {isVigil ? '守望互助' : '日常同行'}
+              {isVigil ? '守望相助' : '日常同行'}
             </p>
             <h1 className="text-sm font-bold text-stone-900 truncate">{group.name}</h1>
           </div>
@@ -173,7 +173,7 @@ export default async function AccountabilityGroupPage({
 
       <main className="flex-1 mx-auto w-full max-w-md px-4 pt-5 pb-32 space-y-5">
 
-        {/* ── 守望互助视图 ─────────────────────────────────── */}
+        {/* ── 守望相助视图 ─────────────────────────────────── */}
         {isVigil ? (
           <>
             {/* 守望情况卡片 */}
