@@ -287,8 +287,8 @@ export default async function ChurchHubPage() {
           </div>
           <div className="space-y-2">
             {[
-              { icon: '⛪', title: '第一步：加入教会', desc: '新注册用户进入「设置中心 → 搜索 / 加入教会」，可用教会邀请码加入，或搜索教会名称后点击加入。' },
-              { icon: '🌾', title: '第二步：加入团契', desc: '加入教会后，管理员可将成员分配至团契；或成员持团契加入链接（邀请码）自行加入。每位用户仅限加入 1 个团契。' },
+              { icon: '⛪', title: '加入教会', desc: '在「设置中心 → 搜索 / 加入教会」，用教会邀请码或搜索名称加入。' },
+              { icon: '🌾', title: '加入团契', desc: '持团契加入链接可直接加入团契，并自动成为所属教会成员，无需单独加入教会。管理员也可在后台将成员分配至团契。每位用户仅限加入 1 个团契。' },
             ].map(item => (
               <div key={item.title} className="flex items-start gap-2.5">
                 <span className="text-base shrink-0 mt-0.5">{item.icon}</span>
@@ -300,7 +300,7 @@ export default async function ChurchHubPage() {
             ))}
           </div>
           <p className="text-[11px] text-stone-400 leading-relaxed border-t border-stone-100 pt-2">
-            教会邀请码与团契邀请码各自独立。若需更换团契，须先联系管理员移除当前团契身份。
+            教会邀请码与团契邀请码各自独立。通过团契链接加入时会自动入会，无需重复操作。若需更换团契，须先联系管理员移除当前团契身份。
           </p>
         </div>
 
