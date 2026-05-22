@@ -72,12 +72,10 @@ export default function CreateAccountabilityGroupPage() {
         group_type:       groupType,
       }
 
-      if (groupType === 'daily') {
-        body.schedule_days_of_week = days
-        body.schedule_time         = time  || undefined
-        body.start_date            = start || undefined
-        body.end_date              = end   || undefined
-      }
+      body.schedule_days_of_week = days
+      body.schedule_time         = time  || undefined
+      body.start_date            = start || undefined
+      body.end_date              = end   || undefined
 
       const res  = await fetch('/api/accountability/groups', {
         method:  'POST',

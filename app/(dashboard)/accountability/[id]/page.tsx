@@ -177,21 +177,30 @@ export default async function AccountabilityGroupPage({
         {isVigil ? (
           <>
             {/* 守望情况卡片 */}
-            {(group.goal_title || group.goal_description) && (
-              <div className="rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50/80 to-stone-50/60 px-5 py-4">
-                <div className="flex items-start gap-3">
-                  <span className="text-lg mt-0.5 shrink-0">{goalCategoryLabel(group.goal_category ?? '')}</span>
-                  <div className="flex-1 min-w-0">
-                    {group.goal_title && (
-                      <p className="text-sm font-bold text-stone-800">{group.goal_title}</p>
-                    )}
-                    {group.goal_description && (
-                      <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">{group.goal_description}</p>
-                    )}
-                  </div>
+            <div className="rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50/80 to-stone-50/60 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <span className="text-lg mt-0.5 shrink-0">{goalCategoryLabel(group.goal_category ?? '')}</span>
+                <div className="flex-1 min-w-0">
+                  {group.goal_title && (
+                    <p className="text-sm font-bold text-stone-800">{group.goal_title}</p>
+                  )}
+                  {group.goal_description && (
+                    <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">{group.goal_description}</p>
+                  )}
+                  {scheduleDays.length > 0 && (
+                    <p className="text-[11px] text-slate-500 mt-1.5 font-medium">
+                      🕊️ 每周{scheduleDays.map(d => DAY_LABEL[d]).join('、')}同心守望
+                      {group.schedule_time && ` · ${group.schedule_time}`}
+                    </p>
+                  )}
+                  {(group.start_date || group.end_date) && (
+                    <p className="text-[11px] text-stone-400 mt-0.5">
+                      {group.start_date ?? '—'} 至 {group.end_date ?? '持续守望'}
+                    </p>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
 
             {/* 守望互动面板 */}
             <VigilPanel
