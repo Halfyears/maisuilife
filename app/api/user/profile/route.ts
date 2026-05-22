@@ -43,5 +43,11 @@ export async function PATCH(req: NextRequest) {
     .update({ display_name: name })
     .eq('user_id', user.id)
 
+  // 同步守望祷告记录的显示名（历史记录同步，非匿名）
+  await db
+    .from('accountability_vigil_prayers')
+    .update({ display_name: name })
+    .eq('user_id', user.id)
+
   return NextResponse.json({ ok: true, display_name: name })
 }

@@ -4,19 +4,18 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Loader2, Save, StopCircle, Trash2 } from 'lucide-react'
+import { DAILY_PRESET_CATEGORIES, VIGIL_PRESET_CATEGORIES } from '@/lib/accountability'
 
 const DAY_OPTIONS = [
   { value: 1, label: '周一' }, { value: 2, label: '周二' }, { value: 3, label: '周三' },
   { value: 4, label: '周四' }, { value: 5, label: '周五' }, { value: 6, label: '周六' },
   { value: 7, label: '周日' },
 ]
-const PRESET_CATEGORIES = [
-  { value: 'prayer',        label: '祷告',   emoji: '🙏' },
-  { value: 'bible_reading', label: '读经',   emoji: '📖' },
-  { value: 'worship',       label: '敬拜',   emoji: '🎵' },
-  { value: 'service',       label: '服事',   emoji: '🤝' },
-]
-const PRESET_VALUES = new Set(['prayer', 'bible_reading', 'worship', 'service'])
+
+const ALL_PRESET_VALUES = new Set([
+  ...DAILY_PRESET_CATEGORIES.map(c => c.value),
+  ...VIGIL_PRESET_CATEGORIES.map(c => c.value),
+])
 
 export default function AccountabilitySettingsPage({ params }: { params: { id: string } }) {
   const router  = useRouter()
@@ -52,7 +51,7 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
           setGroupType(g.group_type === 'vigil' ? 'vigil' : 'daily')
           // If saved value is a preset, use it; otherwise it's a custom label
           const savedCat = g.goal_category ?? 'custom'
-          if (PRESET_VALUES.has(savedCat)) {
+          if (ALL_PRESET_VALUES.has(savedCat)) {
             setCat(savedCat)
           } else {
             setCat('custom')
@@ -193,7 +192,7 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
           <div>
             <label className="text-xs font-medium text-stone-600 block mb-2">目标类型</label>
             <div className="flex gap-2 flex-wrap items-center">
-              {PRESET_CATEGORIES.map(opt => (
+              {(groupType === 'vigil' ? VIGIL_PRESET_CATEGORIES : DAILY_PRESET_CATEGORIES).map(opt => (
                 <button key={opt.value} type="button" onClick={() => { setCat(opt.value); setEditCustom(false) }}
                   className={[
                     'rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all',
@@ -201,7 +200,7 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
                       ? 'border-amber-400 bg-amber-50 text-amber-800'
                       : 'border-stone-200 bg-white text-stone-600 hover:border-amber-300 hover:bg-amber-50/50',
                   ].join(' ')}>
-                  <span className="mr-1">{opt.emoji}</span>{opt.label}
+                  {opt.label}
                 </button>
               ))}
               <button type="button" onClick={() => { setCat('custom'); setEditCustom(true) }}
