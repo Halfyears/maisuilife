@@ -37,5 +37,11 @@ export async function PATCH(req: NextRequest) {
     .update({ layer2_label: name })
     .eq('user_id', user.id)
 
+  // 同步同行小组成员显示名
+  await db
+    .from('accountability_group_members')
+    .update({ display_name: name })
+    .eq('user_id', user.id)
+
   return NextResponse.json({ ok: true, display_name: name })
 }

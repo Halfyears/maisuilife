@@ -371,18 +371,18 @@ function VigilCard({ group }: { group: VigilGroupCard }) {
     return (
       <Link
         href={`/accountability/${group.id}`}
-        className="block rounded-2xl border border-slate-100 bg-white/90 px-5 py-4
-                   shadow-sm hover:border-slate-200 transition-colors active:scale-[0.99]"
+        className="block rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/60 to-blue-50/40 px-5 py-4
+                   shadow-sm hover:border-sky-200 hover:shadow-md hover:shadow-sky-100/50 transition-all active:scale-[0.99]"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-slate-400 mb-0.5">{catLabel}</p>
+            <p className="text-[11px] text-sky-400 mb-0.5">{catLabel}</p>
             <p className="text-sm font-semibold text-stone-800">{group.name}</p>
             {group.goal_title && (
               <p className="text-xs text-stone-500 mt-0.5 truncate">{group.goal_title}</p>
             )}
           </div>
-          <span className="shrink-0 text-[11px] font-medium text-slate-500 bg-slate-50 px-2 py-1 rounded-full">
+          <span className="shrink-0 text-[11px] font-medium text-sky-600 bg-sky-50 px-2 py-1 rounded-full">
             {watchText}
           </span>
         </div>
@@ -391,10 +391,10 @@ function VigilCard({ group }: { group: VigilGroupCard }) {
   }
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white/90 px-5 py-4 shadow-sm">
+    <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/40 to-blue-50/30 px-5 py-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] text-slate-400 mb-0.5">{catLabel}</p>
+          <p className="text-[11px] text-sky-400 mb-0.5">{catLabel}</p>
           <p className="text-sm font-semibold text-stone-800">{group.name}</p>
           {group.goal_title && (
             <p className="text-xs text-stone-500 mt-0.5 truncate">{group.goal_title}</p>
@@ -402,14 +402,14 @@ function VigilCard({ group }: { group: VigilGroupCard }) {
         </div>
         <Link
           href={`/accountability/join?code=${group.invite_code}`}
-          className="shrink-0 text-[11px] font-bold text-slate-600 bg-slate-50
-                     px-2.5 py-1.5 rounded-full hover:bg-slate-100 transition-colors"
+          className="shrink-0 text-[11px] font-bold text-sky-600 bg-sky-50
+                     px-2.5 py-1.5 rounded-full hover:bg-sky-100 transition-colors"
         >
           加入守望
         </Link>
       </div>
       {group.today_count > 0 && (
-        <p className="text-[11px] text-slate-400 mt-2.5">{watchText}</p>
+        <p className="text-[11px] text-sky-500 mt-2.5">{watchText}</p>
       )}
     </div>
   )

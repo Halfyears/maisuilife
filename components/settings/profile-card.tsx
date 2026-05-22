@@ -41,7 +41,7 @@ export function ProfileCard({
       if (!res.ok) { setError('保存失败，请稍后再试'); return }
       setName(draft.trim())
       setEditing(false)
-      router.refresh()
+      window.location.reload()
     })
   }
 

@@ -174,15 +174,15 @@ export default async function AccountabilityGroupPage({
         {isVigil ? (
           <>
             {/* 守望情况卡片 */}
-            <div className="rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50/80 to-stone-50/60 px-5 py-4">
+            <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50/90 to-blue-50/60 px-5 py-4">
               {/* 类型标题行 */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm">🕊️</span>
-                  <p className="text-sm font-bold text-slate-700">守望相助</p>
+                  <p className="text-sm font-bold text-sky-700">守望相助</p>
                 </div>
                 {isOrganizer && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-600">
                     召集人
                   </span>
                 )}
@@ -198,13 +198,13 @@ export default async function AccountabilityGroupPage({
                     <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">{group.goal_description}</p>
                   )}
                   {scheduleDays.length > 0 && (
-                    <p className="text-[11px] text-slate-500 mt-1.5 font-medium">
+                    <p className="text-[11px] text-sky-600 mt-1.5 font-medium">
                       每周{scheduleDays.map(d => DAY_LABEL[d]).join('、')}同心守望
                       {group.schedule_time && ` · ${group.schedule_time}`}
                     </p>
                   )}
                   {(group.start_date || group.end_date) && (
-                    <p className="text-[11px] text-stone-400 mt-0.5">
+                    <p className="text-[11px] text-sky-400 mt-0.5">
                       {group.start_date ?? '—'} 至 {group.end_date ?? '持续守望'}
                     </p>
                   )}
