@@ -74,8 +74,10 @@ export function FellowshipManageRow({ fellowship, memberCount, allUsers }: Props
       const res = await fetch('/api/church/update-fellowship', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: fellowship.id, name: draftName.trim(),
-          leader_id: draftLeader, status: draftStatus,
+          id:        fellowship.id,
+          name:      draftName.trim(),
+          status:    draftStatus,
+          ...(draftLeader ? { leader_id: draftLeader } : {}),
         }),
       })
       if (!res.ok) throw new Error()

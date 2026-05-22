@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
@@ -48,23 +49,23 @@ export async function POST(req: NextRequest) {
 
   if (leader_id) {
     const { data: leaderProfile } = await db
-      .from('users').select('role, display_name').eq('id', leader_id).single()
+      .from('users').select('display_name').eq('id', leader_id).single()
 
     if (!leaderProfile) {
       return NextResponse.json({ error: 'leader_not_found' }, { status: 404 })
     }
-    if (!['group_leader', 'church_admin', 'super_admin', 'pastor'].includes(leaderProfile.role)) {
-      return NextResponse.json(
-        { error: 'leader_role_required', message: '该用户角色不足，请先提升为组长' },
-        { status: 422 }
-      )
-    }
     leaderName = leaderProfile.display_name
   }
 
+  const appointmentToken = leader_id ? randomBytes(32).toString('hex') : null
+
   const { data: fellowship, error: insertErr } = await db
     .from('fellowships')
-    .insert({ name, leader_id: leader_id ?? null, status: 'approved' })
+    .insert(
+      leader_id && appointmentToken
+        ? { name, status: 'approved', leader_pending_id: leader_id, leader_appointment_token: appointmentToken }
+        : { name, status: 'approved' }
+    )
     .select('id, invite_code, name')
     .single()
 
@@ -74,9 +75,10 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    fellowship_id: (fellowship as { id: string; invite_code: string; name: string }).id,
-    name:          (fellowship as { id: string; invite_code: string; name: string }).name,
-    invite_code:   (fellowship as { id: string; invite_code: string; name: string }).invite_code,
-    leader_name:   leaderName,
+    fellowship_id:     fellowship.id,
+    name:              fellowship.name,
+    invite_code:       fellowship.invite_code,
+    leader_name:       leaderName,
+    appointment_token: appointmentToken,
   })
 }

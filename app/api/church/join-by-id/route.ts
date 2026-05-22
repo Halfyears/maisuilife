@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ok:          true,
-    church_id:   (church as { id: string; name: string }).id,
-    church_name: (church as { id: string; name: string }).name,
+    church_id:   church.id,
+    church_name: church.name,
   })
 }
