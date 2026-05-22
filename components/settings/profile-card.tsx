@@ -108,11 +108,18 @@ export function ProfileCard({
         </span>
       </InfoRow>
 
-      {/* 所属教会 — 不可点击（暂无用户侧教会专属页） */}
+      {/* 所属教会 — 可点击加入 */}
       <InfoRow icon={<Church className="h-4 w-4 text-stone-300" />} label="教会">
-        <span className="text-sm font-medium text-stone-700">
-          {churchName ?? '—'}
-        </span>
+        {churchName ? (
+          <span className="text-sm font-medium text-stone-700">{churchName}</span>
+        ) : (
+          <Link href="/church/join"
+            className="flex items-center gap-1 text-sm font-medium text-violet-500
+                       hover:text-violet-700 transition-colors">
+            搜索 / 加入教会
+            <ChevronRight className="h-3.5 w-3.5 opacity-60" />
+          </Link>
+        )}
       </InfoRow>
 
       {/* 所属团契 — 可点击 */}

@@ -40,7 +40,7 @@ export default async function SettingsPage() {
 
   const db = createAdminClient()
 
-  const [profileRes, membershipRes, churchRes, acctRes] = await Promise.all([
+  const [profileRes, membershipRes, churchMemberRes, acctRes] = await Promise.all([
     supabase
       .from('users')
       .select('display_name, role, created_at')
@@ -53,9 +53,10 @@ export default async function SettingsPage() {
       .limit(1)
       .maybeSingle(),
     db
-      .from('system_configs')
-      .select('value')
-      .eq('key', 'church_name')
+      .from('church_members')
+      .select('church_id, churches(name)')
+      .eq('user_id', user.id)
+      .limit(1)
       .maybeSingle(),
     db
       .from('accountability_group_members')
@@ -70,7 +71,8 @@ export default async function SettingsPage() {
   const badge      = ROLE_BADGE[role] ?? DEFAULT_BADGE
   const joinedYear = profile?.created_at ? new Date(profile.created_at).getFullYear() : null
   const fellowship = (membership?.fellowships as { name?: string } | null)?.name ?? null
-  const churchName = (churchRes.data?.value as { name?: string } | null)?.name ?? null
+  // Try church_members table first; fall back to system_configs for legacy single-tenant
+  const churchName = (churchMemberRes.data?.churches as { name?: string } | null)?.name ?? null
   const acctGroups = (acctRes.data ?? [])
     .map(r => r.accountability_groups as { id: string; name: string } | null)
     .filter((g): g is { id: string; name: string } => !!g?.id)
