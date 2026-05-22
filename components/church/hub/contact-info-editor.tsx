@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Save, X, Loader2, Phone } from 'lucide-react'
+import { Pencil, Save, Loader2, Phone } from 'lucide-react'
 
 interface Props {
   churchId: string
