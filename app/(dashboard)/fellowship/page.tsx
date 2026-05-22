@@ -75,7 +75,7 @@ export default async function FellowshipPage() {
 
     const [{ data: fellowship }, { data: members }] = await Promise.all([
       db.from('fellowships').select('name, leader_id, invite_code').eq('id', fellowshipId).single(),
-      db.from('fellowship_members').select('user_id, layer2_label').eq('fellowship_id', fellowshipId).limit(12),
+      db.from('fellowship_members').select('user_id, layer2_label').eq('fellowship_id', fellowshipId).limit(50),
     ])
 
     if (fellowship) {
@@ -154,13 +154,15 @@ export default async function FellowshipPage() {
     }
 
     // ── 3.5. Fetch vigil groups from fellowship members ──
-    if (memberIds.length > 0) {
+    {
       try {
         const today = todayLocal()
+        // Always include current user even if they fall outside the member page limit
+        const vigilLookupIds = memberIds.includes(user.id) ? memberIds : [...memberIds, user.id]
         const { data: acctMemberships } = await db
           .from('accountability_group_members')
           .select('group_id')
-          .in('user_id', memberIds)
+          .in('user_id', vigilLookupIds)
 
         const vigilGroupIds = ((acctMemberships ?? []) as { group_id: string }[]).map(r => r.group_id)
 

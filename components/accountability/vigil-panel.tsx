@@ -101,14 +101,14 @@ export function VigilPanel({ groupId, myPresence, initialPresences, memberCount,
 
       {/* ── 今日守望者列表（仅自己可见完整信息）──── */}
       {presences.length > 0 && (
-        <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm">
-          <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">
+        <div className="rounded-2xl border border-stone-100 bg-white/90 overflow-hidden shadow-sm">
+          <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider px-5 pt-4 pb-2">
             今日守望肢体
           </p>
-          <ul className="space-y-3">
+          <ul className="divide-y divide-stone-50">
             {presences.map(p => (
-              <li key={p.user_id} className="flex items-start gap-3">
-                <span className="text-sm mt-0.5 shrink-0">
+              <li key={p.user_id} className="flex items-center gap-3 px-5 py-3">
+                <span className="text-sm shrink-0">
                   {p.user_id === myUserId ? '🕊️' : '🌿'}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -116,9 +116,12 @@ export function VigilPanel({ groupId, myPresence, initialPresences, memberCount,
                     {p.user_id === myUserId ? `${p.display_name}（你）` : p.display_name}
                   </p>
                   {p.note && (
-                    <p className="text-xs text-stone-400 mt-0.5 leading-relaxed">{p.note}</p>
+                    <p className="text-xs text-stone-400 mt-0.5 leading-relaxed truncate">{p.note}</p>
                   )}
                 </div>
+                <span className="text-[11px] text-stone-300 shrink-0 tabular-nums">
+                  {p.created_at.slice(11, 16)}
+                </span>
               </li>
             ))}
           </ul>

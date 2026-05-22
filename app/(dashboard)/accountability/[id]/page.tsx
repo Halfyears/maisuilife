@@ -130,9 +130,6 @@ export default async function AccountabilityGroupPage({
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center gap-2 px-5 py-3.5">
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-stone-400 leading-none">
-              {isVigil ? '守望相助' : '日常同行'}
-            </p>
             <h1 className="text-sm font-bold text-stone-900 truncate">{group.name}</h1>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -178,18 +175,31 @@ export default async function AccountabilityGroupPage({
           <>
             {/* 守望情况卡片 */}
             <div className="rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-50/80 to-stone-50/60 px-5 py-4">
+              {/* 类型标题行 */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">🕊️</span>
+                  <p className="text-sm font-bold text-slate-700">守望相助</p>
+                </div>
+                {isOrganizer && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                    召集人
+                  </span>
+                )}
+              </div>
+              {/* 内容区 */}
               <div className="flex items-start gap-3">
-                <span className="text-lg mt-0.5 shrink-0">{goalCategoryLabel(group.goal_category ?? '')}</span>
+                <span className="text-base mt-0.5 shrink-0">{goalCategoryLabel(group.goal_category ?? '')}</span>
                 <div className="flex-1 min-w-0">
                   {group.goal_title && (
-                    <p className="text-sm font-bold text-stone-800">{group.goal_title}</p>
+                    <p className="text-sm font-semibold text-stone-800">{group.goal_title}</p>
                   )}
                   {group.goal_description && (
                     <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">{group.goal_description}</p>
                   )}
                   {scheduleDays.length > 0 && (
                     <p className="text-[11px] text-slate-500 mt-1.5 font-medium">
-                      🕊️ 每周{scheduleDays.map(d => DAY_LABEL[d]).join('、')}同心守望
+                      每周{scheduleDays.map(d => DAY_LABEL[d]).join('、')}同心守望
                       {group.schedule_time && ` · ${group.schedule_time}`}
                     </p>
                   )}

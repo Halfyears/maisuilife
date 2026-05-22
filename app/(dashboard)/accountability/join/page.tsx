@@ -10,6 +10,7 @@ const ERROR_MAP: Record<string, string> = {
   code_required:  '请输入邀请码',
   invalid_code:   '邀请码无效，请确认后重试',
   already_member: '你已经是该小组成员',
+  group_full:     '小组已满（最多 12 人），请联系召集人',
   unauthorized:   '请先登录',
 }
 

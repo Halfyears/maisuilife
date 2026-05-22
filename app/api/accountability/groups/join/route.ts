@@ -34,6 +34,16 @@ export async function POST(req: NextRequest) {
 
   if (existing) return NextResponse.json({ error: 'already_member' }, { status: 409 })
 
+  // Enforce member cap (12 total including organizer)
+  const { count } = await db
+    .from('accountability_group_members')
+    .select('group_id', { count: 'exact', head: true })
+    .eq('group_id', group.id)
+
+  if ((count ?? 0) >= 12) {
+    return NextResponse.json({ error: 'group_full', message: '小组已满（最多 12 人）' }, { status: 409 })
+  }
+
   const { data: profileData } = await db
     .from('users')
     .select('display_name')
