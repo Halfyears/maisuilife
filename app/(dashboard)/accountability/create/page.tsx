@@ -317,71 +317,75 @@ export default function CreateAccountabilityGroupPage() {
             </div>
           </div>
 
-          {/* 约定打卡时间（仅日常同行） */}
-          {!isVigil && (
-            <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-5 shadow-sm space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">约定打卡时间</p>
+          {/* 约定时间 */}
+          <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-5 shadow-sm space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+              {isVigil ? '同心守望约定' : '约定打卡时间'}
+            </p>
 
-              <div>
-                <label className="text-xs font-medium text-stone-600 block mb-2">每周哪几天</label>
-                <div className="flex gap-2 flex-wrap">
-                  {DAY_OPTIONS.map(d => (
-                    <button
-                      key={d.value}
-                      type="button"
-                      onClick={() => toggleDay(d.value)}
-                      className={[
-                        'rounded-xl border px-3 py-1.5 text-xs font-bold transition-all',
-                        days.includes(d.value)
-                          ? 'border-amber-400 bg-amber-400 text-white'
-                          : 'border-stone-200 text-stone-500 hover:border-amber-200',
-                      ].join(' ')}
-                    >
-                      {d.label}
-                    </button>
-                  ))}
-                </div>
+            <div>
+              <label className="text-xs font-medium text-stone-600 block mb-2">每周哪几天</label>
+              <div className="flex gap-2 flex-wrap">
+                {DAY_OPTIONS.map(d => (
+                  <button
+                    key={d.value}
+                    type="button"
+                    onClick={() => toggleDay(d.value)}
+                    className={[
+                      'rounded-xl border px-3 py-1.5 text-xs font-bold transition-all',
+                      days.includes(d.value)
+                        ? 'border-amber-400 bg-amber-400 text-white'
+                        : 'border-stone-200 text-stone-500 hover:border-amber-200',
+                    ].join(' ')}
+                  >
+                    {d.label}
+                  </button>
+                ))}
               </div>
+            </div>
 
+            <div>
+              <label className="text-xs font-medium text-stone-600 block mb-1.5">
+                {isVigil ? '同心守望时刻（可选）' : '约定时间（可选）'}
+              </label>
+              <input
+                type="time"
+                value={time}
+                onChange={e => setTime(e.target.value)}
+                className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5
+                           text-sm text-stone-800
+                           focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+              />
+            </div>
+
+            <div className="flex flex-col gap-3">
               <div>
-                <label className="text-xs font-medium text-stone-600 block mb-1.5">约定时间（可选）</label>
+                <label className="text-xs font-medium text-stone-600 block mb-1.5">开始日期</label>
                 <input
-                  type="time"
-                  value={time}
-                  onChange={e => setTime(e.target.value)}
+                  type="date"
+                  value={start}
+                  onChange={e => setStart(e.target.value)}
                   className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5
                              text-sm text-stone-800
                              focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
                 />
               </div>
-
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className="text-xs font-medium text-stone-600 block mb-1.5">开始日期</label>
-                  <input
-                    type="date"
-                    value={start}
-                    onChange={e => setStart(e.target.value)}
-                    className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5
-                               text-sm text-stone-800
-                               focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-stone-600 block mb-1.5">结束日期</label>
-                  <input
-                    type="date"
-                    value={end}
-                    onChange={e => setEnd(e.target.value)}
-                    className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5
-                               text-sm text-stone-800
-                               focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
-                  />
-                  <p className="mt-1 text-[11px] text-stone-400">留空表示不设截止日期</p>
-                </div>
+              <div>
+                <label className="text-xs font-medium text-stone-600 block mb-1.5">结束日期</label>
+                <input
+                  type="date"
+                  value={end}
+                  onChange={e => setEnd(e.target.value)}
+                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5
+                             text-sm text-stone-800
+                             focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent"
+                />
+                <p className="mt-1 text-[11px] text-stone-400">
+                  {isVigil ? '守望可以无限期，也可设一个阶段目标' : '留空表示不设截止日期'}
+                </p>
               </div>
             </div>
-          )}
+          </div>
 
           {/* 守望相助说明 */}
           {isVigil && (

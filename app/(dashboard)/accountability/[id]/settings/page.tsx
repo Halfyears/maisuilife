@@ -193,9 +193,11 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
           </div>
         </div>
 
-        {/* 约定时间（仅日常同行） */}
-        {groupType !== 'vigil' && <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-5 shadow-sm space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">约定打卡时间</p>
+        {/* 约定时间 */}
+        <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-5 shadow-sm space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+            {groupType === 'vigil' ? '同心守望约定' : '约定打卡时间'}
+          </p>
 
           <div>
             <label className="text-xs font-medium text-stone-600 block mb-2">每周哪几天</label>
@@ -212,7 +214,9 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
           </div>
 
           <div>
-            <label className="text-xs font-medium text-stone-600 block mb-1.5">约定时间</label>
+            <label className="text-xs font-medium text-stone-600 block mb-1.5">
+              {groupType === 'vigil' ? '同心守望时刻（可选）' : '约定时间'}
+            </label>
             <input type="time" value={time} onChange={e => setTime(e.target.value)}
               className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent" />
           </div>
@@ -227,10 +231,14 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
               <label className="text-xs font-medium text-stone-600 block mb-1.5">结束日期</label>
               <input type="date" value={end} onChange={e => setEnd(e.target.value)}
                 className="w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-2.5 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-transparent" />
-              <p className="mt-1 text-[11px] text-stone-400">留空表示不设截止日期</p>
+              <p className="mt-1 text-[11px] text-stone-400">
+                {groupType === 'vigil'
+                  ? '守望可以无限期，也可设一个阶段目标'
+                  : '留空表示不设截止日期'}
+              </p>
             </div>
           </div>
-        </div>}
+        </div>
 
         {error && <p className="text-center text-xs text-red-600">{error}</p>}
         {saved && <p className="text-center text-xs text-green-600">✓ 设置已保存</p>}
