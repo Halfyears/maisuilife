@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Save, StopCircle, Trash2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, StopCircle } from 'lucide-react'
 import { DAILY_PRESET_CATEGORIES, VIGIL_PRESET_CATEGORIES } from '@/lib/accountability'
 
 const DAY_OPTIONS = [
@@ -37,7 +37,6 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
   const [saved,     setSaved]     = useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [ending,    setEnding]    = useState(false)
-  const [deleting,  setDeleting]  = useState(false)
 
   useEffect(() => {
     fetch(`/api/accountability/group?id=${groupId}`)
@@ -81,16 +80,6 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
       router.push('/accountability')
     } catch { setError('操作失败') }
     finally   { setEnding(false) }
-  }
-
-  async function deleteGroup() {
-    if (!confirm('确认删除此小组？此操作不可恢复，所有记录将被清除。')) return
-    setDeleting(true)
-    try {
-      await fetch(`/api/accountability/groups/${groupId}`, { method: 'DELETE' })
-      router.push('/accountability')
-    } catch { setError('删除失败') }
-    finally   { setDeleting(false) }
   }
 
   async function save() {
@@ -293,23 +282,14 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
         {/* 危险操作 */}
         <div className="rounded-2xl border border-red-100 bg-red-50/50 px-5 py-4 space-y-3">
           <p className="text-xs font-semibold text-red-700">危险操作</p>
-          <div className="flex gap-2">
-            <button type="button" onClick={endGroup} disabled={ending || deleting}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-orange-200
-                         bg-white py-2.5 text-xs font-bold text-orange-600
-                         hover:bg-orange-50 disabled:opacity-50 transition-colors">
-              {ending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <StopCircle className="h-3.5 w-3.5" />}
-              结束小组
-            </button>
-            <button type="button" onClick={deleteGroup} disabled={ending || deleting}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-red-200
-                         bg-white py-2.5 text-xs font-bold text-red-600
-                         hover:bg-red-50 disabled:opacity-50 transition-colors">
-              {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-              删除小组
-            </button>
-          </div>
-          <p className="text-[11px] text-red-400">结束后状态变更为「已结束」，数据保留；删除则彻底移除。</p>
+          <button type="button" onClick={endGroup} disabled={ending}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-orange-200
+                       bg-white py-2.5 text-sm font-bold text-orange-600
+                       hover:bg-orange-50 disabled:opacity-50 transition-colors">
+            {ending ? <Loader2 className="h-4 w-4 animate-spin" /> : <StopCircle className="h-4 w-4" />}
+            结束小组
+          </button>
+          <p className="text-[11px] text-orange-400">结束后状态变更为「已结束」，所有成员记录完整保留，可由管理员恢复。</p>
         </div>
       </main>
     </div>

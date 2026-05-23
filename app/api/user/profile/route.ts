@@ -2,6 +2,7 @@
  * PATCH /api/user/profile — 更新当前用户的显示名
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -50,6 +51,10 @@ export async function PATCH(req: NextRequest) {
     .from('accountability_vigil_prayers')
     .update({ display_name: name })
     .eq('user_id', user.id)
+
+  // 令含有成员名字的页面 Router Cache 失效，确保下次导航拿到最新数据
+  revalidatePath('/accountability', 'layout')
+  revalidatePath('/fellowship',    'layout')
 
   return NextResponse.json({ ok: true, display_name: name })
 }
