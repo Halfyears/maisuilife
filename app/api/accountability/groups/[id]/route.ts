@@ -55,6 +55,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  await db.from('accountability_groups').delete().eq('id', params.id)
+  // 软删除：记录删除时间，不物理清除数据
+  const { error } = await db
+    .from('accountability_groups')
+    .update({ deleted_at: new Date().toISOString(), status: 'deleted' })
+    .eq('id', params.id)
+    .is('deleted_at', null)
+
+  if (error) return NextResponse.json({ error: 'db_error' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

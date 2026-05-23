@@ -29,7 +29,15 @@ export default async function AccountabilityGroupPage({
   const db = createAdminClient()
   const groupId = params.id
 
-  // Verify membership
+  // 查询角色（super_admin 可绕过成员校验）
+  const { data: callerProfile } = await db
+    .from('users')
+    .select('role, display_name')
+    .eq('id', user.id)
+    .single()
+  const isSuperAdmin = callerProfile?.role === 'super_admin'
+
+  // Verify membership — super_admin 直接进入
   const { data: memberRow } = await db
     .from('accountability_group_members')
     .select('display_name')
@@ -37,7 +45,7 @@ export default async function AccountabilityGroupPage({
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (!memberRow) redirect('/accountability')
+  if (!memberRow && !isSuperAdmin) redirect('/accountability')
 
   // Fetch group + all members in parallel
   const [groupRes, membersRes] = await Promise.all([
@@ -175,6 +183,13 @@ export default async function AccountabilityGroupPage({
           </div>
         </div>
       </header>
+
+      {/* 超管模式提示横幅 */}
+      {isSuperAdmin && !memberRow && (
+        <div className="bg-violet-600 text-white text-xs font-semibold px-5 py-2 text-center">
+          🛡️ 超管模式 · 只读浏览，如需操作请先在管理中枢接管此小组
+        </div>
+      )}
 
       <main className="flex-1 mx-auto w-full max-w-md px-4 pt-5 pb-32 space-y-5">
 

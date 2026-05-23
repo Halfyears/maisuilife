@@ -35,6 +35,7 @@ export default async function ChurchHubPage() {
   const [fellowshipsRes, membersRes, usersRes, churchNameRes, scriptureRes, churchRes] = await Promise.all([
     db.from('fellowships')
       .select('id, name, status, invite_code, meeting_mode, created_at, leader_id')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false }),
     db.from('fellowship_members').select('fellowship_id, user_id'),
     db.from('users')

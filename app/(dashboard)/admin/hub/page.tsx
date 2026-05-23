@@ -4,6 +4,7 @@ import { DevopsCard }      from '@/components/admin/hub/devops-card'
 import { FinanceCard }     from '@/components/admin/hub/finance-card'
 import { PastoralCard }    from '@/components/admin/hub/pastoral-card'
 import { QuickActionsCard } from '@/components/admin/hub/quick-actions-card'
+import { GovernanceCard }  from '@/components/admin/hub/governance-card'
 import { Wheat, Home }     from 'lucide-react'
 
 export const metadata  = { title: '管理中枢 — 麦穗喜乐' }
@@ -139,6 +140,9 @@ export default async function AdminHubPage() {
 
           {/* Quick Actions spans the full row */}
           <QuickActionsCard aiActive={aiActive} />
+
+          {/* Governance spans the full row */}
+          <GovernanceCard />
 
         </div>
       </main>

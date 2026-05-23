@@ -39,6 +39,7 @@ export default async function AccountabilityIndexPage() {
       db.from('accountability_groups')
         .select('*')
         .in('id', groupIds)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false }),
       db.from('accountability_checkins')
         .select('group_id, user_id, checkin_date, status')

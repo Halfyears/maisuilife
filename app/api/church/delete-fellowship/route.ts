@@ -1,3 +1,7 @@
+/**
+ * DELETE /api/church/delete-fellowship — 软删除团契（church_admin / super_admin）
+ * 仅设置 deleted_at，不物理删除，可由超管恢复
+ */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
@@ -18,6 +22,13 @@ export async function DELETE(req: NextRequest) {
   const { fellowship_id } = body
   if (!fellowship_id) return NextResponse.json({ error: 'fellowship_id required' }, { status: 400 })
 
-  await db.from('fellowships').delete().eq('id', fellowship_id)
+  // 软删除：记录删除时间，状态标记为 deleted
+  const { error } = await db
+    .from('fellowships')
+    .update({ deleted_at: new Date().toISOString(), status: 'deleted' })
+    .eq('id', fellowship_id)
+    .is('deleted_at', null)
+
+  if (error) return NextResponse.json({ error: 'db_error' }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
