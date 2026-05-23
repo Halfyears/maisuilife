@@ -132,7 +132,8 @@
 
 /* ── Elder Mode ──────────────────────────────────────────────────
    Applied by ElderModeWrapper when elder_mode=true.
-   Uses font-size scaling for readability on small screens.     */
+   Uses font-size scaling for readability on small screens.
+   NOTE: BottomNav labels preserve their size to avoid layout shift.     */
 .elder-mode {
   font-size: 1.2rem;
   line-height: 1.8;
@@ -143,6 +144,14 @@
 .elder-mode button {
   font-size: 1.1em;
   min-height: 2.8rem;
+}
+
+/* ── BottomNav Elder Mode Exception ──────────────────────────────
+   固定 px 尺寸：避免 elder-mode font-size 放大导致 4 字标签换行错位。
+   bottom-nav.tsx 已用 inline style fontSize:10 覆盖，此处作兜底保险。 */
+.elder-mode nav[class*="fixed"] span {
+  font-size: 10px !important;
+  white-space: nowrap;
 }
 
 /* ── 品牌渐变字 — 工具类 ─────────────────────────────────────────
