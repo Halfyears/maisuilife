@@ -2,7 +2,7 @@
  * PATCH /api/user/profile — 更新当前用户的显示名
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
@@ -16,7 +16,9 @@ export async function PATCH(req: NextRequest) {
   const name = (display_name ?? '').trim().slice(0, 30)
   if (!name) return NextResponse.json({ error: 'name_required' }, { status: 400 })
 
-  const db = createServiceClient()
+  // 必须用 createAdminClient（纯 service_role，无 cookie）
+  // createServiceClient 在 API Route 中 cookie 与 service_role key 可能冲突，导致级联写入静默失败
+  const db = createAdminClient()
   const { error } = await db
     .from('users')
     .update({ display_name: name })
