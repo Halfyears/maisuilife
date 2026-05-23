@@ -51,11 +51,9 @@ export function FellowshipInviteCard({ code, name }: FellowshipInviteCardProps) 
       const url     = `${window.location.origin}/fellowship/join?code=${code}`
       const nameStr = name ? `「${name}」` : ''
       const message = [
-        `我在「麦穗喜乐」等你 🌾`,
+        `诚邀你加入团契${nameStr} 🌾`,
+        `在信仰中彼此守望、微光同行。`,
         '',
-        `弟兄/姐妹，诚邀你加入团契${nameStr}，在信仰中彼此守望、微光同行。`,
-        '',
-        `▶ 邀请码：${code}`,
         `▶ 直接加入：${url}`,
       ].join('\n')
 

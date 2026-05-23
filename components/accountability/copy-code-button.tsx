@@ -42,13 +42,9 @@ export function CopyLinkButton({ code, name, isVigil = false }: CopyLinkButtonPr
       const typeLabel = isVigil ? '守望相助' : '同行小组'
       const nameStr   = name ? `「${name}」` : ''
       const message = [
-        `我在「麦穗喜乐」等你 ${emoji}`,
+        `诚邀你加入${typeLabel}${nameStr} ${emoji}`,
+        `${isVigil ? '同心守望、彼此扶持。' : '彼此激励、一起迈向目标。'}`,
         '',
-        `诚邀你加入${typeLabel}${nameStr}，${
-          isVigil ? '同心守望、彼此扶持。' : '彼此激励、一起迈向目标。'
-        }`,
-        '',
-        `▶ 邀请码：${code}`,
         `▶ 直接加入：${url}`,
       ].join('\n')
 
