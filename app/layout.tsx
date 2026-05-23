@@ -18,7 +18,14 @@ export const metadata: Metadata = {
     default:  '麦穗喜乐 MaisuiJoy',
     template: '%s — 麦穗喜乐',
   },
-  description:     '麦穗喜乐 平安喜乐',
+  description:     '麦穗喜乐 · 微光同行 — 基督徒灵命同行 App，今日内室、团契守望、同行小组，与弟兄姐妹彼此激励。',
+  openGraph: {
+    title:       '麦穗喜乐 MaisuiJoy',
+    description: '麦穗喜乐 · 微光同行 — 基督徒灵命同行 App，今日内室、团契守望、同行小组，与弟兄姐妹彼此激励。',
+    siteName:    '麦穗喜乐',
+    url:         'https://www.maisuijoy.com',
+    type:        'website',
+  },
   manifest:        '/manifest.json',
   appleWebApp: {
     capable:        true,

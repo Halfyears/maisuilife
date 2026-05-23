@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 // Routes requiring auth (any role)
 const AUTH_REQUIRED = ['/daily', '/fellowship', '/accountability', '/settings', '/growth']
+// Public sub-paths that must bypass the AUTH_REQUIRED check above
+const PUBLIC_EXCEPTIONS = ['/fellowship/join', '/fellowship/confirm-leader', '/accountability/join']
 // Routes requiring super_admin (DB check happens in layout, middleware only checks auth)
 const ADMIN_PATHS   = ['/admin']
 
@@ -30,8 +32,10 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // ── 1. Auth-required routes → redirect to login ────────
-  const needsAuth = AUTH_REQUIRED.some(p => pathname.startsWith(p))
-                 || ADMIN_PATHS.some(p => pathname.startsWith(p))
+  const isPublicException = PUBLIC_EXCEPTIONS.some(e => pathname === e || pathname.startsWith(e + '/'))
+  const needsAuth = (
+    AUTH_REQUIRED.some(p => pathname.startsWith(p)) && !isPublicException
+  ) || ADMIN_PATHS.some(p => pathname.startsWith(p))
 
   if (needsAuth && !user) {
     const loginUrl = request.nextUrl.clone()
