@@ -67,6 +67,7 @@ export default async function FellowshipPage() {
   // ── 3. Fetch posts directly (no HTTP self-call) ──────
   let postsData: FellowshipPostsResponse | null = null
   let fellowshipInviteCode: string | null = null
+  let fellowshipName: string | null = null
   let vigilGroups: VigilGroupCard[] = []
 
   if (membership) {
@@ -79,7 +80,9 @@ export default async function FellowshipPage() {
     ])
 
     if (fellowship) {
-      fellowshipInviteCode = (fellowship as { invite_code: string }).invite_code ?? null
+      const f = fellowship as { invite_code: string; name: string }
+      fellowshipInviteCode = f.invite_code ?? null
+      fellowshipName       = f.name ?? null
     }
 
     let memberIds: string[] = []
@@ -301,7 +304,7 @@ export default async function FellowshipPage() {
         {/* ── 邀请码卡片 ───────────────────────────────── */}
         {membership && fellowshipInviteCode && (
           <div className="mb-5">
-            <FellowshipInviteCard code={fellowshipInviteCode} />
+            <FellowshipInviteCard code={fellowshipInviteCode} name={fellowshipName ?? undefined} />
           </div>
         )}
 

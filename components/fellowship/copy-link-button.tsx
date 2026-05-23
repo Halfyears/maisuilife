@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Copy, Link2, Check } from 'lucide-react'
+import { Copy, Check, Share2, Link2 } from 'lucide-react'
 
+/** 通用「复制链接」按钮（仅复制裸 URL，用于教会等场景） */
 export function CopyLinkButton({ invitePath, label }: { invitePath: string; label: string }) {
   const [copied, setCopied] = useState(false)
 
@@ -28,9 +29,14 @@ export function CopyLinkButton({ invitePath, label }: { invitePath: string; labe
   )
 }
 
-export function FellowshipInviteCard({ code }: { code: string }) {
-  const [codeCopied,  setCodeCopied]  = useState(false)
-  const [linkCopied, setLinkCopied]  = useState(false)
+interface FellowshipInviteCardProps {
+  code: string
+  name?: string  // 团契名称（用于邀请文案）
+}
+
+export function FellowshipInviteCard({ code, name }: FellowshipInviteCardProps) {
+  const [codeCopied,    setCodeCopied]    = useState(false)
+  const [messageCopied, setMessageCopied] = useState(false)
 
   async function copyCode() {
     try {
@@ -40,12 +46,22 @@ export function FellowshipInviteCard({ code }: { code: string }) {
     } catch { /* ignore */ }
   }
 
-  async function copyLink() {
+  async function copyMessage() {
     try {
-      const url = `${window.location.origin}/fellowship/join?code=${code}`
-      await navigator.clipboard.writeText(url)
-      setLinkCopied(true)
-      setTimeout(() => setLinkCopied(false), 2500)
+      const url     = `${window.location.origin}/fellowship/join?code=${code}`
+      const nameStr = name ? `「${name}」` : ''
+      const message = [
+        `我在「麦穗喜乐」等你 🌾`,
+        '',
+        `弟兄/姐妹，诚邀你加入团契${nameStr}，在信仰中彼此守望、微光同行。`,
+        '',
+        `▶ 邀请码：${code}`,
+        `▶ 直接加入：${url}`,
+      ].join('\n')
+
+      await navigator.clipboard.writeText(message)
+      setMessageCopied(true)
+      setTimeout(() => setMessageCopied(false), 2500)
     } catch { /* ignore */ }
   }
 
@@ -64,13 +80,13 @@ export function FellowshipInviteCard({ code }: { code: string }) {
             : <><Copy className="h-3.5 w-3.5" />复制码</>}
         </button>
         <button
-          onClick={copyLink}
+          onClick={copyMessage}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-amber-200
                      bg-amber-50 py-2.5 text-xs font-medium text-amber-700 hover:bg-amber-100 transition-colors"
         >
-          {linkCopied
-            ? <><Check className="h-3.5 w-3.5 text-green-500" />链接已复制</>
-            : <><Link2 className="h-3.5 w-3.5" />复制链接</>}
+          {messageCopied
+            ? <><Check className="h-3.5 w-3.5 text-green-500" />邀请已复制</>
+            : <><Share2 className="h-3.5 w-3.5" />复制邀请</>}
         </button>
       </div>
     </div>

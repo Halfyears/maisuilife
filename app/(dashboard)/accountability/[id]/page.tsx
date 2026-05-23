@@ -250,7 +250,7 @@ export default async function AccountabilityGroupPage({
             />
 
             {/* 邀请码 */}
-            <InviteCodeCard code={group.invite_code} isOrganizer={isOrganizer} isVigil />
+            <InviteCodeCard code={group.invite_code} name={group.name} isOrganizer={isOrganizer} isVigil />
           </>
         ) : (
           <>
@@ -315,7 +315,7 @@ export default async function AccountabilityGroupPage({
             )}
 
             {/* ── 邀请码 ──────────────────────────────────── */}
-            <InviteCodeCard code={group.invite_code} isOrganizer={isOrganizer} />
+            <InviteCodeCard code={group.invite_code} name={group.name} isOrganizer={isOrganizer} />
 
             {/* ── 本周进度 ─────────────────────────────────── */}
             <WeeklyBanner
@@ -367,8 +367,8 @@ export default async function AccountabilityGroupPage({
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function InviteCodeCard({ code, isOrganizer, isVigil = false }: {
-  code: string; isOrganizer: boolean; isVigil?: boolean
+function InviteCodeCard({ code, name, isOrganizer, isVigil = false }: {
+  code: string; name: string; isOrganizer: boolean; isVigil?: boolean
 }) {
   return (
     <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm">
@@ -380,7 +380,7 @@ function InviteCodeCard({ code, isOrganizer, isVigil = false }: {
       <p className="text-3xl font-black tracking-[0.3em] text-stone-900 mb-3">{code}</p>
       <div className="flex gap-2">
         <CopyCodeButton code={code} />
-        <CopyLinkButton code={code} />
+        <CopyLinkButton code={code} name={name} isVigil={isVigil} />
       </div>
     </div>
   )
