@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, BookOpen } from 'lucide-react'
 import { StatusSelector } from './status-selector'
@@ -67,8 +67,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       if (res.ok) {
         const data: AIResult = await res.json()
         setAiResult(data)
-        // 成功提交后刷新服务端状态，5 秒后自动切换至「今日已完成」视图
-        setTimeout(() => router.refresh(), 5000)
+        // 5 秒自动刷新通过 useEffect + cleanup 管理，避免组件卸载后内存泄漏
       } else {
         throw new Error('api_error')
       }
@@ -85,7 +84,15 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       setIsSubmitting(false)
     }
     // ── 无自动跳转：原地停留，让用户充分默想消化 ──────────────
-  }, [canSubmit, textInput, selectedTags, fellowshipId, router])
+  }, [canSubmit, textInput, selectedTags, fellowshipId])
+
+  // ── 成功提交后 5 秒自动切换至「今日已完成」视图 ──────────────
+  // 使用 useEffect + cleanup 防止组件卸载后 setTimeout 仍执行造成内存泄漏
+  useEffect(() => {
+    if (!aiResult?.alignmentId) return   // 仅在真实提交成功时触发（fallback 不触发）
+    const timer = setTimeout(() => router.refresh(), 5000)
+    return () => clearTimeout(timer)
+  }, [aiResult, router])
 
   // ── AI 结果视图（留在内室页，不跳转）────────────────────────
   if (aiResult) {

@@ -338,7 +338,7 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
                     <button
                       type="button"
                       onClick={() => removeMember(m.user_id, m.display_name)}
-                      disabled={removingId === m.user_id}
+                      disabled={removingId !== null}
                       className="shrink-0 flex items-center gap-1 rounded-xl border border-stone-200
                                  px-2.5 py-1.5 text-xs font-medium text-stone-400
                                  hover:border-red-200 hover:text-red-500 hover:bg-red-50

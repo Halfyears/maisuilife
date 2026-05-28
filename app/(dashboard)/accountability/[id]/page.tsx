@@ -61,7 +61,7 @@ export default async function AccountabilityGroupPage({
   const group   = groupRes.data as AccountabilityGroup | null
   if (!group) redirect('/accountability')
 
-  const members = (membersRes.data ?? []) as { user_id: string; display_name: string }[]
+  const members = (membersRes.data ?? []) as { user_id: string; display_name: string; status: string }[]
   const memberIds = members.map(m => m.user_id)
 
   const today     = todayLocal()

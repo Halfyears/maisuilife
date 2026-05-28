@@ -28,13 +28,17 @@ export async function DELETE(
   if (!group) return NextResponse.json({ error: 'not_found' }, { status: 404 })
 
   // 权限：仅召集人或超管可操作
-  const { data: callerProfile } = await db
+  const { data: callerProfile, error: profileErr } = await db
     .from('users')
     .select('role, display_name')
     .eq('id', user.id)
     .single()
 
-  const isAdmin = ['church_admin', 'super_admin'].includes(callerProfile?.role ?? '')
+  if (profileErr || !callerProfile) {
+    return NextResponse.json({ error: 'db_error' }, { status: 500 })
+  }
+
+  const isAdmin = ['church_admin', 'super_admin'].includes(callerProfile.role ?? '')
   if (group.organizer_id !== user.id && !isAdmin) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
@@ -75,7 +79,7 @@ export async function DELETE(
     if (sub) {
       await sendPushNotification(sub, {
         title: '你已离开小组',
-        body:  `召集人「${callerProfile?.display_name ?? ''}」已将你从小组「${group.name}」中移除`,
+        body:  `召集人「${callerProfile.display_name ?? ''}」已将你从小组「${group.name}」中移除`,
         url:   '/accountability',
       })
     }
