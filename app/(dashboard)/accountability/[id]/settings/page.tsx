@@ -3,8 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, Save, StopCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, StopCircle, Users, UserMinus } from 'lucide-react'
 import { DAILY_PRESET_CATEGORIES, VIGIL_PRESET_CATEGORIES } from '@/lib/accountability'
+
+interface Member {
+  user_id:      string
+  display_name: string
+  status:       string
+}
 
 const DAY_OPTIONS = [
   { value: 1, label: '周一' }, { value: 2, label: '周二' }, { value: 3, label: '周三' },
@@ -37,33 +43,69 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
   const [saved,     setSaved]     = useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [ending,    setEnding]    = useState(false)
+  // 成员管理
+  const [members,       setMembers]       = useState<Member[]>([])
+  const [removingId,    setRemovingId]    = useState<string | null>(null)
+  const [removeError,   setRemoveError]   = useState<string | null>(null)
+  const [organizer_id,  setOrganizerId]   = useState<string>('')
 
   useEffect(() => {
-    fetch(`/api/accountability/group?id=${groupId}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.group) {
-          const g = data.group
-          setName(g.name ?? '')
-          setGoal(g.goal_title ?? '')
-          setDesc(g.goal_description ?? '')
-          setGroupType(g.group_type === 'vigil' ? 'vigil' : 'daily')
-          // If saved value is a preset, use it; otherwise it's a custom label
-          const savedCat = g.goal_category ?? 'custom'
-          if (ALL_PRESET_VALUES.has(savedCat)) {
-            setCat(savedCat)
-          } else {
-            setCat('custom')
-            setCustomCat(savedCat === 'custom' ? '' : savedCat)
-          }
-          setDays(Array.isArray(g.schedule_days_of_week) ? g.schedule_days_of_week : [])
-          setTime(g.schedule_time ?? '')
-          setStart(g.start_date ?? '')
-          setEnd(g.end_date ?? '')
+    Promise.all([
+      fetch(`/api/accountability/group?id=${groupId}`).then(r => r.json()),
+      fetch(`/api/accountability/groups/${groupId}/members`).then(r => r.json()),
+    ]).then(([groupData, membersData]) => {
+      if (groupData.group) {
+        const g = groupData.group
+        setName(g.name ?? '')
+        setGoal(g.goal_title ?? '')
+        setDesc(g.goal_description ?? '')
+        setGroupType(g.group_type === 'vigil' ? 'vigil' : 'daily')
+        setOrganizerId(g.organizer_id ?? '')
+        const savedCat = g.goal_category ?? 'custom'
+        if (ALL_PRESET_VALUES.has(savedCat)) {
+          setCat(savedCat)
+        } else {
+          setCat('custom')
+          setCustomCat(savedCat === 'custom' ? '' : savedCat)
         }
-      })
-      .finally(() => setLoading(false))
+        setDays(Array.isArray(g.schedule_days_of_week) ? g.schedule_days_of_week : [])
+        setTime(g.schedule_time ?? '')
+        setStart(g.start_date ?? '')
+        setEnd(g.end_date ?? '')
+      }
+      if (Array.isArray(membersData.members)) {
+        setMembers(membersData.members)
+      }
+    }).finally(() => setLoading(false))
   }, [groupId])
+
+  async function removeMember(userId: string, displayName: string) {
+    if (!confirm(`确认移除成员「${displayName}」？移除后将通过推送通知告知对方。`)) return
+    setRemovingId(userId)
+    setRemoveError(null)
+    try {
+      const res  = await fetch(`/api/accountability/groups/${groupId}/members/${userId}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        const msgs: Record<string, string> = {
+          forbidden:             '无权操作',
+          cannot_remove_organizer: '不能移除召集人',
+          already_removed:       '该成员已被移除',
+          member_not_found:      '成员不存在',
+        }
+        setRemoveError(msgs[data.error] ?? '移除失败，请重试')
+        return
+      }
+      // 本地更新成员列表
+      setMembers(prev => prev.filter(m => m.user_id !== userId))
+    } catch {
+      setRemoveError('网络错误，请重试')
+    } finally {
+      setRemovingId(null)
+    }
+  }
 
   function toggleDay(d: number) {
     setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort((a, b) => a - b))
@@ -270,6 +312,54 @@ export default function AccountabilitySettingsPage({ params }: { params: { id: s
             </div>
           </div>
         </div>
+
+        {/* 成员管理 */}
+        {members.length > 0 && (
+          <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-5 shadow-sm space-y-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-stone-400 shrink-0" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+                成员管理（{members.length} 人）
+              </p>
+            </div>
+            {removeError && (
+              <p className="text-xs text-red-600">{removeError}</p>
+            )}
+            <div className="divide-y divide-stone-50">
+              {members.map(m => (
+                <div key={m.user_id} className="flex items-center gap-3 py-2.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-stone-700 truncate">{m.display_name}</p>
+                    {m.user_id === organizer_id && (
+                      <p className="text-[10px] text-amber-600 font-semibold">召集人</p>
+                    )}
+                  </div>
+                  {m.user_id !== organizer_id && (
+                    <button
+                      type="button"
+                      onClick={() => removeMember(m.user_id, m.display_name)}
+                      disabled={removingId === m.user_id}
+                      className="shrink-0 flex items-center gap-1 rounded-xl border border-stone-200
+                                 px-2.5 py-1.5 text-xs font-medium text-stone-400
+                                 hover:border-red-200 hover:text-red-500 hover:bg-red-50
+                                 disabled:opacity-50 transition-colors"
+                      aria-label={`移除 ${m.display_name}`}
+                    >
+                      {removingId === m.user_id
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <UserMinus className="h-3 w-3" />
+                      }
+                      移除
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-stone-300 leading-relaxed">
+              移除后系统将推送通知告知对方，其历史打卡记录完整保留。
+            </p>
+          </div>
+        )}
 
         {error && <p className="text-center text-xs text-red-600">{error}</p>}
         {saved && <p className="text-center text-xs text-green-600">✓ 设置已保存</p>}

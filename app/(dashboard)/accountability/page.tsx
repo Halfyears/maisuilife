@@ -1,4 +1,4 @@
-﻿import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Target, Plus, LogIn } from 'lucide-react'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
@@ -22,11 +22,12 @@ export default async function AccountabilityIndexPage() {
   const today     = todayLocal()
   const weekStart = getWeekStart(today)
 
-  // Fetch all groups the user belongs to
+  // 仅查询状态为 active 的成员关系（已退出/被移除的不再出现）
   const { data: memberships } = await db
     .from('accountability_group_members')
     .select('group_id')
     .eq('user_id', user.id)
+    .eq('status', 'active')
 
   const groupIds = (memberships ?? []).map(m => m.group_id)
 
@@ -63,6 +64,33 @@ export default async function AccountabilityIndexPage() {
     }
   }
 
+  // ── 分离「今日已完成」与「待处理」小组 ──────────────────────
+  const activeGroups:    AccountabilityGroup[] = []
+  const completedGroups: AccountabilityGroup[] = []
+
+  for (const g of groups) {
+    const isVigil = g.group_type === 'vigil'
+
+    if (isVigil) {
+      // 守望小组：今日已守望 → 折叠到底部
+      if (myVigilToday.has(g.id)) completedGroups.push(g)
+      else                         activeGroups.push(g)
+    } else {
+      // 打卡小组：今日有约定且已打卡，或本周计划全部完成 → 折叠
+      const scheduled = getScheduledDates(
+        Array.isArray(g.schedule_days_of_week) ? g.schedule_days_of_week : [],
+        weekStart, today,
+      )
+      const myCheckins  = weekCheckins.filter(c => c.group_id === g.id)
+      const done        = myCheckins.filter(c => c.status === 'done' && scheduled.includes(c.checkin_date)).length
+      const todayDone   = myCheckins.some(c => c.checkin_date === today && c.status === 'done')
+      const weekAllDone = scheduled.length > 0 && done === scheduled.length
+
+      if (todayDone || weekAllDone) completedGroups.push(g)
+      else                           activeGroups.push(g)
+    }
+  }
+
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 border-b border-stone-100/80 bg-white/80 backdrop-blur-md">
@@ -96,114 +124,42 @@ export default async function AccountabilityIndexPage() {
         {groups.length === 0 ? (
           <EmptyState />
         ) : (
-          groups.map(g => {
-            const isVigil     = g.group_type === 'vigil'
-            const isOrganizer = g.organizer_id === user.id
-
-            if (isVigil) {
-              const watched = myVigilToday.has(g.id)
-              return (
-                <Link
-                  key={g.id}
-                  href={`/accountability/${g.id}`}
-                  className="block rounded-2xl border border-violet-200/60 px-5 py-4
-                             shadow-sm hover:shadow-md hover:shadow-violet-200/60 transition-all active:scale-[0.99]"
-                  style={{ background: 'linear-gradient(135deg, #fdf4ff 0%, #fff8ee 70%, #fef3e2 100%)' }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-base shrink-0">🕊️</span>
-                        <p className="text-sm font-bold text-stone-900">{g.name}</p>
-                        {isOrganizer && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                            召集人
-                          </span>
-                        )}
-                      </div>
-                      {g.goal_title && (
-                        <p className="text-xs text-stone-500 mt-0.5 truncate">{g.goal_title}</p>
-                      )}
-                      <p className="text-[11px] text-violet-500 mt-1.5 font-semibold">守望相助</p>
-                    </div>
-                    {watched ? (
-                      <span className="shrink-0 text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
-                        🕊️ 今日已守望
-                      </span>
-                    ) : (
-                      <span className="shrink-0 text-[11px] font-bold text-violet-500 bg-violet-50 px-2 py-1 rounded-full border border-violet-100">
-                        守望
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              )
-            }
-
-            // Daily group
-            const scheduled    = getScheduledDates(
-              Array.isArray(g.schedule_days_of_week) ? g.schedule_days_of_week : [],
-              weekStart, today,
-            )
-            const myCheckins   = weekCheckins.filter(c => c.group_id === g.id)
-            const done         = myCheckins.filter(c => c.status === 'done' && scheduled.includes(c.checkin_date)).length
-            const rate         = scheduled.length > 0 ? Math.round((done / scheduled.length) * 100) : null
-            const todayChecked = myCheckins.some(c => c.checkin_date === today && c.status === 'done')
-
-            return (
-              <Link
+          <>
+            {/* ── 待处理 / 进行中小组 ─────────────────────── */}
+            {activeGroups.map(g => (
+              <GroupCard
                 key={g.id}
-                href={`/accountability/${g.id}`}
-                className="block rounded-2xl border border-stone-100 bg-white/90 px-5 py-4
-                           shadow-sm shadow-amber-900/5 hover:border-amber-200 transition-colors
-                           active:scale-[0.99]"
-              >
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-bold text-stone-900">{g.name}</p>
-                      {isOrganizer && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                          召集人
-                        </span>
-                      )}
-                    </div>
-                    {g.goal_title && (
-                      <p className="text-xs text-stone-500 mt-0.5 truncate">{g.goal_title}</p>
-                    )}
-                  </div>
-                  {todayChecked ? (
-                    <span className="shrink-0 text-[11px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                      ✓ 今日已打卡
-                    </span>
-                  ) : scheduled.includes(today) ? (
-                    <span className="shrink-0 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-                      待打卡
-                    </span>
-                  ) : null}
-                </div>
+                g={g}
+                userId={user.id}
+                weekCheckins={weekCheckins}
+                myVigilToday={myVigilToday}
+                weekStart={weekStart}
+                today={today}
+                dimmed={false}
+              />
+            ))}
 
-                {rate !== null && (
-                  <>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-stone-400">本周完成率</span>
-                      <span className="text-xs font-bold text-stone-700">{rate}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-                      <div
-                        className={[
-                          'h-full rounded-full transition-all',
-                          rate === 100 ? 'bg-green-400' :
-                          rate >= 50   ? 'bg-amber-400' : 'bg-stone-300',
-                        ].join(' ')}
-                        style={{ width: `${Math.max(rate, 2)}%` }}
-                      />
-                    </div>
-                  </>
-                )}
-              </Link>
-            )
-          })
+            {/* ── 今日已完成（折叠到底部）──────────────────── */}
+            {completedGroups.length > 0 && (
+              <div className="pt-2 space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-300 px-1">
+                  今日已完成 ✓
+                </p>
+                {completedGroups.map(g => (
+                  <GroupCard
+                    key={g.id}
+                    g={g}
+                    userId={user.id}
+                    weekCheckins={weekCheckins}
+                    myVigilToday={myVigilToday}
+                    weekStart={weekStart}
+                    today={today}
+                    dimmed={true}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         <DonationWidget pageKey="accountability" />
@@ -211,6 +167,129 @@ export default async function AccountabilityIndexPage() {
 
       <BottomNav />
     </div>
+  )
+}
+
+// ── GroupCard ─────────────────────────────────────────────────────────────────
+function GroupCard({
+  g, userId, weekCheckins, myVigilToday, weekStart, today, dimmed,
+}: {
+  g:            AccountabilityGroup
+  userId:       string
+  weekCheckins: AccountabilityCheckin[]
+  myVigilToday: Set<string>
+  weekStart:    string
+  today:        string
+  dimmed:       boolean
+}) {
+  const isVigil     = g.group_type === 'vigil'
+  const isOrganizer = g.organizer_id === userId
+
+  if (isVigil) {
+    const watched = myVigilToday.has(g.id)
+    return (
+      <Link
+        href={`/accountability/${g.id}`}
+        className={[
+          'block rounded-2xl border border-violet-200/60 px-5 py-4',
+          'shadow-sm hover:shadow-md hover:shadow-violet-200/60 transition-all active:scale-[0.99]',
+          dimmed ? 'opacity-50' : '',
+        ].join(' ')}
+        style={{ background: 'linear-gradient(135deg, #fdf4ff 0%, #fff8ee 70%, #fef3e2 100%)' }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-base shrink-0">🕊️</span>
+              <p className="text-sm font-bold text-stone-900">{g.name}</p>
+              {isOrganizer && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                  召集人
+                </span>
+              )}
+            </div>
+            {g.goal_title && (
+              <p className="text-xs text-stone-500 mt-0.5 truncate">{g.goal_title}</p>
+            )}
+            <p className="text-[11px] text-violet-500 mt-1.5 font-semibold">守望相助</p>
+          </div>
+          {watched ? (
+            <span className="shrink-0 text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
+              🕊️ 今日已守望
+            </span>
+          ) : (
+            <span className="shrink-0 text-[11px] font-bold text-violet-500 bg-violet-50 px-2 py-1 rounded-full border border-violet-100">
+              守望
+            </span>
+          )}
+        </div>
+      </Link>
+    )
+  }
+
+  // Daily group
+  const scheduled    = getScheduledDates(
+    Array.isArray(g.schedule_days_of_week) ? g.schedule_days_of_week : [],
+    weekStart, today,
+  )
+  const myCheckins   = weekCheckins.filter(c => c.group_id === g.id)
+  const done         = myCheckins.filter(c => c.status === 'done' && scheduled.includes(c.checkin_date)).length
+  const rate         = scheduled.length > 0 ? Math.round((done / scheduled.length) * 100) : null
+  const todayChecked = myCheckins.some(c => c.checkin_date === today && c.status === 'done')
+
+  return (
+    <Link
+      href={`/accountability/${g.id}`}
+      className={[
+        'block rounded-2xl border border-stone-100 bg-white/90 px-5 py-4',
+        'shadow-sm shadow-amber-900/5 hover:border-amber-200 transition-colors active:scale-[0.99]',
+        dimmed ? 'opacity-50' : '',
+      ].join(' ')}
+    >
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-bold text-stone-900">{g.name}</p>
+            {isOrganizer && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                召集人
+              </span>
+            )}
+          </div>
+          {g.goal_title && (
+            <p className="text-xs text-stone-500 mt-0.5 truncate">{g.goal_title}</p>
+          )}
+        </div>
+        {todayChecked ? (
+          <span className="shrink-0 text-[11px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+            ✓ 今日已打卡
+          </span>
+        ) : scheduled.includes(today) ? (
+          <span className="shrink-0 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+            待打卡
+          </span>
+        ) : null}
+      </div>
+
+      {rate !== null && (
+        <>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-stone-400">本周完成率</span>
+            <span className="text-xs font-bold text-stone-700">{rate}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+            <div
+              className={[
+                'h-full rounded-full transition-all',
+                rate === 100 ? 'bg-green-400' :
+                rate >= 50   ? 'bg-amber-400' : 'bg-stone-300',
+              ].join(' ')}
+              style={{ width: `${Math.max(rate, 2)}%` }}
+            />
+          </div>
+        </>
+      )}
+    </Link>
   )
 }
 

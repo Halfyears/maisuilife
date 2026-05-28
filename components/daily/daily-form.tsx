@@ -67,6 +67,8 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       if (res.ok) {
         const data: AIResult = await res.json()
         setAiResult(data)
+        // 成功提交后刷新服务端状态，5 秒后自动切换至「今日已完成」视图
+        setTimeout(() => router.refresh(), 5000)
       } else {
         throw new Error('api_error')
       }
@@ -83,7 +85,7 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       setIsSubmitting(false)
     }
     // ── 无自动跳转：原地停留，让用户充分默想消化 ──────────────
-  }, [canSubmit, textInput, selectedTags, fellowshipId])
+  }, [canSubmit, textInput, selectedTags, fellowshipId, router])
 
   // ── AI 结果视图（留在内室页，不跳转）────────────────────────
   if (aiResult) {
@@ -133,9 +135,22 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
         )}
 
         {/* 静默提示 */}
-        <p className="text-center text-xs text-stone-300 pb-4 leading-relaxed">
+        <p className="text-center text-xs text-stone-300 leading-relaxed">
           愿你在此默想，让圣言在心中慢慢生根。
         </p>
+
+        {/* 完成按钮：主动切换至「今日已完成」视图 */}
+        {aiResult.alignmentId && (
+          <button
+            type="button"
+            onClick={() => router.refresh()}
+            className="w-full rounded-2xl border border-green-200 bg-green-50
+                       py-3 text-sm font-semibold text-green-700
+                       hover:bg-green-100 active:scale-[0.98] transition-all"
+          >
+            ✓ 完成今日内室
+          </button>
+        )}
       </div>
     )
   }

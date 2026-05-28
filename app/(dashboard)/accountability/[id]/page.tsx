@@ -8,6 +8,7 @@ import { CheckinButton } from '@/components/accountability/checkin-button'
 import { CopyCodeButton, CopyLinkButton } from '@/components/accountability/copy-code-button'
 import { MemberProgressList } from '@/components/accountability/member-progress-list'
 import { VigilPanel } from '@/components/accountability/vigil-panel'
+import { LeaveGroupButton } from '@/components/accountability/leave-group-button'
 import {
   getWeekStart, getScheduledDates,
   buildMemberProgress, DAY_LABEL, goalCategoryLabel,
@@ -37,20 +38,24 @@ export default async function AccountabilityGroupPage({
     .single()
   const isSuperAdmin = callerProfile?.role === 'super_admin'
 
-  // Verify membership — super_admin 直接进入
+  // Verify membership — super_admin 直接进入（仅活跃成员）
   const { data: memberRow } = await db
     .from('accountability_group_members')
-    .select('display_name')
+    .select('display_name, status')
     .eq('group_id', groupId)
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (!memberRow && !isSuperAdmin) redirect('/accountability')
+  // 已退出/被移除的成员也重定向
+  if ((!memberRow || memberRow.status !== 'active') && !isSuperAdmin) redirect('/accountability')
 
-  // Fetch group + all members in parallel
+  // Fetch group + active members in parallel
   const [groupRes, membersRes] = await Promise.all([
     db.from('accountability_groups').select('*').eq('id', groupId).single(),
-    db.from('accountability_group_members').select('user_id, display_name').eq('group_id', groupId),
+    db.from('accountability_group_members')
+      .select('user_id, display_name, status')
+      .eq('group_id', groupId)
+      .eq('status', 'active'),  // 仅活跃成员计入进度和名单
   ])
 
   const group   = groupRes.data as AccountabilityGroup | null
@@ -251,6 +256,11 @@ export default async function AccountabilityGroupPage({
 
             {/* 邀请码 */}
             <InviteCodeCard code={group.invite_code} name={group.name} isOrganizer={isOrganizer} isVigil />
+
+            {/* 普通成员退出按钮 */}
+            {!isOrganizer && !isSuperAdmin && (
+              <LeaveGroupButton groupId={groupId} />
+            )}
           </>
         ) : (
           <>
@@ -332,6 +342,11 @@ export default async function AccountabilityGroupPage({
               </h2>
               <MemberProgressList members={memberProgress} myUserId={user.id} />
             </section>
+
+            {/* ── 普通成员退出按钮 ─────────────────────────── */}
+            {!isOrganizer && !isSuperAdmin && (
+              <LeaveGroupButton groupId={groupId} />
+            )}
 
             {/* ── 我的近期记录 ─────────────────────────────── */}
             {myHistory.length > 0 && (
