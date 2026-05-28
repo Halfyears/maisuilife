@@ -60,8 +60,9 @@ export default async function SettingsPage() {
       .maybeSingle(),
     db
       .from('accountability_group_members')
-      .select('group_id, accountability_groups(id, name)')
+      .select('group_id, accountability_groups(id, name, status, deleted_at)')
       .eq('user_id', user.id)
+      .eq('status', 'active')   // 已退出或被移除的不显示
       .limit(5),
   ])
 
@@ -75,9 +76,12 @@ export default async function SettingsPage() {
   const churchData    = churchMemberRes.data?.churches as { name?: string; contact_info?: string } | null
   const churchName    = churchData?.name ?? null
   const contactInfo   = churchData?.contact_info?.trim() ?? null
+  type AcctGroupRow = { id: string; name: string; status?: string; deleted_at?: string | null } | null
   const acctGroups = (acctRes.data ?? [])
-    .map(r => r.accountability_groups as { id: string; name: string } | null)
-    .filter((g): g is { id: string; name: string } => !!g?.id)
+    .map(r => r.accountability_groups as AcctGroupRow)
+    .filter((g): g is { id: string; name: string } =>
+      !!g?.id && g.status !== 'ended' && g.status !== 'deleted' && !g.deleted_at
+    )
 
   return (
     <div className="flex min-h-dvh flex-col">

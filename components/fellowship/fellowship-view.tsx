@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useTransition } from 'react'
+import { useState, useCallback, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { MemberCard } from './member-card'
@@ -28,15 +28,23 @@ export function FellowshipView({ data }: FellowshipViewProps) {
 
       if (!res.ok) throw new Error('silent_failed')
 
+      // 先显示确认消息；延迟 5.5 秒再刷新，让用户有时间读到提示
       setSilentSent(true)
-
-      // Refresh server data to re-fetch with unlocked view
-      startTransition(() => router.refresh())
 
     } catch {
       setSilentError(true)
     }
-  }, [data.fellowship_id, router])
+  }, [data.fellowship_id])
+
+  // 静默同行成功后，延迟 5.5 秒再执行页面刷新
+  // useEffect + cleanup 确保组件卸载时定时器被清除
+  useEffect(() => {
+    if (!silentSent) return
+    const timer = setTimeout(() => {
+      startTransition(() => router.refresh())
+    }, 5500)
+    return () => clearTimeout(timer)
+  }, [silentSent, router])
 
   return (
     <div className="flex flex-col gap-4">
@@ -96,9 +104,12 @@ export function FellowshipView({ data }: FellowshipViewProps) {
       )}
 
       {/* ── Post-silent confirmation ──────────────── */}
+      {/* silentSent=true 后立即显示提示；5.5 秒后开始刷新（isPending=true）；刷新完页面重载 */}
       {silentSent && (
         <p className="mt-2 text-center text-sm text-muted-foreground animate-in fade-in">
-          {isPending ? '页面正在刷新…' : '✓ 已静默同行，你的存在本身就是祝福'}
+          {isPending
+            ? '正在刷新中，请稍候…'
+            : '✓ 已静默同行，页面正在刷新，请稍候…'}
         </p>
       )}
     </div>
