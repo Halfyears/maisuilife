@@ -51,6 +51,7 @@ export interface AccountabilityGroup {
   schedule_time:         string | null
   start_date:            string | null
   end_date:              string | null
+  status:                'active' | 'ended' | 'deleted'
   created_at:            string
 }
 

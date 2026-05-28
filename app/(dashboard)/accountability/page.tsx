@@ -64,30 +64,17 @@ export default async function AccountabilityIndexPage() {
     }
   }
 
-  // ── 分离「今日已完成」与「待处理」小组 ──────────────────────
+  // ── 分离「已结束小组」与「进行中小组」────────────────────────
+  // 仅当召集人在设置中点击「结束小组」（status='ended'）时才折叠到底部。
+  // 每日打卡完成、本周全部完成等日常状态，不影响小组位置。
   const activeGroups:    AccountabilityGroup[] = []
   const completedGroups: AccountabilityGroup[] = []
 
   for (const g of groups) {
-    const isVigil = g.group_type === 'vigil'
-
-    if (isVigil) {
-      // 守望小组：今日已守望 → 折叠到底部
-      if (myVigilToday.has(g.id)) completedGroups.push(g)
-      else                         activeGroups.push(g)
+    if (g.status === 'ended') {
+      completedGroups.push(g)
     } else {
-      // 打卡小组：今日有约定且已打卡，或本周计划全部完成 → 折叠
-      const scheduled = getScheduledDates(
-        Array.isArray(g.schedule_days_of_week) ? g.schedule_days_of_week : [],
-        weekStart, today,
-      )
-      const myCheckins  = weekCheckins.filter(c => c.group_id === g.id)
-      const done        = myCheckins.filter(c => c.status === 'done' && scheduled.includes(c.checkin_date)).length
-      const todayDone   = myCheckins.some(c => c.checkin_date === today && c.status === 'done')
-      const weekAllDone = scheduled.length > 0 && done === scheduled.length
-
-      if (todayDone || weekAllDone) completedGroups.push(g)
-      else                           activeGroups.push(g)
+      activeGroups.push(g)
     }
   }
 
@@ -139,11 +126,11 @@ export default async function AccountabilityIndexPage() {
               />
             ))}
 
-            {/* ── 今日已完成（折叠到底部）──────────────────── */}
+            {/* ── 已结束小组（折叠到底部）──────────────────── */}
             {completedGroups.length > 0 && (
               <div className="pt-2 space-y-2">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-300 px-1">
-                  今日已完成 ✓
+                  已结束小组 ✓
                 </p>
                 {completedGroups.map(g => (
                   <GroupCard

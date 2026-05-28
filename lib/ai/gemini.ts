@@ -95,9 +95,11 @@ export interface AlignmentAIResponse {
 export async function generateAlignmentResponse({
   transcript,
   statusTag,
+  recentRefs = [],
 }: {
-  transcript: string
-  statusTag:  string
+  transcript:  string
+  statusTag:   string
+  recentRefs?: string[]   // 该用户最近使用过的经文引用，避免重复
 }): Promise<AlignmentAIResponse> {
   if (!process.env.GROQ_API_KEY) {
     throw new Error('GROQ_API_KEY is not configured')
@@ -109,9 +111,12 @@ export async function generateAlignmentResponse({
     ? statusTag.split(/[、,，\s]+/).map(s => s.trim()).filter(Boolean)
     : []
 
+  const recentRefSet = new Set(recentRefs)
   const versesText = SCRIPTURE_BANK.map(s => {
-    const matched = tagList.length === 0 || tagList.some(t => s.mood === t) || s.mood === '通用'
-    const marker = matched ? '★' : '○'
+    const matched  = tagList.length === 0 || tagList.some(t => s.mood === t) || s.mood === '通用'
+    const isRecent = recentRefSet.has(s.ref)
+    // ★ 心境匹配优先；⚠️ 最近用过，尽量避免；○ 次选
+    const marker = isRecent ? '⚠️' : matched ? '★' : '○'
     return `${marker}【${s.mood}】${s.text} ——《${s.ref}》`
   }).join('\n')
 
@@ -119,14 +124,16 @@ export async function generateAlignmentResponse({
   const timeHint = new Date().toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit', weekday: 'short' })
   const moodDisplay = statusTag || '静默交托（未标记心境）'
 
-  const userPrompt = `[随机扰动种子: ${seed} | 时间: ${timeHint} | 本次必须选择与上次不同的经文]
+  const userPrompt = `[随机扰动种子: ${seed} | 时间: ${timeHint} | 每位用户都应收到不同的经文]
 
 当前心境：${moodDisplay}
 用户今日倾诉：
 ${transcript.slice(0, 800)}
 
 【完整经文库 — 只能从下列原文中选取，严禁自行创作】
-★ 标记为与当前心境高度匹配的优先候选；○ 为次选。
+★ 与当前心境高度匹配，优先选择；
+○ 次选；
+⚠️ 该用户近期已收到过，请尽量选用其他经文，让每次回应都成为新的相遇。
 ${versesText}`
 
   const completion = await groq.chat.completions.create({

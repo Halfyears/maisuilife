@@ -7,13 +7,20 @@ import { LocalDateChip } from '@/components/shared/local-date-display'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { TimeGreeting } from '@/components/home/time-greeting'
 import { getWeekStart, getScheduledDates } from '@/lib/accountability'
+import { SCRIPTURE_BANK } from '@/lib/constants'
 
 export const metadata = { title: '首页' }
 export const revalidate = 0
 
-const DEFAULT_SCRIPTURE = {
-  verse: '你们要将一切的忧虑卸给神，因为他顾念你们。',
-  ref:   '彼得前书 5:7',
+/** 按日期自动轮换首页经文（与内室按心境生成的经文不同）。
+ *  使用当日日期的数字值对总数取模，无需数据库，每天自动切换。 */
+function getDailyScripture(today: string) {
+  // today = 'YYYY-MM-DD' → 数字化：去掉连字符后转 int，对总数取模
+  type ScriptureEntry = { text: string; ref: string }
+  const bank   = SCRIPTURE_BANK as unknown as ScriptureEntry[]
+  const dayNum = parseInt(today.replace(/-/g, ''), 10)
+  const entry  = bank[dayNum % bank.length] ?? bank[0]!
+  return { verse: entry.text, ref: entry.ref }
 }
 
 function computeStreak(dates: string[], today: string): number {
@@ -41,15 +48,15 @@ export default async function RootPage() {
   const thirtyThreeAgo = offsetDate(today, -33)
 
   // ── Round 1: user data + memberships (all parallel) ────────────────
-  const [profileRes, alignmentRes, scriptureRes, streakDatesRes, fellowshipMemberRes, acctMemberRes] =
+  const [profileRes, alignmentRes, streakDatesRes, fellowshipMemberRes, acctMemberRes] =
     await Promise.all([
       supabase.from('users').select('display_name').eq('id', user.id).single(),
       supabase.from('daily_alignments').select('status_tag').eq('user_id', user.id).eq('date', today).maybeSingle(),
-      db.from('system_configs').select('value').eq('key', 'daily_scripture').maybeSingle(),
       supabase.from('daily_alignments').select('date').eq('user_id', user.id)
         .gte('date', thirtyThreeAgo).order('date', { ascending: false }),
       supabase.from('fellowship_members').select('fellowship_id').eq('user_id', user.id).limit(1).maybeSingle(),
-      db.from('accountability_group_members').select('group_id').eq('user_id', user.id),
+      // 仅查询仍为 active 的成员关系（已退出/已被移除不计入）
+      db.from('accountability_group_members').select('group_id').eq('user_id', user.id).eq('status', 'active'),
     ])
 
   const fellowshipId  = fellowshipMemberRes.data?.fellowship_id ?? null
@@ -67,7 +74,11 @@ export default async function RootPage() {
           .eq('fellowship_id', fellowshipId).eq('is_resolved', false)
       : Promise.resolve({ count: 0, data: null }),
     acctGroupIds.length
-      ? db.from('accountability_groups').select('id, name, group_type, schedule_days_of_week').in('id', acctGroupIds)
+      ? db.from('accountability_groups')
+          .select('id, name, group_type, schedule_days_of_week, status')
+          .in('id', acctGroupIds)
+          .eq('status', 'active')           // 仅显示进行中小组，已结束小组不出现在首页
+          .is('deleted_at', null)
       : Promise.resolve({ data: [] }),
     acctGroupIds.length
       ? db.from('accountability_checkins').select('group_id, status').in('group_id', acctGroupIds)
@@ -90,11 +101,8 @@ export default async function RootPage() {
   const prayerCount     = (prayerCountRes as { count?: number | null }).count ?? 0
   const firstName       = profileRes.data?.display_name ?? '朋友'
 
-  const scriptureVal = scriptureRes.data?.value as { verse?: string; ref?: string } | null
-  const scripture = {
-    verse: scriptureVal?.verse?.trim() || DEFAULT_SCRIPTURE.verse,
-    ref:   scriptureVal?.ref?.trim()   || DEFAULT_SCRIPTURE.ref,
-  }
+  // 按日期自动轮换首页经文（区别于内室按心境生成的话语）
+  const scripture = getDailyScripture(today)
 
   type GroupRow = { id: string; name: string; group_type: string; schedule_days_of_week: number[] }
   const allGroups  = (acctGroupsRes.data ?? []) as GroupRow[]

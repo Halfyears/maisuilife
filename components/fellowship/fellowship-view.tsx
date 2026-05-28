@@ -96,9 +96,9 @@ export function FellowshipView({ data }: FellowshipViewProps) {
       )}
 
       {/* ── Post-silent confirmation ──────────────── */}
-      {silentSent && !data.is_unlocked && (
+      {silentSent && (
         <p className="mt-2 text-center text-sm text-muted-foreground animate-in fade-in">
-          已静默同行，页面正在刷新…
+          {isPending ? '页面正在刷新…' : '✓ 已静默同行，你的存在本身就是祝福'}
         </p>
       )}
     </div>
