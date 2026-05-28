@@ -13,6 +13,7 @@ interface Props {
   initialPrayers:   Prayer[]
   memberCount:      number
   myUserId:         string
+  readOnly?:        boolean   // 小组已结束时为 true，仅展示历史记录
 }
 
 function fmtTime(iso: string) {
@@ -26,7 +27,7 @@ function fmtTime(iso: string) {
   return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${d.toTimeString().slice(0, 5)}`
 }
 
-export function VigilPanel({ groupId, myPresence, initialPresences, initialPrayers, memberCount, myUserId }: Props) {
+export function VigilPanel({ groupId, myPresence, initialPresences, initialPrayers, memberCount, myUserId, readOnly = false }: Props) {
   const [note,      setNote]      = useState('')
   const [loading,   setLoading]   = useState(false)
   const [confirmed, setConfirmed] = useState(!!myPresence)
@@ -100,39 +101,44 @@ export function VigilPanel({ groupId, myPresence, initialPresences, initialPraye
           <p className="text-xs text-violet-400 mt-0.5">共 {memberCount} 位同行者</p>
         </div>
 
-        {/* 祷告输入 */}
-        <div className="px-5 pb-5 space-y-3">
-          <textarea
-            value={note}
-            onChange={e => setNote(e.target.value.slice(0, 200))}
-            placeholder={confirmed ? '再次祷告，留下你的话语（可选）…' : '留一句默默的祷告（可选，不超过 200 字）…'}
-            rows={2}
-            className="w-full rounded-xl border border-violet-100 bg-white/70 px-4 py-2.5
-                       text-sm text-stone-700 placeholder-violet-300
-                       focus:outline-none focus:ring-2 focus:ring-violet-300 resize-none"
-          />
-          {error && <p className="text-xs text-red-500 text-center">{error}</p>}
-          <button
-            type="button"
-            onClick={handlePresence}
-            disabled={loading}
-            className={[
-              'w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-sm font-bold transition-all',
-              confirmed
-                ? 'border border-amber-200 bg-amber-50/80 text-amber-700 hover:bg-amber-100'
-                : 'text-white shadow-md shadow-violet-500/30 hover:opacity-90 active:scale-[0.98]',
-              'disabled:opacity-60',
-            ].join(' ')}
-            style={confirmed ? {} : { background: 'linear-gradient(135deg, #8b5cf6 0%, #d4af37 100%)' }}
-          >
-            {loading
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : confirmed ? '🕊️ 再次守望祷告' : '🕊️ 今日守望'}
-          </button>
-          <p className="text-center text-[11px] text-violet-400 leading-relaxed">
-            每次提交都会记入祷告日志 · 每人今日守望只统计一次
-          </p>
-        </div>
+        {/* 祷告输入（小组已结束时隐藏） */}
+        {!readOnly && (
+          <div className="px-5 pb-5 space-y-3">
+            <textarea
+              value={note}
+              onChange={e => setNote(e.target.value.slice(0, 200))}
+              placeholder={confirmed ? '再次祷告，留下你的话语（可选）…' : '留一句默默的祷告（可选，不超过 200 字）…'}
+              rows={2}
+              className="w-full rounded-xl border border-violet-100 bg-white/70 px-4 py-2.5
+                         text-sm text-stone-700 placeholder-violet-300
+                         focus:outline-none focus:ring-2 focus:ring-violet-300 resize-none"
+            />
+            {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+            <button
+              type="button"
+              onClick={handlePresence}
+              disabled={loading}
+              className={[
+                'w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-sm font-bold transition-all',
+                confirmed
+                  ? 'border border-amber-200 bg-amber-50/80 text-amber-700 hover:bg-amber-100'
+                  : 'text-white shadow-md shadow-violet-500/30 hover:opacity-90 active:scale-[0.98]',
+                'disabled:opacity-60',
+              ].join(' ')}
+              style={confirmed ? {} : { background: 'linear-gradient(135deg, #8b5cf6 0%, #d4af37 100%)' }}
+            >
+              {loading
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : confirmed ? '🕊️ 再次守望祷告' : '🕊️ 今日守望'}
+            </button>
+            <p className="text-center text-[11px] text-violet-400 leading-relaxed">
+              每次提交都会记入祷告日志 · 每人今日守望只统计一次
+            </p>
+          </div>
+        )}
+
+        {/* 已结束提示留白 */}
+        {readOnly && <div className="pb-5" />}
       </div>
 
       {/* ── 今日守望肢体（每人一次，只显示名字）──────── */}

@@ -126,25 +126,38 @@ export default async function AccountabilityIndexPage() {
               />
             ))}
 
-            {/* ── 已结束小组（折叠到底部）──────────────────── */}
+            {/* ── 已结束小组（默认折叠，点击展开查看记录）── */}
             {completedGroups.length > 0 && (
-              <div className="pt-2 space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-300 px-1">
-                  已结束小组 ✓
-                </p>
-                {completedGroups.map(g => (
-                  <GroupCard
-                    key={g.id}
-                    g={g}
-                    userId={user.id}
-                    weekCheckins={weekCheckins}
-                    myVigilToday={myVigilToday}
-                    weekStart={weekStart}
-                    today={today}
-                    dimmed={true}
-                  />
-                ))}
-              </div>
+              <details className="pt-2 group/ended">
+                <summary className="
+                  list-none flex items-center gap-2 px-1 py-1.5 cursor-pointer select-none
+                  text-[11px] font-semibold uppercase tracking-wider text-stone-300
+                  hover:text-stone-400 transition-colors rounded-xl
+                ">
+                  {/* 旋转箭头：折叠时朝右，展开时朝下 */}
+                  <span className="transition-transform duration-200 group-open/ended:rotate-90 text-stone-200">
+                    ▶
+                  </span>
+                  已结束小组 ({completedGroups.length})
+                  <span className="ml-auto text-[10px] text-stone-200 font-normal normal-case tracking-normal">
+                    点击展开仅查看记录
+                  </span>
+                </summary>
+                <div className="mt-2 space-y-2">
+                  {completedGroups.map(g => (
+                    <GroupCard
+                      key={g.id}
+                      g={g}
+                      userId={user.id}
+                      weekCheckins={weekCheckins}
+                      myVigilToday={myVigilToday}
+                      weekStart={weekStart}
+                      today={today}
+                      dimmed={true}
+                    />
+                  ))}
+                </div>
+              </details>
             )}
           </>
         )}

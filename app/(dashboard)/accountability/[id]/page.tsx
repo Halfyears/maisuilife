@@ -64,9 +64,10 @@ export default async function AccountabilityGroupPage({
   const members = (membersRes.data ?? []) as { user_id: string; display_name: string; status: string }[]
   const memberIds = members.map(m => m.user_id)
 
-  const today     = todayLocal()
+  const today       = todayLocal()
   const isOrganizer = group.organizer_id === user.id
   const isVigil     = group.group_type === 'vigil'
+  const isEnded     = group.status === 'ended'
 
   // ── Vigil track: fetch today's presences + prayer log ─────
   let vigilPresences:  VigilPresence[] = []
@@ -196,6 +197,15 @@ export default async function AccountabilityGroupPage({
         </div>
       )}
 
+      {/* 已结束小组提示横幅 */}
+      {isEnded && (
+        <div className="bg-stone-100 border-b border-stone-200 px-5 py-2.5 text-center">
+          <p className="text-xs font-semibold text-stone-500">
+            🏁 此小组已结束 · 仅可查看历史记录，无法继续打卡或更新
+          </p>
+        </div>
+      )}
+
       <main className="flex-1 mx-auto w-full max-w-md px-4 pt-5 pb-32 space-y-5">
 
         {/* ── 守望相助视图 ─────────────────────────────────── */}
@@ -244,7 +254,7 @@ export default async function AccountabilityGroupPage({
               </div>
             </div>
 
-            {/* 守望互动面板 */}
+            {/* 守望互动面板（已结束小组仅展示历史，不可新增） */}
             <VigilPanel
               groupId={groupId}
               myPresence={myVigilPresence}
@@ -252,38 +262,43 @@ export default async function AccountabilityGroupPage({
               initialPrayers={initialPrayers}
               memberCount={members.length}
               myUserId={user.id}
+              readOnly={isEnded}
             />
 
-            {/* 邀请码 */}
-            <InviteCodeCard code={group.invite_code} name={group.name} isOrganizer={isOrganizer} isVigil />
-
-            {/* 普通成员退出按钮 */}
-            {!isOrganizer && !isSuperAdmin && (
-              <LeaveGroupButton groupId={groupId} />
+            {/* 已结束小组隐藏邀请码和退出按钮 */}
+            {!isEnded && (
+              <>
+                <InviteCodeCard code={group.invite_code} name={group.name} isOrganizer={isOrganizer} isVigil />
+                {!isOrganizer && !isSuperAdmin && (
+                  <LeaveGroupButton groupId={groupId} />
+                )}
+              </>
             )}
           </>
         ) : (
           <>
-            {/* ── 今日打卡 ─────────────────────────────────── */}
-            <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm shadow-amber-900/5">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">今日打卡</p>
-                  <p className="text-sm font-bold text-stone-900 mt-0.5">{today}</p>
+            {/* ── 今日打卡（已结束小组不显示此区块）────────── */}
+            {!isEnded && (
+              <div className="rounded-2xl border border-stone-100 bg-white/90 px-5 py-4 shadow-sm shadow-amber-900/5">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">今日打卡</p>
+                    <p className="text-sm font-bold text-stone-900 mt-0.5">{today}</p>
+                  </div>
+                  {myCheckin && <StatusBadge status={myCheckin.status} />}
                 </div>
-                {myCheckin && <StatusBadge status={myCheckin.status} />}
+                {myTodayScheduled ? (
+                  <CheckinButton
+                    groupId={groupId}
+                    today={today}
+                    currentStatus={myCheckin?.status ?? null}
+                    currentNote={myCheckin?.note ?? null}
+                  />
+                ) : (
+                  <p className="text-xs text-stone-400 text-center py-2">今天不在约定打卡日 🌿</p>
+                )}
               </div>
-              {myTodayScheduled ? (
-                <CheckinButton
-                  groupId={groupId}
-                  today={today}
-                  currentStatus={myCheckin?.status ?? null}
-                  currentNote={myCheckin?.note ?? null}
-                />
-              ) : (
-                <p className="text-xs text-stone-400 text-center py-2">今天不在约定打卡日 🌿</p>
-              )}
-            </div>
+            )}
 
             {/* ── 目标信息 ─────────────────────────────────── */}
             {group.goal_title && (
@@ -324,8 +339,10 @@ export default async function AccountabilityGroupPage({
               </div>
             )}
 
-            {/* ── 邀请码 ──────────────────────────────────── */}
-            <InviteCodeCard code={group.invite_code} name={group.name} isOrganizer={isOrganizer} />
+            {/* ── 邀请码（已结束小组不显示）────────────────── */}
+            {!isEnded && (
+              <InviteCodeCard code={group.invite_code} name={group.name} isOrganizer={isOrganizer} />
+            )}
 
             {/* ── 本周进度 ─────────────────────────────────── */}
             <WeeklyBanner
@@ -343,8 +360,8 @@ export default async function AccountabilityGroupPage({
               <MemberProgressList members={memberProgress} myUserId={user.id} />
             </section>
 
-            {/* ── 普通成员退出按钮 ─────────────────────────── */}
-            {!isOrganizer && !isSuperAdmin && (
+            {/* ── 普通成员退出按钮（已结束小组不显示）──────── */}
+            {!isEnded && !isOrganizer && !isSuperAdmin && (
               <LeaveGroupButton groupId={groupId} />
             )}
 
