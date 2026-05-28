@@ -25,8 +25,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'missing_fellowship_id' }, { status: 400 })
   }
 
-  const db    = createServiceClient()
-  const today = new Date().toISOString().slice(0, 10)
+  const db = createServiceClient()
+
+  // 优先使用客户端传来的本地日期，确保与主内室提交使用同一日期键
+  // 回退至服务器 UTC 日期（两者均使用 YYYY-MM-DD 格式）
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+  const clientDate_raw: unknown = body.client_date
+  const today = (typeof clientDate_raw === 'string' && DATE_RE.test(clientDate_raw))
+    ? clientDate_raw
+    : new Date().toISOString().slice(0, 10)
 
   // ── Verify membership ────────────────────────────────
   const { data: membership } = await db

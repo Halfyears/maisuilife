@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useTransition, useEffect } from 'react'
+import { useState, useCallback, useTransition, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { MemberCard } from './member-card'
@@ -16,6 +16,11 @@ export function FellowshipView({ data }: FellowshipViewProps) {
   const [silentSent, setSilentSent]  = useState(false)
   const [silentError, setSilentError] = useState(false)
 
+  // ── 防止 router 引用变化或组件 re-render 导致定时器重复触发 ──
+  const refreshFiredRef = useRef(false)
+  const routerRef       = useRef(router)
+  routerRef.current     = router          // 始终保持最新 router，但不触发 effect
+
   const handleSilentEntry = useCallback(async () => {
     setSilentError(false)
 
@@ -23,7 +28,11 @@ export function FellowshipView({ data }: FellowshipViewProps) {
       const res = await fetch('/api/fellowship/silent', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ fellowship_id: data.fellowship_id }),
+        body:    JSON.stringify({
+          fellowship_id: data.fellowship_id,
+          // 传入浏览器本地日期，与内室提交保持一致
+          client_date: new Intl.DateTimeFormat('en-CA').format(new Date()),
+        }),
       })
 
       if (!res.ok) throw new Error('silent_failed')
@@ -36,15 +45,19 @@ export function FellowshipView({ data }: FellowshipViewProps) {
     }
   }, [data.fellowship_id])
 
-  // 静默同行成功后，延迟 5.5 秒再执行页面刷新
-  // useEffect + cleanup 确保组件卸载时定时器被清除
+  // 静默同行成功后，延迟 5.5 秒执行一次页面刷新（仅触发一次）
+  // refreshFiredRef 防止 router 引用变化时 effect 重跑导致二次刷新
   useEffect(() => {
     if (!silentSent) return
+    if (refreshFiredRef.current) return   // 已经安排过了，直接退出
+    refreshFiredRef.current = true
+
     const timer = setTimeout(() => {
-      startTransition(() => router.refresh())
+      startTransition(() => routerRef.current.refresh())
     }, 5500)
     return () => clearTimeout(timer)
-  }, [silentSent, router])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [silentSent])  // 只依赖 silentSent；router 通过 ref 使用，不加入依赖
 
   return (
     <div className="flex flex-col gap-4">

@@ -75,6 +75,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'missing_fellowship_id' }, { status: 400 })
   }
 
+  // 优先使用客户端传来的本地日期（?client_date=YYYY-MM-DD），
+  // 确保与内室提交和静默同行使用同一日期键；回退至服务器 UTC 日期
+  const DATE_RE    = /^\d{4}-\d{2}-\d{2}$/
+  const clientDate = req.nextUrl.searchParams.get('client_date') ?? ''
+
   // ── 1. Service-role client for raw queries ────────────
   // Using service role so we can apply our own access rules
   // rather than fighting RLS for cross-member reads.
@@ -121,7 +126,9 @@ export async function GET(req: NextRequest) {
   }
 
   const memberIds = members.map((m) => m.user_id)
-  const today     = new Date().toISOString().slice(0, 10)
+  const today     = DATE_RE.test(clientDate)
+    ? clientDate
+    : new Date().toISOString().slice(0, 10)
 
   // ── 5. Fetch today's visible alignments for all members ─
   // SELECT only columns needed. ai_summary_enc is fetched but
