@@ -72,19 +72,22 @@ export async function POST(req: NextRequest) {
 
     rawTranscript = transcript
 
-    // ── 3a. 查询该用户最近 7 天内已使用的经文引用（千人千面：避免重复）──────
+    // ── 3a. 查询该用户最近 5 条已使用的经文引用（千人千面：避免重复）──────
     let recentRefs: string[] = []
     try {
-      const { data: recentLogs } = await supabase
+      const { data: recentLogs, error: refError } = await supabase
         .from('spiritual_logs')
         .select('bible_ref')
         .eq('user_id', user.id)
         .not('bible_ref', 'is', null)
         .order('created_at', { ascending: false })
         .limit(5)
-      recentRefs = (recentLogs ?? [])
-        .map((r: { bible_ref: string | null }) => r.bible_ref ?? '')
-        .filter(Boolean)
+      // 同时检查 error 字段：Supabase 错误不一定抛异常
+      if (!refError && recentLogs) {
+        recentRefs = recentLogs
+          .map((r: { bible_ref: string | null }) => r.bible_ref ?? '')
+          .filter(Boolean)
+      }
     } catch {
       // 非关键路径：查询失败不阻断主流程
     }

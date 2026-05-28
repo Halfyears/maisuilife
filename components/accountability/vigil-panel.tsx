@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { VigilPresence } from '@/types'
 
@@ -34,6 +34,13 @@ export function VigilPanel({ groupId, myPresence, initialPresences, initialPraye
   const [presences, setPresences] = useState<VigilPresence[]>(initialPresences)
   const [prayers,   setPrayers]   = useState<Prayer[]>(initialPrayers)
   const [error,     setError]     = useState<string | null>(null)
+
+  // 错误提示 4 秒后自动消除，避免一直残留
+  useEffect(() => {
+    if (!error) return
+    const timer = setTimeout(() => setError(null), 4000)
+    return () => clearTimeout(timer)
+  }, [error])
 
   async function handlePresence() {
     setLoading(true)

@@ -79,9 +79,12 @@ export default async function SettingsPage() {
   type AcctGroupRow = { id: string; name: string; status?: string; deleted_at?: string | null } | null
   const acctGroups = (acctRes.data ?? [])
     .map(r => r.accountability_groups as AcctGroupRow)
-    .filter((g): g is { id: string; name: string } =>
-      !!g?.id && g.status !== 'ended' && g.status !== 'deleted' && !g.deleted_at
-    )
+    .filter((g): g is { id: string; name: string } => {
+      if (!g || !g.id) return false                    // 关联查询 null 或无 id 时排除
+      if (g.status === 'ended' || g.status === 'deleted') return false
+      if (g.deleted_at) return false
+      return true
+    })
 
   return (
     <div className="flex min-h-dvh flex-col">

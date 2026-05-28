@@ -115,8 +115,9 @@ export async function generateAlignmentResponse({
   const versesText = SCRIPTURE_BANK.map(s => {
     const matched  = tagList.length === 0 || tagList.some(t => s.mood === t) || s.mood === '通用'
     const isRecent = recentRefSet.has(s.ref)
-    // ★ 心境匹配优先；⚠️ 最近用过，尽量避免；○ 次选
-    const marker = isRecent ? '⚠️' : matched ? '★' : '○'
+    // 优先级：心境匹配且未近期使用 → ★；近期使用过 → ⚠️；其他 → ○
+    // 注意：isRecent 不能覆盖 matched，否则同心境经文会被全部降级
+    const marker = (matched && !isRecent) ? '★' : isRecent ? '⚠️' : '○'
     return `${marker}【${s.mood}】${s.text} ——《${s.ref}》`
   }).join('\n')
 
