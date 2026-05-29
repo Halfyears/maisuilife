@@ -117,7 +117,7 @@ export function DailyForm({ fellowshipId, existingAlignment }: DailyFormProps) {
               <BookOpen className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400 mb-1.5">
-                  今日领受的经文
+                  内室领受的经文
                 </p>
                 <p className="text-sm text-stone-700 italic leading-relaxed">
                   &ldquo;{bibleVerse}&rdquo;
