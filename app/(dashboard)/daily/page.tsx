@@ -27,7 +27,7 @@ export default async function DailyPage() {
   const todayDate   = new Date(today + 'T12:00:00')
   const displayDate = `${todayDate.getMonth() + 1}月${todayDate.getDate()}日 · 星期${WEEKDAYS[todayDate.getDay()]}`
 
-  const [alignmentRes, membershipRes, pastoralRes] = await Promise.all([
+  const [alignmentRes, membershipRes, pastoralRes, logRes] = await Promise.all([
     supabase
       .from('daily_alignments')
       .select('id, status_tag')
@@ -49,9 +49,21 @@ export default async function DailyPage() {
       .eq('status', 'PENDING')
       .limit(1)
       .maybeSingle(),
+
+    // 今日 AI 生成的经文（用于已提交后的锁定视图，与首页公共经文不同）
+    supabase
+      .from('spiritual_logs')
+      .select('bible_verse, bible_ref')
+      .eq('user_id', user.id)
+      .eq('client_date', today)
+      .not('bible_verse', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const existing     = alignmentRes.data
+  const todayLog     = logRes.data
   const fellowshipId = membershipRes.data?.fellowship_id ?? undefined
 
   let leaderName: string | undefined
@@ -99,7 +111,11 @@ export default async function DailyPage() {
           {/* 内室始终开放：今日已提交时以只读模式显示，0点后恢复输入 */}
           <DailyForm
             fellowshipId={fellowshipId}
-            existingAlignment={existing ?? null}
+            existingAlignment={existing ? {
+              ...existing,
+              bible_verse: todayLog?.bible_verse ?? null,
+              bible_ref:   todayLog?.bible_ref   ?? null,
+            } : null}
           />
 
           <DonationWidget pageKey="daily" />

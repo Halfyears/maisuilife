@@ -10,7 +10,12 @@ import type { StatusTagValue } from '@/lib/constants'
 
 interface DailyFormProps {
   fellowshipId?:     string
-  existingAlignment: { id: string; status_tag: string } | null
+  existingAlignment: {
+    id:          string
+    status_tag:  string
+    bible_verse?: string | null
+    bible_ref?:   string | null
+  } | null
 }
 
 interface AIResult {
@@ -91,17 +96,40 @@ export function DailyForm({ fellowshipId, existingAlignment }: DailyFormProps) {
 
   // ── 今日已提交（由服务端传入）但本次会话未生成 AI 结果：锁定视图 ──
   if (existingAlignment && !aiResult) {
-    const tagDisplay = existingAlignment.status_tag || '已记录'
+    const tagDisplay  = existingAlignment.status_tag || '已记录'
+    const bibleVerse  = existingAlignment.bible_verse
+    const bibleRef    = existingAlignment.bible_ref
     return (
       <div className="rounded-2xl border border-amber-100/80 bg-gradient-to-br
-                      from-amber-50/60 to-orange-50/40 px-6 py-10 text-center
+                      from-amber-50/60 to-orange-50/40 px-6 py-8 text-center
                       shadow-md shadow-amber-900/5">
         <Lock className="h-8 w-8 text-amber-300 mx-auto mb-4" />
         <p className="text-base font-bold text-stone-700 mb-1">今日内室已完成</p>
         <p className="text-sm text-stone-500">
           今日心境：<span className="font-semibold text-amber-600">{tagDisplay}</span>
         </p>
-        <p className="text-xs text-stone-400 mt-3 mb-8">明日 00:00 重新开放</p>
+        <p className="text-xs text-stone-400 mt-2 mb-6">明日 00:00 重新开放</p>
+
+        {/* 今日领受的经文 — 与首页公共经文不同，是 AI 按心境为用户选的 */}
+        {bibleVerse && (
+          <div className="rounded-xl border border-amber-100 bg-white/70 px-5 py-4 mb-6 text-left">
+            <div className="flex items-start gap-2.5">
+              <BookOpen className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400 mb-1.5">
+                  今日领受的经文
+                </p>
+                <p className="text-sm text-stone-700 italic leading-relaxed">
+                  &ldquo;{bibleVerse}&rdquo;
+                </p>
+                {bibleRef && (
+                  <p className="mt-2 text-xs text-stone-400">—— {bibleRef}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <Link
           href="/fellowship"
           className="inline-flex items-center justify-center gap-2 rounded-2xl
