@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Target, Plus, LogIn } from 'lucide-react'
+import { Target, Plus, LogIn, Home } from 'lucide-react'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { GlobalNotice } from '@/components/shared/global-notice'
@@ -100,6 +100,15 @@ export default async function AccountabilityIndexPage() {
           >
             <Plus className="h-3.5 w-3.5" />
             发起
+          </Link>
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white
+                       px-3 py-1.5 text-xs font-medium text-stone-500
+                       hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+          >
+            <Home className="h-3.5 w-3.5" />
+            首页
           </Link>
         </div>
       </header>
