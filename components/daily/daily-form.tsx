@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Loader2, BookOpen, Lock } from 'lucide-react'
 import { StatusSelector } from './status-selector'
 import { cn } from '@/lib/utils'
@@ -21,12 +21,16 @@ interface AIResult {
   contributed_wheat: boolean
 }
 
+// 硬编码兜底：若经文库为空时使用（不应发生，但防御性保护）
+const FALLBACK_VERSE = { verse: '你们要将一切的忧虑卸给神，因为祂顾念你们。', verse_ref: '彼得前书 5:7' }
+
 function getFallbackVerse(tags: StatusTagValue[]): { verse: string; verse_ref: string } {
   const pool = tags.length > 0
     ? SCRIPTURE_BANK.filter(s => tags.some(t => (s.mood as string) === t) || s.mood === '通用')
     : SCRIPTURE_BANK.filter(s => s.mood === '通用')
   const effective = pool.length > 0 ? pool : [...SCRIPTURE_BANK]
-  const pick = effective[Math.floor(Math.random() * effective.length)]
+  if (effective.length === 0) return FALLBACK_VERSE
+  const pick = effective[Math.floor(Math.random() * effective.length)]!
   return { verse: pick.text, verse_ref: pick.ref }
 }
 
@@ -35,8 +39,6 @@ export function DailyForm({ fellowshipId, existingAlignment }: DailyFormProps) {
   const [textInput,    setTextInput]    = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [aiResult,     setAiResult]     = useState<AIResult | null>(null)
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const toggleTag = useCallback((tag: StatusTagValue) => {
     setSelectedTags(prev =>
@@ -84,7 +86,8 @@ export function DailyForm({ fellowshipId, existingAlignment }: DailyFormProps) {
       setIsSubmitting(false)
     }
     // ── 无自动跳转：原地停留，让用户充分默想消化 ──────────────
-  }, [canSubmit, textInput, selectedTags, fellowshipId])
+  // deps: isSubmitting 替代派生值 canSubmit，避免每次 canSubmit 变化都重建 callback
+  }, [textInput, selectedTags, fellowshipId, isSubmitting])
 
   // ── 今日已提交（由服务端传入）但本次会话未生成 AI 结果：锁定视图 ──
   if (existingAlignment && !aiResult) {
@@ -195,7 +198,6 @@ export function DailyForm({ fellowshipId, existingAlignment }: DailyFormProps) {
       {/* ── 文字输入区 ─────────────────────────────── */}
       <div className="px-5 pt-4 pb-1">
         <textarea
-          ref={textareaRef}
           value={textInput}
           onChange={e => setTextInput(e.target.value)}
           placeholder="💡 聆听内室的微声，在这里卸下您的重担，写下您最真实的呼求..."
