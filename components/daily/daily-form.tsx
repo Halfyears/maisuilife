@@ -160,14 +160,14 @@ export function DailyForm({ fellowshipId, existingAlignment }: DailyFormProps) {
           </p>
         </div>
 
-        {/* 今日经文 */}
+        {/* 内室领受的经文（与首页公共经文无关，是 AI 按心境为用户选的） */}
         <div className="rounded-2xl border border-stone-100 bg-white/90 px-6 py-5
                         shadow-md shadow-amber-900/5 backdrop-blur-md">
           <div className="flex items-start gap-3">
             <BookOpen className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400 mb-2">
-                今日经文
+                内室领受的经文
               </p>
               <p className="text-base leading-relaxed text-stone-700 italic font-medium">
                 "{aiResult.verse}"
