@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Wheat, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { AddToHomeScreen, shouldShowA2HS, markA2HSShown } from '@/components/shared/add-to-home-screen'
 
 const ERROR_MAP: Record<string, string> = {
   invalid_name:   '姓名至少需要 2 个字符',
@@ -28,6 +29,8 @@ export default function RegisterPage() {
   const [website, setWebsite]       = useState('')
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState<string | null>(null)
+  const [showA2HS, setShowA2HS]     = useState(false)
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,11 +55,15 @@ export default function RegisterPage() {
       if (data.success) {
         // Auto sign-in after successful registration
         const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
-        if (signInErr) {
-          // Registration succeeded but sign-in failed; redirect to login
-          router.push('/login?registered=1')
+        const dest = signInErr ? '/login?registered=1' : '/'
+
+        // 移动端首次注册：先显示"添加到主屏幕"引导，再跳转
+        if (shouldShowA2HS()) {
+          setPendingHref(dest)
+          setShowA2HS(true)
+          // markA2HSShown() 移至用户确认后调用，确保用户真正看到了引导
         } else {
-          router.push('/')
+          router.push(dest)
         }
         return
       }
@@ -191,5 +198,16 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+
+    {/* 添加到主屏幕引导弹窗 — 注册成功后在移动端首次显示 */}
+    {showA2HS && (
+      <AddToHomeScreen
+        onClose={() => {
+          markA2HSShown()          // 用户确认后才标记，确保弹窗被真正看到
+          setShowA2HS(false)
+          router.push(pendingHref ?? '/')
+        }}
+      />
+    )}
   )
 }
