@@ -65,7 +65,7 @@ export default async function DailyPage() {
 
   const existing     = alignmentRes.data
   // 非关键路径：查询失败时静默降级，锁定视图仍可正常显示（只是没有经文）
-  if (logRes.error) console.error('[daily] spiritual_logs query error:', logRes.error.message)
+  if (logRes.error) console.error('[daily] spiritual_logs query error:', logRes.error.code, logRes.error.message, logRes.error.details)
   const todayLog     = logRes.data?.[0] ?? null
   const fellowshipId = membershipRes.data?.fellowship_id ?? undefined
 
