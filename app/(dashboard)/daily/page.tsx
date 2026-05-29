@@ -51,6 +51,7 @@ export default async function DailyPage() {
       .maybeSingle(),
 
     // 今日 AI 生成的经文（用于已提交后的锁定视图，与首页公共经文不同）
+    // .limit(1) + data?.[0] 比 .maybeSingle() 更安全，避免 PGRST116 多行异常
     supabase
       .from('spiritual_logs')
       .select('bible_verse, bible_ref')
@@ -58,12 +59,13 @@ export default async function DailyPage() {
       .eq('client_date', today)
       .not('bible_verse', 'is', null)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .limit(1),
   ])
 
   const existing     = alignmentRes.data
-  const todayLog     = logRes.data
+  // 非关键路径：查询失败时静默降级，锁定视图仍可正常显示（只是没有经文）
+  if (logRes.error) console.error('[daily] spiritual_logs query error:', logRes.error.message)
+  const todayLog     = logRes.data?.[0] ?? null
   const fellowshipId = membershipRes.data?.fellowship_id ?? undefined
 
   let leaderName: string | undefined
@@ -112,7 +114,8 @@ export default async function DailyPage() {
           <DailyForm
             fellowshipId={fellowshipId}
             existingAlignment={existing ? {
-              ...existing,
+              id:          existing.id,
+              status_tag:  existing.status_tag,
               bible_verse: todayLog?.bible_verse ?? null,
               bible_ref:   todayLog?.bible_ref   ?? null,
             } : null}
