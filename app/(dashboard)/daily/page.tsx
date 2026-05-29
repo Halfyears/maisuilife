@@ -96,11 +96,11 @@ export default async function DailyPage() {
             <PastoralNotification requestId={pastoralRes.data.id} leaderName={leaderName} />
           )}
 
-          {existing ? (
-            <AlreadySubmitted statusTag={existing.status_tag} />
-          ) : (
-            <DailyForm fellowshipId={fellowshipId} />
-          )}
+          {/* 内室始终开放：今日已提交时以只读模式显示，0点后恢复输入 */}
+          <DailyForm
+            fellowshipId={fellowshipId}
+            existingAlignment={existing ?? null}
+          />
 
           <DonationWidget pageKey="daily" />
         </div>
@@ -111,29 +111,4 @@ export default async function DailyPage() {
   )
 }
 
-function AlreadySubmitted({ statusTag }: { statusTag: string }) {
-  return (
-    <div className="flex flex-col items-center gap-5 py-12 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full
-                      bg-gradient-to-br from-amber-100 to-orange-100 text-3xl shadow-sm">
-        ✓
-      </div>
-      <div>
-        <p className="text-base font-bold text-stone-900 tracking-wide">今日心声已放在祂面前</p>
-        <p className="mt-1 text-sm font-medium text-stone-500">心境：{statusTag}</p>
-      </div>
-      <p className="max-w-[220px] text-xs text-stone-400 leading-relaxed">
-        今日祷告已记录，明日内室将在午夜 00:00 重新开放。
-      </p>
-      <Link
-        href="/fellowship"
-        className="rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600
-                   px-8 py-3 text-sm font-bold text-white tracking-wide
-                   shadow-md shadow-amber-500/20 transition-all hover:opacity-90 active:scale-[0.98]"
-      >
-        前往麦穗团契
-      </Link>
-    </div>
-  )
-}
 

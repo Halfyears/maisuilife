@@ -1,15 +1,16 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Loader2, BookOpen } from 'lucide-react'
+import Link from 'next/link'
+import { useState, useRef, useCallback } from 'react'
+import { Loader2, BookOpen, Lock } from 'lucide-react'
 import { StatusSelector } from './status-selector'
 import { cn } from '@/lib/utils'
 import { SCRIPTURE_BANK } from '@/lib/constants'
 import type { StatusTagValue } from '@/lib/constants'
 
 interface DailyFormProps {
-  fellowshipId?: string
+  fellowshipId?:     string
+  existingAlignment: { id: string; status_tag: string } | null
 }
 
 interface AIResult {
@@ -29,8 +30,7 @@ function getFallbackVerse(tags: StatusTagValue[]): { verse: string; verse_ref: s
   return { verse: pick.text, verse_ref: pick.ref }
 }
 
-export function DailyForm({ fellowshipId }: DailyFormProps) {
-  const router = useRouter()
+export function DailyForm({ fellowshipId, existingAlignment }: DailyFormProps) {
   const [selectedTags, setSelectedTags] = useState<StatusTagValue[]>([])
   const [textInput,    setTextInput]    = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -67,7 +67,6 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       if (res.ok) {
         const data: AIResult = await res.json()
         setAiResult(data)
-        // 5 秒自动刷新通过 useEffect + cleanup 管理，避免组件卸载后内存泄漏
       } else {
         throw new Error('api_error')
       }
@@ -75,10 +74,11 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
       // 无条件通关：API 失败时展示本地经文，绝不拦截
       const { verse, verse_ref } = getFallbackVerse(selectedTags)
       setAiResult({
-        alignmentId: '',
-        comfort:     '你今日的呼求，神没有一字遗漏，祂都听见了。无论你带来的是重担、疲惫还是沉默，这一切祂都知道。愿这段经文在你心中慢慢生根，成为今日的力量与安慰。',
+        alignmentId:       '',
+        comfort:           '你今日的呼求，神没有一字遗漏，祂都听见了。无论你带来的是重担、疲惫还是沉默，这一切祂都知道。愿这段经文在你心中慢慢生根，成为今日的力量与安慰。',
         verse,
         verse_ref,
+        contributed_wheat: false,
       })
     } finally {
       setIsSubmitting(false)
@@ -86,13 +86,31 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
     // ── 无自动跳转：原地停留，让用户充分默想消化 ──────────────
   }, [canSubmit, textInput, selectedTags, fellowshipId])
 
-  // ── 成功提交后 5 秒自动切换至「今日已完成」视图 ──────────────
-  // 使用 useEffect + cleanup 防止组件卸载后 setTimeout 仍执行造成内存泄漏
-  useEffect(() => {
-    if (!aiResult?.alignmentId) return   // 仅在真实提交成功时触发（fallback 不触发）
-    const timer = setTimeout(() => router.refresh(), 5000)
-    return () => clearTimeout(timer)
-  }, [aiResult, router])
+  // ── 今日已提交（由服务端传入）但本次会话未生成 AI 结果：锁定视图 ──
+  if (existingAlignment && !aiResult) {
+    const tagDisplay = existingAlignment.status_tag || '已记录'
+    return (
+      <div className="rounded-2xl border border-amber-100/80 bg-gradient-to-br
+                      from-amber-50/60 to-orange-50/40 px-6 py-10 text-center
+                      shadow-md shadow-amber-900/5">
+        <Lock className="h-8 w-8 text-amber-300 mx-auto mb-4" />
+        <p className="text-base font-bold text-stone-700 mb-1">今日内室已完成</p>
+        <p className="text-sm text-stone-500">
+          今日心境：<span className="font-semibold text-amber-600">{tagDisplay}</span>
+        </p>
+        <p className="text-xs text-stone-400 mt-3 mb-8">明日 00:00 重新开放</p>
+        <Link
+          href="/fellowship"
+          className="inline-flex items-center justify-center gap-2 rounded-2xl
+                     bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3
+                     text-sm font-bold text-white shadow-md shadow-orange-400/30
+                     hover:opacity-90 active:scale-[0.98] transition-all"
+        >
+          前往麦穗团契 →
+        </Link>
+      </div>
+    )
+  }
 
   // ── AI 结果视图（留在内室页，不跳转）────────────────────────
   if (aiResult) {
@@ -146,18 +164,16 @@ export function DailyForm({ fellowshipId }: DailyFormProps) {
           愿你在此默想，让圣言在心中慢慢生根。
         </p>
 
-        {/* 完成按钮：主动切换至「今日已完成」视图 */}
-        {aiResult.alignmentId && (
-          <button
-            type="button"
-            onClick={() => router.refresh()}
-            className="w-full rounded-2xl border border-green-200 bg-green-50
-                       py-3 text-sm font-semibold text-green-700
-                       hover:bg-green-100 active:scale-[0.98] transition-all"
-          >
-            ✓ 完成今日内室
-          </button>
-        )}
+        {/* 前往团契 */}
+        <Link
+          href="/fellowship"
+          className="w-full flex items-center justify-center rounded-2xl
+                     bg-gradient-to-r from-amber-500 to-orange-500 py-4
+                     text-sm font-bold text-white shadow-md shadow-orange-400/30
+                     hover:opacity-90 active:scale-[0.98] transition-all"
+        >
+          前往麦穗团契 →
+        </Link>
       </div>
     )
   }
