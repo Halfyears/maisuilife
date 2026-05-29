@@ -6,6 +6,7 @@ import { todayLocal, offsetDate } from '@/lib/date'
 import { LocalDateChip } from '@/components/shared/local-date-display'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { TimeGreeting } from '@/components/home/time-greeting'
+import { A2HSAutoTrigger } from '@/components/shared/a2hs-auto-trigger'
 import { getWeekStart, getScheduledDates } from '@/lib/accountability'
 import { getAutoScripture } from '@/lib/scripture-pool'
 
@@ -320,6 +321,9 @@ export default async function RootPage() {
       </main>
 
       <BottomNav />
+
+      {/* 覆盖所有登录入口（含 Google/Apple OAuth）的添加主屏幕引导 */}
+      <A2HSAutoTrigger />
     </div>
   )
 }
