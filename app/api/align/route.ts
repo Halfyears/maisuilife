@@ -121,8 +121,13 @@ export async function POST(req: NextRequest) {
       ? clientDate_raw
       : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date())
 
-    // ── 6. Check if first submission today (for wheat count) ────────────
-    const { data: existingAlignment } = await supabase
+    // ── 6. Service client：绕过 RLS，确保所有写入成功 ────────────────────
+    // Google / Apple OAuth 用户可能缺少 RLS UPDATE 策略，导致 UPSERT 静默失败。
+    // daily_alignments 和 spiritual_logs 统一改用 svcDb（user.id 已由 auth 验证）。
+    const svcDb = createServiceClient()
+
+    // ── 6a. Check if first submission today (for wheat count) ────────────
+    const { data: existingAlignment } = await svcDb
       .from('daily_alignments')
       .select('id')
       .eq('user_id', user.id)
@@ -131,7 +136,7 @@ export async function POST(req: NextRequest) {
     const isFirstSubmission = !existingAlignment
 
     // ── 6b. Persist to daily_alignments (upsert by user+date) ────────────
-    const { data: alignment, error: dbError } = await supabase
+    const { data: alignment, error: dbError } = await svcDb
       .from('daily_alignments')
       .upsert(
         {
@@ -149,14 +154,18 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (dbError) {
-      // DB 写入失败记录日志，但不阻断 AI 响应返回给用户
-      console.error('[align] db upsert error:', dbError.code, dbError.message)
+      console.error('[align] daily_alignments UPSERT FAILED', {
+        code:    dbError.code,
+        message: dbError.message,
+        details: dbError.details,
+        userId:  user.id,
+        clientDate,
+      })
+      // UPSERT 失败则锁定视图无法显示，直接告知客户端重试
+      return NextResponse.json({ error: 'db_error' }, { status: 500 })
     }
 
     // ── 7. Persist to spiritual_logs (growth timeline) ───────────────────
-    // 使用 service client 绕过 RLS，确保 bible_verse 写入成功
-    // （RLS INSERT 策略缺失时 supabase 用户客户端会静默失败）
-    const svcDb = createServiceClient()
     const { error: logErr } = await svcDb
       .from('spiritual_logs')
       .insert({
