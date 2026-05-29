@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { BarChart2, Sprout, BookOpen, CalendarDays, Home } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { todayLocal, offsetDate } from '@/lib/date'
 import { BottomNav } from '@/components/shared/bottom-nav'
 import { GlobalNotice } from '@/components/shared/global-notice'
@@ -63,9 +63,10 @@ export default async function GrowthPage() {
     .order('date', { ascending: false })
 
   // ── Rich data: from spiritual_logs (AI comfort + verse per submission) ──
-  // spiritual_logs is populated only after migration 010 is applied.
-  // If empty, the timeline falls back to showing alignment-only cards.
-  const { data: logs } = await supabase
+  // 使用 service client 绕过 RLS，确保能读到用户自己的经文和 AI 回应
+  // （spiritual_logs 无 RLS SELECT 策略时，用户客户端会静默返回空）
+  const db = createServiceClient()
+  const { data: logs } = await db
     .from('spiritual_logs')
     .select('id, mood, ai_comfort, bible_verse, bible_ref, client_date, created_at')
     .eq('user_id', user.id)
@@ -114,7 +115,7 @@ export default async function GrowthPage() {
       return {
         id:          rich?.id ?? r.date,
         date:        r.date,
-        mood:        r.status_tag || rich?.mood || '',
+        mood:        rich?.mood || r.status_tag || '',
         ai_comfort:  rich?.ai_comfort  ?? null,
         bible_verse: rich?.bible_verse ?? null,
         bible_ref:   rich?.bible_ref   ?? null,
