@@ -51,8 +51,9 @@ export default async function DailyPage() {
       .maybeSingle(),
 
     // 今日 AI 生成的经文（用于已提交后的锁定视图，与首页公共经文不同）
+    // 使用 service client (db) 绕过 RLS，确保能读到用户自己当日的经文
     // .limit(1) + data?.[0] 比 .maybeSingle() 更安全，避免 PGRST116 多行异常
-    supabase
+    db
       .from('spiritual_logs')
       .select('bible_verse, bible_ref')
       .eq('user_id', user.id)
