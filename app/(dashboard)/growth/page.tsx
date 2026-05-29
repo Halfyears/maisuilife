@@ -236,12 +236,12 @@ export default async function GrowthPage() {
 
                     {/* 内容卡 */}
                     <div className="flex-1 pb-5">
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <p className="text-xs font-bold text-stone-700">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className="text-sm font-bold text-stone-700">
                           {formatDateCN(item.date)}
                         </p>
                         {item.mood && (
-                          <span className="shrink-0 text-[10px] font-medium text-stone-400">
+                          <span className="shrink-0 text-xs font-medium text-stone-400">
                             {renderTagEmojis(item.mood)}
                           </span>
                         )}
@@ -249,21 +249,21 @@ export default async function GrowthPage() {
 
                       {/* AI 属灵回应 — 仅提交后有 */}
                       {item.ai_comfort ? (
-                        <p className="text-xs text-stone-600 leading-relaxed mb-2">
+                        <p className="text-sm text-stone-600 leading-relaxed mb-2.5">
                           {item.ai_comfort}
                         </p>
                       ) : (
-                        <p className="text-[11px] text-stone-300 italic mb-2">已在内室与祂相遇</p>
+                        <p className="text-xs text-stone-300 italic mb-2">已在内室与祂相遇</p>
                       )}
 
                       {/* 经文 — 仅提交后有 */}
                       {item.bible_verse && (
-                        <div className="rounded-xl border border-amber-100/80 bg-amber-50/60 px-3 py-2.5">
-                          <p className="text-[11px] text-stone-600 italic leading-relaxed">
+                        <div className="rounded-xl border border-amber-100/80 bg-amber-50/60 px-3 py-3">
+                          <p className="text-sm text-stone-600 italic leading-relaxed">
                             "{item.bible_verse}"
                           </p>
                           {item.bible_ref && (
-                            <p className="mt-1 text-[10px] text-stone-400">—— {item.bible_ref}</p>
+                            <p className="mt-1.5 text-xs text-stone-400">—— {item.bible_ref}</p>
                           )}
                         </div>
                       )}
@@ -273,7 +273,7 @@ export default async function GrowthPage() {
               })}
 
               {total > timelineItems.length && (
-                <p className="pt-2 text-center text-[11px] text-stone-300">
+                <p className="pt-2 text-center text-xs text-stone-300">
                   还有更早的内室记录，共 {total} 次
                 </p>
               )}
