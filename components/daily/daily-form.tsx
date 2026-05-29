@@ -68,7 +68,12 @@ export function DailyForm({ fellowshipId, existingAlignment }: DailyFormProps) {
           is_urgent:     false,
           fellowship_id: fellowshipId ?? null,
           // Pass client's actual local clock so the server uses the correct date
-          client_date:   new Intl.DateTimeFormat('en-CA').format(new Date()),
+          // 优先读取 cookie x_local_date（与服务端 todayLocal() 同源），避免跨时区不一致
+          client_date: (() => {
+            const m = document.cookie.match(/(?:^|;\s*)x_local_date=([^;]+)/)
+            const c = m ? m[1]! : ''
+            return /^\d{4}-\d{2}-\d{2}$/.test(c) ? c : new Intl.DateTimeFormat('en-CA').format(new Date())
+          })(),
         }),
       })
       if (res.ok) {

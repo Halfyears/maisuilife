@@ -154,9 +154,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 7. Persist to spiritual_logs (growth timeline) ───────────────────
-    // Stores the AI comfort text + bible verse for the growth timeline.
-    // Uses the RLS client so user_id = auth.uid() check passes.
-    const { error: logErr } = await supabase
+    // 使用 service client 绕过 RLS，确保 bible_verse 写入成功
+    // （RLS INSERT 策略缺失时 supabase 用户客户端会静默失败）
+    const svcDb = createServiceClient()
+    const { error: logErr } = await svcDb
       .from('spiritual_logs')
       .insert({
         user_id:     user.id,
@@ -167,7 +168,14 @@ export async function POST(req: NextRequest) {
         client_date: clientDate,
       })
     if (logErr) {
-      console.error('[align] spiritual_log insert error:', logErr.code, logErr.message)
+      console.error('[align] spiritual_log INSERT FAILED', {
+        code:     logErr.code,
+        message:  logErr.message,
+        details:  logErr.details,
+        hint:     logErr.hint,
+        userId:   user.id,
+        clientDate,
+      })
     }
 
     // ── 7b. Increment wheat counters on first daily submission ──────────
